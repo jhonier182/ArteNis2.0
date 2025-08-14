@@ -1,0 +1,687 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Dimensions,
+  StatusBar,
+  Alert
+} from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { useUser } from '../../context/UserContext';
+import * as ImagePicker from 'expo-image-picker';
+
+const { width, height } = Dimensions.get('window');
+
+interface User {
+  id: string;
+  username: string;
+  fullName: string;
+  bio: string;
+  avatar?: string;
+  followersCount: number;
+  followingCount: number;
+  postsCount: number;
+  isVerified: boolean;
+  studioName?: string;
+  city?: string;
+  specialties?: string[];
+  rating?: number;
+}
+
+export default function ProfileScreen() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { refreshUser } = useUser();
+
+  const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.6:3000';
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const token = await AsyncStorage.getItem('token');
+      console.log('🔑 Token encontrado:', token ? 'Sí' : 'No');
+      
+      if (!token) {
+        console.log('❌ No hay token, redirigiendo a login');
+        router.replace('/auth/login');
+        return;
+      }
+
+      console.log('🌐 Intentando conectar a:', API_BASE_URL);
+      
+      const response = await fetch(`${API_BASE_URL}/api/users/me/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('📡 Respuesta del servidor:', response.status, response.statusText);
+
+      if (response.status === 401) {
+        console.log('🔒 Token expirado, intentando refresh...');
+        // Intentar refresh del token
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        if (refreshToken) {
+          try {
+            const refreshResponse = await fetch(`${API_BASE_URL}/api/users/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken })
+            });
+
+            if (refreshResponse.ok) {
+              const { accessToken } = await refreshResponse.json();
+              await AsyncStorage.setItem('token', accessToken);
+              console.log('✅ Token refrescado, reintentando...');
+              // Reintentar la petición original
+              return fetchProfile();
+            }
+          } catch (refreshError) {
+            console.log('❌ Error al refrescar token:', refreshError);
+          }
+        }
+        
+        // Si no se pudo refrescar, limpiar y redirigir
+        await AsyncStorage.removeItem('token');
+        const SecureStore = await import('expo-secure-store');
+        await SecureStore.deleteItemAsync('refreshToken');
+        Alert.alert('Sesión expirada', 'Por favor inicia sesión nuevamente');
+        router.replace('/auth/login');
+        return;
+      }
+
+      if (response.status === 500) {
+        console.log('💥 Error del servidor (500)');
+        setError('Error del servidor. Intenta más tarde.');
+        return;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('❌ Error en la respuesta:', errorText);
+        setError(`Error ${response.status}: ${errorText}`);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('✅ Datos del perfil recibidos:', data);
+      
+      if (data.user) {
+        setUser(data.user);
+      } else if (data.data && data.data.user) {
+        setUser(data.data.user);
+      } else {
+        console.log('⚠️ Estructura de datos inesperada:', data);
+        setError('Formato de datos inesperado');
+      }
+      
+    } catch (error) {
+      console.error('💥 Error al cargar perfil:', error);
+      setError('Error de conexión. Verifica tu internet.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchProfile();
+    }, [])
+  );
+
+  const handleEditProfile = () => {
+    router.push('/profile/edit');
+  };
+
+  const handleSettings = () => {
+    router.push('/settings/account');
+  };
+
+  const handleRetry = () => {
+    fetchProfile();
+  };
+
+  const handleChangeAvatar = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Permisos', 'Se necesitan permisos para acceder a la galería');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const selectedImage = result.assets[0].uri;
+        
+        // Mostrar loading
+        setLoading(true);
+        
+        try {
+          const token = await AsyncStorage.getItem('token');
+          if (!token) {
+            router.replace('/auth/login');
+            return;
+          }
+
+          const imageFormData = new FormData();
+          imageFormData.append('avatar', {
+            uri: selectedImage,
+            type: 'image/jpeg',
+            name: 'avatar.jpg'
+          } as any);
+
+          const imageResponse = await fetch(`${API_BASE_URL}/api/users/me/avatar`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: imageFormData
+          });
+
+          if (imageResponse.ok) {
+            const imageResult = await imageResponse.json();
+            console.log('✅ Avatar actualizado exitosamente:', imageResult);
+            
+            // Actualizar el estado local del usuario
+            if (user) {
+              setUser({
+                ...user,
+                avatar: imageResult.data.avatar
+              });
+            }
+            
+            Alert.alert('Éxito', 'Foto de perfil actualizada correctamente');
+          } else {
+            const errorData = await imageResponse.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Error al subir imagen');
+          }
+        } catch (error) {
+          console.error('Error al subir imagen:', error);
+          Alert.alert('Error', 'No se pudo actualizar la foto de perfil');
+        } finally {
+          setLoading(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error al seleccionar imagen:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+    }
+  };
+
+
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + ' K';
+    }
+    return num.toString();
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <View style={styles.loadingSpinner}>
+          <Ionicons name="sparkles" size={32} color="#00d4ff" />
+        </View>
+        <Text style={styles.loadingText}>Cargando perfil...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="warning" size={64} color="#ff6b6b" />
+        <Text style={styles.errorTitle}>Error al cargar el perfil</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+          <Text style={styles.retryButtonText}>Reintentar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>No se pudo cargar el perfil</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      
+      {/* Header con icono de configuración a la derecha */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft} />
+        <TouchableOpacity style={styles.settingsButton} onPress={handleSettings}>
+          <Ionicons name="settings-outline" size={24} color="#ffffff" />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Sección del perfil principal */}
+        <View style={styles.profileSection}>
+          {/* Nombre de usuario arriba del avatar */}
+          <Text style={styles.usernameAboveAvatar}>@{user.username}</Text>
+          
+          {/* Avatar circular grande */}
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={handleChangeAvatar}
+          >
+            <Image 
+              source={{ 
+                uri: user.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face'
+              }} 
+              style={styles.avatar}
+            />
+            <View style={styles.avatarGlow} />
+            <View style={styles.cameraOverlay}>
+              <Ionicons name="camera" size={20} color="#ffffff" />
+            </View>
+          </TouchableOpacity>
+          
+          {/* Nombre completo abajo del avatar */}
+          <Text style={styles.fullNameBelowAvatar}>{user.fullName || 'Nombre completo'}</Text>
+
+          {/* Estadísticas */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{formatNumber(user.followersCount || 0)}</Text>
+              <Text style={styles.statLabel}>followers</Text>
+            </View>
+            
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{formatNumber(user.followingCount || 0)}</Text>
+              <Text style={styles.statLabel}>following</Text>
+            </View>
+          </View>
+
+          {/* Información del usuario */}
+          <View style={styles.userInfo}>
+            <View style={styles.usernameContainer}>
+              <Text style={styles.username}>{user.username}</Text>
+              {user.isVerified && (
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="checkmark-circle" size={20} color="#00d4ff" />
+                </View>
+              )}
+            </View>
+            
+            <Text style={styles.bio}>
+              {user.bio || 'Tatuador profesional | Artista digital | Amante del arte'}
+            </Text>
+          </View>
+
+          {/* Botones de acción */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
+              <LinearGradient
+                colors={['rgba(0,212,255,0.2)', 'rgba(0,212,255,0.1)']}
+                style={styles.buttonGradient}
+              >
+                <Ionicons name="person" size={20} color="#00d4ff" />
+                <Text style={styles.buttonText}>Editar Perfil</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+
+          </View>
+        </View>
+
+        {/* Grid de publicaciones tipo Instagram */}
+        <View style={styles.postsGrid}>
+          <Text style={styles.sectionTitle}>Mis Publicaciones</Text>
+          
+          {/* Grid de 3 columnas */}
+          <View style={styles.gridContainer}>
+            {Array.from({ length: 9 }).map((_, index) => (
+              <TouchableOpacity key={index} style={styles.postThumbnail}>
+                <Image 
+                  source={{ 
+                    uri: `https://images.unsplash.com/photo-${1500000000000 + index}?w=150&h=150&fit=crop&crop=center` 
+                  }} 
+                  style={styles.thumbnailImage}
+                />
+                {index === 0 && (
+                  <View style={styles.videoIndicator}>
+                    <Ionicons name="play" size={12} color="#ffffff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Modal para ver imagen completa */}
+      {showImageModal && (
+        <TouchableOpacity 
+          style={styles.imageModal}
+          onPress={() => setShowImageModal(false)}
+          activeOpacity={1}
+        >
+          <Image 
+            source={{ 
+              uri: user.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face'
+            }} 
+            style={styles.modalImage}
+            resizeMode="contain"
+          />
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => setShowImageModal(false)}
+          >
+            <Ionicons name="close" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingSpinner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0,212,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(0,212,255,0.3)',
+    marginBottom: 20,
+  },
+  loadingText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  errorText: {
+    color: '#ffffff',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 22,
+  },
+  retryButton: {
+    backgroundColor: '#00d4ff',
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 25,
+    marginBottom: 15,
+  },
+  retryButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
+  },
+  headerLeft: {
+    width: 44, // Espacio para balancear el header
+  },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  content: {
+    flex: 1,
+  },
+  profileSection: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  usernameAboveAvatar: {
+    color: '#00d4ff',
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  fullNameBelowAvatar: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: 'rgba(0,212,255,0.5)',
+  },
+  avatarGlow: {
+    position: 'absolute',
+    top: -5,
+    left: -5,
+    right: -5,
+    bottom: -5,
+    borderRadius: 65,
+    backgroundColor: 'rgba(0,212,255,0.2)',
+    zIndex: -1,
+  },
+  cameraOverlay: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#00d4ff',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 20,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'lowercase',
+  },
+  userInfo: {
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  usernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  username: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginRight: 8,
+  },
+  verifiedBadge: {
+    backgroundColor: 'rgba(0,212,255,0.2)',
+    borderRadius: 10,
+  },
+  bio: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 15,
+  },
+  actionButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  buttonGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+
+  imageModal: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalImage: {
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: 20,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  // Estilos para la grilla de publicaciones
+  postsGrid: {
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  postThumbnail: {
+    width: (width - 60) / 3, // 3 columnas con padding
+    height: (width - 60) / 3,
+    marginBottom: 2,
+    position: 'relative',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
+  videoIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
