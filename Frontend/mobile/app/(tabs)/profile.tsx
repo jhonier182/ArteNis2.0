@@ -34,6 +34,14 @@ interface User {
   city?: string;
   specialties?: string[];
   rating?: number;
+  posts?: Array<{
+    id: string;
+    imageUrl: string;
+    type: 'photo' | 'video';
+    likesCount: number;
+    commentsCount: number;
+    createdAt: string;
+  }>;
 }
 
 export default function ProfileScreen() {
@@ -359,21 +367,33 @@ export default function ProfileScreen() {
           
           {/* Grid de 3 columnas */}
           <View style={styles.gridContainer}>
-            {Array.from({ length: 9 }).map((_, index) => (
-              <TouchableOpacity key={index} style={styles.postThumbnail}>
-                <Image 
-                  source={{ 
-                    uri: `https://images.unsplash.com/photo-${1500000000000 + index}?w=150&h=150&fit=crop&crop=center` 
-                  }} 
-                  style={styles.thumbnailImage}
-                />
-                {index === 0 && (
-                  <View style={styles.videoIndicator}>
-                    <Ionicons name="play" size={12} color="#ffffff" />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
+            {user.posts && user.posts.length > 0 ? (
+              user.posts.map((post, index) => (
+                <TouchableOpacity key={post.id} style={styles.postThumbnail}>
+                  <Image 
+                    source={{ uri: post.imageUrl }} 
+                    style={styles.thumbnailImage}
+                  />
+                  {post.type === 'video' && (
+                    <View style={styles.videoIndicator}>
+                      <Ionicons name="play" size={12} color="#ffffff" />
+                    </View>
+                  )}
+                  {post.likesCount > 0 && (
+                    <View style={styles.likesIndicator}>
+                      <Ionicons name="heart" size={10} color="#ff6b6b" />
+                      <Text style={styles.likesCount}>{post.likesCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.noPostsContainer}>
+                <Ionicons name="images-outline" size={48} color="rgba(255,255,255,0.3)" />
+                <Text style={styles.noPostsText}>No tienes publicaciones aún</Text>
+                <Text style={styles.noPostsSubtext}>Comparte tu trabajo para que aparezca aquí</Text>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -683,5 +703,39 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  likesIndicator: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    gap: 3,
+  },
+  likesCount: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  noPostsContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noPostsText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noPostsSubtext: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

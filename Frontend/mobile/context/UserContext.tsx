@@ -11,6 +11,7 @@ export interface UserProfile {
   avatar?: string;
   userType: string;
   bio?: string;
+  posts?: any[];
   [key: string]: any;
 }
 
@@ -30,16 +31,40 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
-      const res = await axios.get(`${apiUrl}/api/users/me/profile`, {
+      
+      // Obtener perfil del usuario
+      const profileRes = await axios.get(`${apiUrl}/api/users/me/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const fetchedUser: UserProfile = res.data?.data?.user;
+      
+      // Obtener publicaciones del usuario
+      console.log('🔄 Obteniendo publicaciones del usuario...');
+      const postsRes = await axios.get(`${apiUrl}/api/posts/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      console.log('📡 Respuesta de posts:', postsRes.data);
+      
+      const fetchedUser: UserProfile = profileRes.data?.data?.user;
+      const userPosts = postsRes.data?.data?.posts || [];
+      
+      console.log('👤 Usuario obtenido:', fetchedUser?.username);
+      console.log('📸 Publicaciones obtenidas:', userPosts.length);
+      
       if (fetchedUser) {
-        setUser(fetchedUser);
-        await AsyncStorage.setItem('userProfile', JSON.stringify(fetchedUser));
+        // Combinar perfil con publicaciones
+        const userWithPosts = {
+          ...fetchedUser,
+          posts: userPosts
+        };
+        
+        console.log('🔄 Actualizando contexto con:', userWithPosts.posts?.length, 'publicaciones');
+        setUser(userWithPosts);
+        await AsyncStorage.setItem('userProfile', JSON.stringify(userWithPosts));
       }
     } catch (error) {
       // Silenciar errores aquí; manejo se hace en pantallas
+      console.log('Error al refrescar usuario:', error);
     }
   }, [apiUrl]);
 

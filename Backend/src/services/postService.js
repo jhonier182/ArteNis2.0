@@ -8,12 +8,12 @@ class PostService {
     try {
       const post = await Post.create({
         userId,
-        title: postData.title,
+        title: postData.description?.substring(0, 255) || 'Nuevo tatuaje', // Usar descripción como título
         description: postData.description,
-        type: postData.type,
+        type: postData.type || 'image',
         mediaUrl,
         cloudinaryPublicId,
-        tags: postData.tags || [],
+        tags: postData.hashtags || [],
         style: postData.style,
         bodyPart: postData.bodyPart,
         location: postData.location,

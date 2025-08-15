@@ -14,7 +14,7 @@ export default function AddScreen() {
       subtitle: 'Comparte tu trabajo de tatuaje',
       icon: 'camera',
       color: '#ff6b6b',
-      onPress: () => router.push('/profile/edit')
+      onPress: () => router.push('/create/photo')
     },
     {
       id: 'reel',
@@ -22,7 +22,7 @@ export default function AddScreen() {
       subtitle: 'Video corto de tu proceso',
       icon: 'videocam',
       color: '#4ecdc4',
-      onPress: () => router.push('/profile/edit')
+      onPress: () => router.push('/create/reel')
     },
     {
       id: 'ai-tool',
@@ -30,7 +30,7 @@ export default function AddScreen() {
       subtitle: 'Simula tatuajes con IA',
       icon: 'sparkles',
       color: '#45b7d1',
-      onPress: () => router.push('/profile/edit')
+      onPress: () => router.push('/create/ai-tool')
     },
     {
       id: 'quote',
@@ -38,7 +38,7 @@ export default function AddScreen() {
       subtitle: 'Crea propuesta para cliente',
       icon: 'document-text',
       color: '#96ceb4',
-      onPress: () => router.push('/profile/edit')
+      onPress: () => router.push('/create/quote')
     },
     {
       id: 'appointment',
@@ -46,7 +46,7 @@ export default function AddScreen() {
       subtitle: 'Programa sesión de tatuaje',
       icon: 'calendar',
       color: '#feca57',
-      onPress: () => router.push('/profile/edit')
+      onPress: () => router.push('/create/appointment')
     }
   ];
 

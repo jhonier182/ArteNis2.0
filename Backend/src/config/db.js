@@ -87,8 +87,9 @@ const connectDB = async () => {
     // Sincronizar modelos
     console.log('🔄 Sincronizando modelos con la base de datos...');
     if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
-      console.log('✅ Modelos sincronizados con ALTER en modo desarrollo');
+      // Usar force: false para evitar recrear índices
+      await sequelize.sync({ force: false, alter: false });
+      console.log('✅ Modelos sincronizados sin alterar estructura en modo desarrollo');
     } else {
       await sequelize.sync();
       console.log('✅ Modelos sincronizados con la base de datos');

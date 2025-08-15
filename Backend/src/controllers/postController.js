@@ -1,24 +1,73 @@
 const PostService = require('../services/postService');
+const { uploadPostImage } = require('../config/cloudinary');
 
 class PostController {
-  // Crear nueva publicación
-  static async createPost(req, res, next) {
+  // Subir imagen para post
+  static async uploadPostImage(req, res, next) {
     try {
+      console.log('🔍 Debug uploadPostImage:');
+      console.log('Headers:', req.headers);
+      console.log('Body keys:', Object.keys(req.body));
+      console.log('Files:', req.files);
+      console.log('File:', req.file);
+      console.log('Content-Type:', req.headers['content-type']);
+      
       if (!req.file) {
         return res.status(400).json({
           success: false,
-          message: 'Se requiere un archivo de imagen o video'
+          message: 'Se requiere un archivo de imagen',
+          debug: {
+            bodyKeys: Object.keys(req.body),
+            files: req.files,
+            file: req.file,
+            contentType: req.headers['content-type']
+          }
         });
       }
 
-      // En un proyecto real, aquí subirías el archivo a Cloudinary
-      const mediaUrl = `uploads/${req.file.filename}`;
-      const cloudinaryPublicId = req.file.filename;
+      // Generar ID único para el post
+      const postId = Date.now().toString();
+      
+      // Subir imagen a Cloudinary
+      const result = await uploadPostImage(
+        req.file.buffer,
+        req.user.id,
+        postId
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Imagen subida exitosamente',
+        data: {
+          url: result.url,
+          publicId: result.publicId
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Crear nueva publicación
+  static async createPost(req, res, next) {
+    try {
+      const { imageUrl, cloudinaryPublicId, description, hashtags, type } = req.body;
+
+      if (!imageUrl || !cloudinaryPublicId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Se requiere la URL de la imagen y el ID de Cloudinary'
+        });
+      }
 
       const post = await PostService.createPost(
         req.user.id,
-        req.body,
-        mediaUrl,
+        {
+          description,
+          hashtags,
+          type
+        },
+        imageUrl,
         cloudinaryPublicId
       );
 

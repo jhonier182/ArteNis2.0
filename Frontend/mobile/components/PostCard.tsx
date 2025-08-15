@@ -1,186 +1,186 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Dimensions,
+  Alert
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-interface PostData {
-  id: string;
-  title: string;
-  description: string;
-  mediaUrl: string;
-  likesCount: number;
-  commentsCount: number;
-  viewsCount: number;
-  createdAt: string;
-  author: {
-    id: string;
-    username: string;
-    fullName: string;
-    avatar?: string;
-    isVerified: boolean;
-    userType: string;
-  };
-  hasLiked?: boolean;
-}
-
-interface PostCardProps {
-  post: PostData;
-  onLike: (postId: string) => void;
-  onComment: (postId: string) => void;
-  onProfile: (userId: string) => void;
-}
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
-export default function PostCard({ post, onLike, onComment, onProfile }: PostCardProps) {
-  const router = useRouter();
-  const [liked, setLiked] = useState(post.hasLiked || false);
+interface Post {
+  id: string;
+  imageUrl: string;
+  description: string;
+  hashtags: string[];
+  likesCount: number;
+  commentsCount: number;
+  createdAt: string;
+  user: {
+    id: string;
+    username: string;
+    fullName: string;
+    avatar: string;
+    isVerified: boolean;
+  };
+  isLiked: boolean;
+}
+
+interface PostCardProps {
+  post: Post;
+  onLike: (postId: string) => void;
+  onComment: (postId: string) => void;
+  onShare: (postId: string) => void;
+  onUserPress: (userId: string) => void;
+}
+
+export default function PostCard({ 
+  post, 
+  onLike, 
+  onComment, 
+  onShare, 
+  onUserPress 
+}: PostCardProps) {
+  const [isLiked, setIsLiked] = useState(post.isLiked);
   const [likesCount, setLikesCount] = useState(post.likesCount);
 
   const handleLike = () => {
-    setLiked(!liked);
-    setLikesCount(prev => liked ? prev - 1 : prev + 1);
+    setIsLiked(!isLiked);
+    setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
     onLike(post.id);
   };
 
-  const formatCount = (count: number) => {
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
-    return count.toString();
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Ahora';
+    if (diffInHours < 24) return `hace ${diffInHours}h`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `hace ${diffInDays}d`;
+    
+    return date.toLocaleDateString('es-ES', { 
+      day: 'numeric', 
+      month: 'short' 
+    });
   };
 
-  const formatTime = (dateString: string) => {
-    const now = new Date();
-    const postDate = new Date(dateString);
-    const diffMs = now.getTime() - postDate.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffDays > 7) {
-      return postDate.toLocaleDateString();
-    } else if (diffDays > 0) {
-      return `${diffDays}d`;
-    } else if (diffHours > 0) {
-      return `${diffHours}h`;
-    } else {
-      return 'ahora';
+  const formatNumber = (num: number) => {
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
     }
+    return num.toString();
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header del post */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.userInfo} 
-          onPress={() => onProfile(post.author.id)}
+          onPress={() => onUserPress(post.user.id)}
         >
-          <View style={styles.avatarContainer}>
-            {post.author.avatar ? (
-              <Image source={{ uri: post.author.avatar }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>
-                  {post.author.fullName.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
-            {post.author.userType === 'artist' && (
-              <LinearGradient
-                colors={['#A4E34A', '#22C55E']}
-                style={styles.artistBadge}
-              >
-                <Ionicons name="brush" size={10} color="white" />
-              </LinearGradient>
-            )}
-          </View>
-          
+          <Image 
+            source={{ uri: post.user.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face' }} 
+            style={styles.avatar}
+          />
           <View style={styles.userDetails}>
             <View style={styles.usernameRow}>
-              <Text style={styles.username}>{post.author.username}</Text>
-              {post.author.isVerified && (
-                <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
+              <Text style={styles.username}>{post.user.username}</Text>
+              {post.user.isVerified && (
+                <Ionicons name="checkmark-circle" size={16} color="#00d4ff" />
               )}
             </View>
-            <Text style={styles.timeAgo}>{formatTime(post.createdAt)}</Text>
+            <Text style={styles.fullName}>{post.user.fullName}</Text>
           </View>
         </TouchableOpacity>
-
+        
         <TouchableOpacity style={styles.moreButton}>
-          <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+          <Ionicons name="ellipsis-horizontal" size={20} color="#ffffff" />
         </TouchableOpacity>
       </View>
 
-      {/* Media */}
-      <View style={styles.mediaContainer}>
+      {/* Imagen del post */}
+      <TouchableOpacity style={styles.imageContainer}>
         <Image 
-          source={{ uri: post.mediaUrl }} 
-          style={styles.media}
+          source={{ uri: post.imageUrl }} 
+          style={styles.postImage}
           resizeMode="cover"
         />
-      </View>
+      </TouchableOpacity>
 
-      {/* Actions */}
+      {/* Acciones del post */}
       <View style={styles.actions}>
         <View style={styles.leftActions}>
           <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
             <Ionicons 
-              name={liked ? "heart" : "heart-outline"} 
-              size={24} 
-              color={liked ? "#E11D48" : "#333"} 
+              name={isLiked ? "heart" : "heart-outline"} 
+              size={28} 
+              color={isLiked ? "#ff6b6b" : "#ffffff"} 
             />
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.actionButton} 
-            onPress={() => router.push(`/comments/${post.id}`)}
-          >
-            <Ionicons name="chatbubble-outline" size={22} color="#333" />
+          <TouchableOpacity style={styles.actionButton} onPress={() => onComment(post.id)}>
+            <Ionicons name="chatbubble-outline" size={24} color="#ffffff" />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="paper-plane-outline" size={22} color="#333" />
+          <TouchableOpacity style={styles.actionButton} onPress={() => onShare(post.id)}>
+            <Ionicons name="paper-plane-outline" size={24} color="#ffffff" />
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="bookmark-outline" size={22} color="#333" />
+        
+        <TouchableOpacity style={styles.bookmarkButton}>
+          <Ionicons name="bookmark-outline" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
 
-      {/* Stats */}
-      <View style={styles.stats}>
+      {/* Likes */}
+      <View style={styles.likesSection}>
         <Text style={styles.likesText}>
-          {formatCount(likesCount)} {likesCount === 1 ? 'like' : 'likes'}
+          <Text style={styles.likesCount}>{formatNumber(likesCount)}</Text> me gusta
         </Text>
       </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        <Text style={styles.title}>{post.title}</Text>
-        {post.description && (
-          <Text style={styles.description} numberOfLines={2}>
-            {post.description}
-          </Text>
-        )}
-        
-        {post.commentsCount > 0 && (
-          <TouchableOpacity onPress={() => router.push(`/comments/${post.id}`)}>
-            <Text style={styles.viewComments}>
-              Ver {post.commentsCount === 1 ? 'comentario' : `los ${formatCount(post.commentsCount)} comentarios`}
-            </Text>
-          </TouchableOpacity>
+      {/* Descripción y hashtags */}
+      <View style={styles.descriptionSection}>
+        <Text style={styles.description}>
+          <Text style={styles.usernameInDescription}>{post.user.username}</Text> {post.description}
+        </Text>
+        {post.hashtags.length > 0 && (
+          <View style={styles.hashtagsContainer}>
+            {post.hashtags.map((tag, index) => (
+              <Text key={index} style={styles.hashtag}>{tag}</Text>
+            ))}
+          </View>
         )}
       </View>
+
+      {/* Comentarios */}
+      {post.commentsCount > 0 && (
+        <TouchableOpacity style={styles.commentsSection} onPress={() => onComment(post.id)}>
+          <Text style={styles.commentsText}>
+            Ver los {formatNumber(post.commentsCount)} comentarios
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Fecha */}
+      <Text style={styles.dateText}>{formatDate(post.createdAt)}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'white',
-    marginBottom: 12,
+    backgroundColor: '#000000',
+    marginBottom: 20,
   },
   header: {
     flexDirection: 'row',
@@ -194,66 +194,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  avatarContainer: {
-    position: 'relative',
-  },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  avatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#6B7280',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  artistBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
   },
   userDetails: {
-    marginLeft: 12,
     flex: 1,
   },
   usernameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 5,
   },
   username: {
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: '600',
-    fontSize: 14,
-    color: '#111827',
-    marginRight: 4,
   },
-  timeAgo: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 1,
+  fullName: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
   },
   moreButton: {
-    padding: 4,
+    padding: 8,
   },
-  mediaContainer: {
-    width: width,
+  imageContainer: {
+    width: '100%',
     height: width,
   },
-  media: {
+  postImage: {
     width: '100%',
     height: '100%',
   },
@@ -267,38 +238,60 @@ const styles = StyleSheet.create({
   leftActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 16,
   },
   actionButton: {
-    marginRight: 16,
     padding: 4,
   },
-  stats: {
+  bookmarkButton: {
+    padding: 4,
+  },
+  likesSection: {
     paddingHorizontal: 16,
     paddingBottom: 8,
   },
   likesText: {
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: '600',
-    fontSize: 14,
-    color: '#111827',
   },
-  content: {
+  likesCount: {
+    fontWeight: 'bold',
+  },
+  descriptionSection: {
     paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  title: {
-    fontWeight: '600',
-    fontSize: 14,
-    color: '#111827',
-    marginBottom: 4,
+    paddingBottom: 8,
   },
   description: {
-    fontSize: 14,
-    color: '#374151',
-    lineHeight: 20,
-    marginBottom: 8,
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 22,
   },
-  viewComments: {
+  usernameInDescription: {
+    fontWeight: '600',
+  },
+  hashtagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+  },
+  hashtag: {
+    color: '#00d4ff',
+    fontSize: 16,
+    marginRight: 8,
+  },
+  commentsSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  commentsText: {
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
-    color: '#6B7280',
+  },
+  dateText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
 });

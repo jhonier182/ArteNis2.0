@@ -38,11 +38,17 @@ router.get('/user/me',
 
 // Rutas protegidas (requieren autenticación)
 
+// POST /api/posts/upload - Subir imagen para post
+router.post('/upload',
+  verifyToken,
+  upload.single('image'),
+  handleMulterError,
+  PostController.uploadPostImage
+);
+
 // POST /api/posts - Crear nueva publicación
 router.post('/',
   verifyToken,
-  upload.single('media'),
-  handleMulterError,
   validateCreatePost,
   handleValidationErrors,
   PostController.createPost
