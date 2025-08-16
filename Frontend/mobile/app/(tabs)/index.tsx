@@ -191,6 +191,7 @@ export default function HomeScreen() {
       <ScrollView 
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -299,6 +300,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   emptyContainer: {
     flex: 1,

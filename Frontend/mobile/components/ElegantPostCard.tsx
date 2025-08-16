@@ -173,9 +173,9 @@ export default function ElegantPostCard({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginBottom: 20,
+    borderRadius: 0,
+    marginHorizontal: 0,
+    marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -184,15 +184,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
-    borderWidth: 1,
-    borderColor: '#333',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   userInfo: {
     flexDirection: 'row',
@@ -242,12 +242,12 @@ const styles = StyleSheet.create({
   postImage: {
     width: '100%',
     height: '100%',
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   descriptionContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   description: {
     color: '#ffffff',
@@ -257,8 +257,8 @@ const styles = StyleSheet.create({
   metricsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     borderTopWidth: 1,
     borderTopColor: '#333',
   },
