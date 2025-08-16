@@ -75,13 +75,23 @@ export default function CreatePhotoScreen() {
         return;
       }
 
-      // Subir imagen a Cloudinary - USANDO EL MISMO CÓDIGO QUE FUNCIONA EN EL PERFIL
+      // Subir imagen a Cloudinary - Corregido para React Native
       const imageFormData = new FormData();
-      imageFormData.append('image', {
+      const imageFile = {
         uri: selectedImage,
         type: 'image/jpeg',
-        name: 'post.jpg'
-      } as any);
+        name: 'post.jpg',
+        mimeType: 'image/jpeg'  // Agregado mimeType explícito
+      } as any;
+      
+      imageFormData.append('image', imageFile);
+      
+      console.log('📤 FormData creado:', {
+        uri: selectedImage,
+        type: imageFile.type,
+        name: imageFile.name,
+        mimeType: imageFile.mimeType
+      });
 
       const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
         method: 'POST',

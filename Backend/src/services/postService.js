@@ -3,22 +3,61 @@ const { Post, User, Comment, Like } = require('../models');
 const { sequelize } = require('../config/db');
 
 class PostService {
+  // Función helper para transformar posts al formato esperado por el frontend
+  static transformPostForFrontend(post) {
+    const postData = post.toJSON ? post.toJSON() : post;
+    return {
+      ...postData,
+      imageUrl: postData.mediaUrl, // Transformar mediaUrl a imageUrl
+      hashtags: postData.tags || [], // Transformar tags a hashtags
+      isLiked: postData.hasLiked || false, // Asegurar que isLiked esté presente
+      likesCount: postData.likesCount || 0,
+      commentsCount: postData.commentsCount || 0,
+      viewsCount: postData.viewsCount || 0,
+      savesCount: postData.savesCount || 0,
+      description: postData.description || '',
+      // Asegurar que el autor tenga los campos necesarios
+      author: postData.author ? {
+        id: postData.author.id,
+        username: postData.author.username,
+        fullName: postData.author.fullName,
+        avatar: postData.author.avatar || null,
+        isVerified: postData.author.isVerified || false,
+        userType: postData.author.userType || 'user'
+      } : null
+    };
+  }
+
+  // Función helper para transformar múltiples posts
+  static transformPostsForFrontend(posts) {
+    return posts.map(post => this.transformPostForFrontend(post));
+  }
+
   // Crear nueva publicación
   static async createPost(userId, postData, mediaUrl, cloudinaryPublicId) {
     try {
       const post = await Post.create({
         userId,
         title: postData.description?.substring(0, 255) || 'Nuevo tatuaje', // Usar descripción como título
-        description: postData.description,
+        description: postData.description || '',
         type: postData.type || 'image',
         mediaUrl,
         cloudinaryPublicId,
         tags: postData.hashtags || [],
-        style: postData.style,
-        bodyPart: postData.bodyPart,
-        location: postData.location,
+        style: postData.style || null,
+        bodyPart: postData.bodyPart || null,
+        location: postData.location || null,
         isPremiumContent: postData.isPremiumContent || false,
-        allowComments: postData.allowComments !== false
+        allowComments: postData.allowComments !== false,
+        // Inicializar explícitamente los contadores
+        likesCount: 0,
+        commentsCount: 0,
+        viewsCount: 0,
+        savesCount: 0,
+        // Asegurar que el estado sea correcto
+        status: 'published',
+        isPublic: true,
+        isFeatured: false
       });
 
       // Incrementar contador de posts del usuario

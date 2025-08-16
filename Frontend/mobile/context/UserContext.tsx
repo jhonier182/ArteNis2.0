@@ -59,8 +59,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         
         console.log('🔄 Actualizando contexto con:', userWithPosts.posts?.length, 'publicaciones');
+        console.log('👤 Usuario completo a guardar:', userWithPosts);
         setUser(userWithPosts);
         await AsyncStorage.setItem('userProfile', JSON.stringify(userWithPosts));
+        console.log('✅ Contexto y AsyncStorage actualizados');
+      } else {
+        console.log('❌ No se pudo obtener el usuario del perfil');
       }
     } catch (error) {
       // Silenciar errores aquí; manejo se hace en pantallas

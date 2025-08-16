@@ -17,19 +17,19 @@ import PostCard from '../../components/PostCard';
 interface Post {
   id: string;
   imageUrl: string;
-  description: string;
-  hashtags: string[];
-  likesCount: number;
-  commentsCount: number;
+  description?: string;  // Opcional porque puede ser null
+  hashtags?: string[];   // Opcional porque puede ser null
+  likesCount?: number;   // Opcional porque puede ser null
+  commentsCount?: number; // Opcional porque puede ser null
   createdAt: string;
-  user: {
+  author: {  // Cambiado de 'user' a 'author' para coincidir con PostCard
     id: string;
     username: string;
     fullName: string;
-    avatar: string;
-    isVerified: boolean;
+    avatar?: string;      // Opcional porque puede ser null
+    isVerified?: boolean; // Opcional porque puede ser null
   };
-  isLiked: boolean;
+  isLiked?: boolean;     // Opcional porque puede ser null
 }
 
 export default function HomeScreen() {
@@ -106,7 +106,7 @@ export default function HomeScreen() {
               ? { 
                   ...post, 
                   isLiked: !post.isLiked,
-                  likesCount: post.isLiked ? post.likesCount - 1 : post.likesCount + 1
+                  likesCount: post.isLiked ? (post.likesCount || 0) - 1 : (post.likesCount || 0) + 1
                 }
               : post
           )

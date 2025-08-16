@@ -16,19 +16,19 @@ const { width } = Dimensions.get('window');
 interface Post {
   id: string;
   imageUrl: string;
-  description: string;
-  hashtags: string[];
-  likesCount: number;
-  commentsCount: number;
+  description?: string;  // Opcional porque puede ser null
+  hashtags?: string[];   // Opcional porque puede ser null
+  likesCount?: number;   // Opcional porque puede ser null
+  commentsCount?: number; // Opcional porque puede ser null
   createdAt: string;
-  user: {
+  author: {  // Cambiado de 'user' a 'author' para coincidir con el backend
     id: string;
     username: string;
     fullName: string;
-    avatar: string;
-    isVerified: boolean;
+    avatar?: string;      // Opcional porque puede ser null
+    isVerified?: boolean; // Opcional porque puede ser null
   };
-  isLiked: boolean;
+  isLiked?: boolean;     // Opcional porque puede ser null
 }
 
 interface PostCardProps {
@@ -46,8 +46,24 @@ export default function PostCard({
   onShare, 
   onUserPress 
 }: PostCardProps) {
-  const [isLiked, setIsLiked] = useState(post.isLiked);
-  const [likesCount, setLikesCount] = useState(post.likesCount);
+  // Validación de seguridad: verificar que post.author existe
+  if (!post.author) {
+    console.log('⚠️ PostCard: post.author es undefined para el post:', post.id);
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Error: Información del usuario no disponible</Text>
+      </View>
+    );
+  }
+
+  // Validar y establecer valores por defecto para campos opcionales
+  const safeHashtags = Array.isArray(post.hashtags) ? post.hashtags : [];
+  const safeCommentsCount = typeof post.commentsCount === 'number' ? post.commentsCount : 0;
+  const safeLikesCount = typeof post.likesCount === 'number' ? post.likesCount : 0;
+  const safeDescription = post.description || '';
+
+  const [isLiked, setIsLiked] = useState(post.isLiked || false);
+  const [likesCount, setLikesCount] = useState(safeLikesCount);
 
   const handleLike = () => {
     setIsLiked(!isLiked);
@@ -85,20 +101,20 @@ export default function PostCard({
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.userInfo} 
-          onPress={() => onUserPress(post.user.id)}
+          onPress={() => onUserPress(post.author.id)}
         >
           <Image 
-            source={{ uri: post.user.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face' }} 
+            source={{ uri: post.author.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face' }} 
             style={styles.avatar}
           />
           <View style={styles.userDetails}>
             <View style={styles.usernameRow}>
-              <Text style={styles.username}>{post.user.username}</Text>
-              {post.user.isVerified && (
+              <Text style={styles.username}>{post.author.username}</Text>
+              {post.author.isVerified && (
                 <Ionicons name="checkmark-circle" size={16} color="#00d4ff" />
               )}
             </View>
-            <Text style={styles.fullName}>{post.user.fullName}</Text>
+            <Text style={styles.fullName}>{post.author.fullName}</Text>
           </View>
         </TouchableOpacity>
         
@@ -151,11 +167,12 @@ export default function PostCard({
       {/* Descripción y hashtags */}
       <View style={styles.descriptionSection}>
         <Text style={styles.description}>
-          <Text style={styles.usernameInDescription}>{post.user.username}</Text> {post.description}
+          <Text style={styles.usernameInDescription}>{post.author.username}</Text>
+          <Text> {safeDescription}</Text>
         </Text>
-        {post.hashtags.length > 0 && (
+        {safeHashtags.length > 0 && (
           <View style={styles.hashtagsContainer}>
-            {post.hashtags.map((tag, index) => (
+            {safeHashtags.map((tag, index) => (
               <Text key={index} style={styles.hashtag}>{tag}</Text>
             ))}
           </View>
@@ -163,10 +180,10 @@ export default function PostCard({
       </View>
 
       {/* Comentarios */}
-      {post.commentsCount > 0 && (
+      {safeCommentsCount > 0 && (
         <TouchableOpacity style={styles.commentsSection} onPress={() => onComment(post.id)}>
           <Text style={styles.commentsText}>
-            Ver los {formatNumber(post.commentsCount)} comentarios
+            Ver los {formatNumber(safeCommentsCount)} comentarios
           </Text>
         </TouchableOpacity>
       )}
@@ -293,5 +310,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     paddingHorizontal: 16,
     paddingBottom: 16,
+  },
+  errorText: {
+    color: '#ff6b6b',
+    fontSize: 16,
+    textAlign: 'center',
+    padding: 20,
   },
 });
