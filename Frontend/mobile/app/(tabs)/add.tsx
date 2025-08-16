@@ -77,7 +77,7 @@ export default function AddScreen() {
                 <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
               </View>
               
-              <Ionicons name="chevron-forward" size={20} color="#ccc" />
+              <Ionicons name="chevron-forward" size={20} color="#666" />
             </TouchableOpacity>
           ))}
         </View>
@@ -118,23 +118,25 @@ export default function AddScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#000000',
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 30,
-    backgroundColor: 'white',
+    backgroundColor: '#1a1a1a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#ffffff',
     marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#999',
   },
   content: {
     flex: 1,
@@ -146,18 +148,20 @@ const styles = StyleSheet.create({
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: '#1a1a1a',
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   optionGradient: {
     width: 60,
@@ -173,12 +177,12 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#ffffff',
     marginBottom: 4,
   },
   optionSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#999',
   },
   quickTools: {
     marginTop: 20,
@@ -187,7 +191,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#ffffff',
     marginBottom: 16,
   },
   quickToolsRow: {
@@ -197,24 +201,26 @@ const styles = StyleSheet.create({
   },
   quickTool: {
     width: '48%',
-    backgroundColor: 'white',
+    backgroundColor: '#1a1a1a',
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 2.22,
-    elevation: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   quickToolText: {
     marginTop: 8,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#ffffff',
     textAlign: 'center',
   },
 });

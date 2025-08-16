@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { UserProvider } from '../../context/UserContext';
 
 export default function TabLayout() {
@@ -19,13 +20,28 @@ export default function TabLayout() {
     checkAuth();
   }, []);
 
+  const CustomTabBarBackground = () => (
+    <View
+      style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 80,
+        paddingBottom: 20,
+        paddingTop: 10,
+        backgroundColor: '#000000',
+      }}
+    />
+  );
+
   return (
     <UserProvider>
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: 'rgba(0,0,0,0.8)',
+            backgroundColor: 'transparent',
             borderTopWidth: 0,
             position: 'absolute',
             bottom: 0,
@@ -34,13 +50,16 @@ export default function TabLayout() {
             height: 80,
             paddingBottom: 20,
             paddingTop: 10,
+            elevation: 0,
+            shadowOpacity: 0,
           },
-          tabBarActiveTintColor: '#ff3b30',
-          tabBarInactiveTintColor: '#ffffff',
+          tabBarActiveTintColor: '#ffffff',
+          tabBarInactiveTintColor: 'rgba(255,255,255,0.6)',
           tabBarLabelStyle: {
             fontSize: 12,
             fontWeight: '600',
           },
+          tabBarBackground: CustomTabBarBackground,
         }}
       >
         <Tabs.Screen
@@ -80,7 +99,6 @@ export default function TabLayout() {
                 width: 60,
                 height: 60,
                 borderRadius: 30,
-                backgroundColor: '#ff3b30',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginBottom: 20,
@@ -92,12 +110,26 @@ export default function TabLayout() {
                 shadowOpacity: 0.3,
                 shadowRadius: 4.65,
                 elevation: 8,
+                overflow: 'hidden',
               }}>
-                <Ionicons 
-                  name="add" 
-                  size={32} 
-                  color="#ffffff" 
-                />
+                <LinearGradient
+                  colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: 30,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Ionicons 
+                    name="add" 
+                    size={32} 
+                    color="#ffffff" 
+                  />
+                </LinearGradient>
               </View>
             ),
           }}
