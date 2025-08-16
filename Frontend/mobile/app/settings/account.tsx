@@ -90,17 +90,7 @@ export default function AccountSettingsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#ffffff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Configuración de Cuenta</Text>
-        <View style={styles.headerRight} />
-      </View>
+  
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         
@@ -110,7 +100,7 @@ export default function AccountSettingsScreen() {
           
           <TouchableOpacity style={styles.settingItem} onPress={handleChangePassword}>
             <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: '#00d4ff' }]}>
+              <View style={[styles.settingIcon, { backgroundColor: '#2196F3' }]}>
                 <Ionicons name="key-outline" size={20} color="#ffffff" />
               </View>
               <View style={styles.settingInfo}>
@@ -123,7 +113,7 @@ export default function AccountSettingsScreen() {
 
           <TouchableOpacity style={styles.settingItem} onPress={handleTwoFactorAuth}>
             <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: '#ff6b6b' }]}>
+              <View style={[styles.settingIcon, { backgroundColor: '#4CAF50' }]}>
                 <Ionicons name="shield-checkmark-outline" size={20} color="#ffffff" />
               </View>
               <View style={styles.settingInfo}>
@@ -136,7 +126,7 @@ export default function AccountSettingsScreen() {
 
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: '#4ecdc4' }]}>
+              <View style={[styles.settingIcon, { backgroundColor: '#9C27B0' }]}>
                 <Ionicons name="finger-print-outline" size={20} color="#ffffff" />
               </View>
               <View style={styles.settingInfo}>
@@ -147,7 +137,7 @@ export default function AccountSettingsScreen() {
             <Switch
               value={biometricEnabled}
               onValueChange={setBiometricEnabled}
-              trackColor={{ false: 'rgba(255,255,255,0.1)', true: '#4ecdc4' }}
+              trackColor={{ false: 'rgba(255,255,255,0.1)', true: '#9C27B0' }}
               thumbColor={biometricEnabled ? '#ffffff' : 'rgba(255,255,255,0.5)'}
             />
           </View>
@@ -159,7 +149,7 @@ export default function AccountSettingsScreen() {
           
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: '#ffd700' }]}>
+              <View style={[styles.settingIcon, { backgroundColor: '#FF9800' }]}>
                 <Ionicons name="notifications-outline" size={20} color="#ffffff" />
               </View>
               <View style={styles.settingInfo}>
@@ -170,14 +160,14 @@ export default function AccountSettingsScreen() {
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
-              trackColor={{ false: 'rgba(255,255,255,0.1)', true: '#ffd700' }}
+              trackColor={{ false: 'rgba(255,255,255,0.1)', true: '#FF9800' }}
               thumbColor={notificationsEnabled ? '#ffffff' : 'rgba(255,255,255,0.5)'}
             />
           </View>
 
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: '#a8e6cf' }]}>
+              <View style={[styles.settingIcon, { backgroundColor: '#607D8B' }]}>
                 <Ionicons name="moon-outline" size={20} color="#ffffff" />
               </View>
               <View style={styles.settingInfo}>
@@ -188,7 +178,7 @@ export default function AccountSettingsScreen() {
             <Switch
               value={darkModeEnabled}
               onValueChange={setDarkModeEnabled}
-              trackColor={{ false: 'rgba(255,255,255,0.1)', true: '#a8e6cf' }}
+              trackColor={{ false: 'rgba(255,255,255,0.1)', true: '#607D8B' }}
               thumbColor={darkModeEnabled ? '#ffffff' : 'rgba(255,255,255,0.5)'}
             />
           </View>
@@ -200,7 +190,7 @@ export default function AccountSettingsScreen() {
           
           <TouchableOpacity style={styles.settingItem} onPress={handlePrivacySettings}>
             <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: '#ff9ff3' }]}>
+              <View style={[styles.settingIcon, { backgroundColor: '#00BCD4' }]}>
                 <Ionicons name="eye-outline" size={20} color="#ffffff" />
               </View>
               <View style={styles.settingInfo}>
@@ -213,7 +203,7 @@ export default function AccountSettingsScreen() {
 
           <TouchableOpacity style={styles.settingItem} onPress={handleDataExport}>
             <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: '#74b9ff' }]}>
+              <View style={[styles.settingIcon, { backgroundColor: '#8BC34A' }]}>
                 <Ionicons name="download-outline" size={20} color="#ffffff" />
               </View>
               <View style={styles.settingInfo}>
@@ -231,7 +221,7 @@ export default function AccountSettingsScreen() {
           
           <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
             <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: '#ff6b6b' }]}>
+              <View style={[styles.settingIcon, { backgroundColor: '#FF5722' }]}>
                 <Ionicons name="log-out-outline" size={20} color="#ffffff" />
               </View>
               <View style={styles.settingInfo}>
@@ -244,7 +234,7 @@ export default function AccountSettingsScreen() {
 
           <TouchableOpacity style={styles.settingItem} onPress={handleDeleteAccount}>
             <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: '#e17055' }]}>
+              <View style={[styles.settingIcon, { backgroundColor: '#E91E63' }]}>
                 <Ionicons name="trash-outline" size={20} color="#ffffff" />
               </View>
               <View style={styles.settingInfo}>
@@ -259,7 +249,9 @@ export default function AccountSettingsScreen() {
         {/* Botón de Guardar */}
         <TouchableOpacity style={styles.saveButton}>
           <LinearGradient
-            colors={['#00d4ff', '#0099cc']}
+            colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
             style={styles.saveButtonGradient}
           >
             <Text style={styles.saveButtonText}>Guardar Cambios</Text>
