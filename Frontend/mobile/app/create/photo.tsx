@@ -75,13 +75,46 @@ export default function CreatePhotoScreen() {
         return;
       }
 
+      // Detectar automáticamente el tipo MIME de la imagen
+      let mimeType = 'image/jpeg';
+      let fileExtension = 'jpg';
+      
+      if (selectedImage.startsWith('data:')) {
+        // Si es una URI de datos, extraer el tipo MIME
+        const match = selectedImage.match(/^data:([^;]+);/);
+        if (match) {
+          mimeType = match[1];
+          // Determinar la extensión basada en el tipo MIME
+          if (mimeType === 'image/png') {
+            fileExtension = 'png';
+          } else if (mimeType === 'image/gif') {
+            fileExtension = 'gif';
+          } else if (mimeType === 'image/webp') {
+            fileExtension = 'webp';
+          }
+        }
+      } else if (selectedImage.includes('.')) {
+        // Si es una URI de archivo, extraer la extensión
+        const extension = selectedImage.split('.').pop()?.toLowerCase();
+        if (extension === 'png') {
+          mimeType = 'image/png';
+          fileExtension = 'png';
+        } else if (extension === 'gif') {
+          mimeType = 'image/gif';
+          fileExtension = 'gif';
+        } else if (extension === 'webp') {
+          mimeType = 'image/webp';
+          fileExtension = 'webp';
+        }
+      }
+
       // Subir imagen a Cloudinary - Corregido para React Native
       const imageFormData = new FormData();
       const imageFile = {
         uri: selectedImage,
-        type: 'image/jpeg',
-        name: 'post.jpg',
-        mimeType: 'image/jpeg'  // Agregado mimeType explícito
+        type: mimeType,
+        name: `post.${fileExtension}`,
+        mimeType: mimeType
       } as any;
       
       imageFormData.append('image', imageFile);
