@@ -12,7 +12,8 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import PostCard from '../../components/PostCard';
+import ElegantPostCard from '../../components/ElegantPostCard';
+import CategoryFilter from '../../components/CategoryFilter';
 
 interface Post {
   id: string;
@@ -37,6 +38,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.6:3000';
 
@@ -131,11 +133,22 @@ export default function HomeScreen() {
     Alert.alert('Perfil de usuario', 'Navegación al perfil en desarrollo');
   };
 
+  const handleFollow = (userId: string) => {
+    // TODO: Implementar lógica de follow
+    console.log('Follow user:', userId);
+  };
+
+  const handleCategorySelect = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    // TODO: Filtrar posts por categoría
+    console.log('Selected category:', categoryId);
+  };
+
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <Ionicons name="sparkles" size={48} color="#00d4ff" />
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <Ionicons name="sparkles" size={48} color="#ff6b9d" />
         <Text style={styles.loadingText}>Cargando publicaciones...</Text>
       </View>
     );
@@ -144,7 +157,7 @@ export default function HomeScreen() {
   if (error && !refreshing) {
     return (
       <View style={styles.errorContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
         <Ionicons name="warning" size={64} color="#ff6b6b" />
         <Text style={styles.errorTitle}>Error al cargar</Text>
         <Text style={styles.errorText}>{error}</Text>
@@ -157,15 +170,22 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
       
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>ArteNis</Text>
+        <Text style={styles.headerTitle}>Popular</Text>
         <TouchableOpacity style={styles.searchButton}>
           <Ionicons name="search" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
+
+      {/* Filtro de categorías */}
+      <CategoryFilter
+        selectedCategory={selectedCategory}
+        onSelectCategory={handleCategorySelect}
+        categories={[]}
+      />
 
       {/* Feed de publicaciones */}
       <ScrollView 
@@ -175,19 +195,20 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#00d4ff"
-            colors={["#00d4ff"]}
+            tintColor="#ff6b9d"
+            colors={["#ff6b9d"]}
           />
         }
       >
         {posts.length > 0 ? (
           posts.map((post) => (
-            <PostCard
+            <ElegantPostCard
               key={post.id}
               post={post}
               onLike={handleLike}
               onComment={handleComment}
               onShare={handleShare}
+              onFollow={handleFollow}
               onUserPress={handleUserPress}
             />
           ))
@@ -217,7 +238,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#ffffff',
+    color: '#333',
     fontSize: 16,
     marginTop: 16,
   },
@@ -229,26 +250,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   errorTitle: {
-    color: '#ffffff',
+    color: '#333',
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 20,
     marginBottom: 10,
   },
   errorText: {
-    color: '#ffffff',
+    color: '#666',
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 30,
   },
   retryButton: {
-    backgroundColor: '#00d4ff',
+    backgroundColor: '#ff6b9d',
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
   },
   retryButtonText: {
-    color: '#000000',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -259,8 +280,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
+    backgroundColor: '#1a1a1a',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomColor: '#333',
   },
   headerTitle: {
     color: '#ffffff',
@@ -271,7 +293,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: '#333',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -283,6 +305,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 100,
+    backgroundColor: '#000000',
   },
   emptyTitle: {
     color: '#ffffff',
@@ -292,7 +315,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   emptyText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: '#999',
     fontSize: 16,
     textAlign: 'center',
     paddingHorizontal: 40,
