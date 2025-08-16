@@ -8,9 +8,6 @@ export default function BoardsScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mis Colecciones</Text>
-        <TouchableOpacity style={styles.addButton}>
-          <Ionicons name="add" size={24} color="white" />
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -69,7 +66,7 @@ export default function BoardsScreen() {
 
           {/* Botón para crear nueva colección */}
           <TouchableOpacity style={styles.createBoardButton}>
-            <Ionicons name="add-circle-outline" size={48} color="#666" />
+            <Ionicons name="add-circle-outline" size={48} color="#999" />
             <Text style={styles.createBoardText}>Crear nueva colección</Text>
           </TouchableOpacity>
         </View>
@@ -81,30 +78,25 @@ export default function BoardsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: 'white',
+    backgroundColor: '#1a1a1a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#ffffff',
   },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ff3b30',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
   content: {
     flex: 1,
     paddingHorizontal: 20,
@@ -150,15 +142,17 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: 'white',
+    backgroundColor: '#1a1a1a',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   smallBoardImage: {
     width: '100%',
@@ -169,23 +163,23 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#ffffff',
   },
   createBoardButton: {
     height: 120,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#e1e5e9',
+    borderColor: '#333',
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: '#1a1a1a',
     marginBottom: 20,
   },
   createBoardText: {
     marginTop: 8,
     fontSize: 14,
-    color: '#666',
+    color: '#999',
     fontWeight: '500',
   },
 });
