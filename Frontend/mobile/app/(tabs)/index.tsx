@@ -63,6 +63,8 @@ export default function HomeScreen() {
       }
 
       const data = await response.json();
+      console.log('📱 Respuesta del API:', data);
+      console.log('📱 Posts recibidos:', data.data?.posts);
       setPosts(data.data.posts || []);
       
     } catch (error) {

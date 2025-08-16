@@ -6,7 +6,13 @@ class PostService {
   // Función helper para transformar posts al formato esperado por el frontend
   static transformPostForFrontend(post) {
     const postData = post.toJSON ? post.toJSON() : post;
-    return {
+    console.log('🔍 Transformando post:', {
+      id: postData.id,
+      mediaUrl: postData.mediaUrl,
+      imageUrl: postData.mediaUrl
+    });
+    
+    const transformed = {
       ...postData,
       imageUrl: postData.mediaUrl, // Transformar mediaUrl a imageUrl
       hashtags: postData.tags || [], // Transformar tags a hashtags
@@ -26,6 +32,14 @@ class PostService {
         userType: postData.author.userType || 'user'
       } : null
     };
+    
+    console.log('🔍 Post transformado:', {
+      id: transformed.id,
+      imageUrl: transformed.imageUrl,
+      author: transformed.author
+    });
+    
+    return transformed;
   }
 
   // Función helper para transformar múltiples posts
@@ -57,7 +71,9 @@ class PostService {
         // Asegurar que el estado sea correcto
         status: 'published',
         isPublic: true,
-        isFeatured: false
+        isFeatured: false,
+        // Establecer fecha de publicación
+        publishedAt: new Date()
       });
 
       // Incrementar contador de posts del usuario
@@ -74,6 +90,7 @@ class PostService {
   // Obtener feed de publicaciones
   static async getFeed(options = {}) {
     try {
+      console.log('🔍 getFeed service llamado con opciones:', options);
       const {
         page = 1,
         limit = 20,
@@ -88,8 +105,9 @@ class PostService {
       const offset = (page - 1) * limit;
       const where = {
         isPublic: true,
-        publishedAt: { [Op.lte]: new Date() }
+        status: 'published'
       };
+      console.log('🔍 Where clause:', where);
 
       // Filtros
       if (type !== 'all') {
@@ -125,7 +143,7 @@ class PostService {
           orderBy.push(['commentsCount', 'DESC']);
           break;
         default:
-          orderBy.push(['publishedAt', 'DESC']);
+          orderBy.push(['createdAt', 'DESC']);
       }
 
       const posts = await Post.findAndCountAll({
@@ -141,6 +159,13 @@ class PostService {
         limit: parseInt(limit),
         offset: parseInt(offset)
       });
+      
+      console.log('🔍 Posts encontrados:', posts.rows.length);
+      console.log('🔍 Primer post:', posts.rows[0] ? {
+        id: posts.rows[0].id,
+        mediaUrl: posts.rows[0].mediaUrl,
+        author: posts.rows[0].author
+      } : 'No hay posts');
 
       return {
         posts: posts.rows,

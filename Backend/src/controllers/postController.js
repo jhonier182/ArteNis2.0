@@ -84,14 +84,24 @@ class PostController {
   // Obtener feed de publicaciones
   static async getFeed(req, res, next) {
     try {
+      console.log('🔍 getFeed llamado con query:', req.query);
       const result = await PostService.getFeed(req.query);
+      console.log('🔍 Resultado del servicio:', result);
+      
+      // Transformar los posts para el frontend
+      const transformedPosts = PostService.transformPostsForFrontend(result.posts);
+      console.log('🔍 Posts transformados:', transformedPosts);
       
       res.status(200).json({
         success: true,
         message: 'Feed obtenido exitosamente',
-        data: result
+        data: {
+          ...result,
+          posts: transformedPosts
+        }
       });
     } catch (error) {
+      console.error('❌ Error en getFeed:', error);
       next(error);
     }
   }
@@ -104,10 +114,13 @@ class PostController {
       
       const post = await PostService.getPostById(id, userId);
       
+      // Transformar el post para el frontend
+      const transformedPost = PostService.transformPostForFrontend(post);
+      
       res.status(200).json({
         success: true,
         message: 'Publicación obtenida exitosamente',
-        data: { post }
+        data: { post: transformedPost }
       });
     } catch (error) {
       next(error);
@@ -197,10 +210,16 @@ class PostController {
       
       const result = await PostService.getUserPosts(userId, options);
       
+      // Transformar los posts para el frontend
+      const transformedPosts = PostService.transformPostsForFrontend(result.posts);
+      
       res.status(200).json({
         success: true,
         message: 'Publicaciones obtenidas exitosamente',
-        data: result
+        data: {
+          ...result,
+          posts: transformedPosts
+        }
       });
     } catch (error) {
       next(error);
@@ -217,10 +236,16 @@ class PostController {
       
       const result = await PostService.getUserPosts(req.user.id, options);
       
+      // Transformar los posts para el frontend
+      const transformedPosts = PostService.transformPostForFrontend(result.posts);
+      
       res.status(200).json({
         success: true,
         message: 'Publicaciones obtenidas exitosamente',
-        data: result
+        data: {
+          ...result,
+          posts: transformedPosts
+        }
       });
     } catch (error) {
       next(error);

@@ -14,7 +14,7 @@ const router = express.Router();
 
 // GET /api/posts - Obtener feed de publicaciones
 router.get('/',
-  optionalAuth,
+  verifyToken,
   PostController.getFeed
 );
 
