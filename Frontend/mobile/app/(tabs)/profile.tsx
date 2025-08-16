@@ -250,7 +250,7 @@ export default function ProfileScreen() {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.loadingSpinner}>
-          <Ionicons name="sparkles" size={32} color="#00d4ff" />
+          <Ionicons name="sparkles" size={32} color="#FF9800" />
         </View>
         <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
@@ -335,7 +335,7 @@ export default function ProfileScreen() {
               <Text style={styles.username}>{user.username}</Text>
               {user.isVerified && (
                 <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={20} color="#00d4ff" />
+                  <Ionicons name="checkmark-circle" size={20} color="#FF9800" />
                 </View>
               )}
             </View>
@@ -349,10 +349,12 @@ export default function ProfileScreen() {
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
               <LinearGradient
-                colors={['rgba(0,212,255,0.2)', 'rgba(0,212,255,0.1)']}
+                colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={styles.buttonGradient}
               >
-                <Ionicons name="person" size={20} color="#00d4ff" />
+                <Ionicons name="person" size={20} color="#ffffff" />
                 <Text style={styles.buttonText}>Editar Perfil</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -439,11 +441,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(0,212,255,0.1)',
+    backgroundColor: 'rgba(255,152,0,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(0,212,255,0.3)',
+    borderColor: 'rgba(255,152,0,0.3)',
     marginBottom: 20,
   },
   loadingText: {
@@ -474,11 +476,19 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   retryButton: {
-    backgroundColor: '#00d4ff',
+    backgroundColor: '#FF9800',
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
     marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   retryButtonText: {
     color: '#000000',
@@ -515,7 +525,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   usernameAboveAvatar: {
-    color: '#00d4ff',
+    color: '#FF9800',
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 20,
@@ -538,7 +548,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: 'rgba(0,212,255,0.5)',
+    borderColor: 'rgba(255,152,0,0.5)',
   },
   avatarGlow: {
     position: 'absolute',
@@ -547,7 +557,7 @@ const styles = StyleSheet.create({
     right: -5,
     bottom: -5,
     borderRadius: 65,
-    backgroundColor: 'rgba(0,212,255,0.2)',
+    backgroundColor: 'rgba(255,152,0,0.2)',
     zIndex: -1,
   },
   cameraOverlay: {
@@ -561,7 +571,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#00d4ff',
+    borderColor: '#FF9800',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -600,7 +610,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   verifiedBadge: {
-    backgroundColor: 'rgba(0,212,255,0.2)',
+    backgroundColor: 'rgba(255,152,0,0.2)',
     borderRadius: 10,
   },
   bio: {

@@ -136,7 +136,7 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
@@ -145,20 +145,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: 'white',
+    backgroundColor: '#1a1a1a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#ffffff',
   },
   newMessageButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#ff3b30',
+    backgroundColor: '#FF9800',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   conversationsList: {
     flex: 1,
@@ -168,9 +178,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: 'white',
+    backgroundColor: '#1a1a1a',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#333',
   },
   avatarContainer: {
     position: 'relative',
@@ -196,7 +206,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: 'white',
+    backgroundColor: '#1a1a1a',
     borderRadius: 10,
   },
   conversationContent: {
@@ -211,11 +221,11 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#ffffff',
   },
   timestamp: {
     fontSize: 12,
-    color: '#666',
+    color: '#999',
   },
   messageContainer: {
     flexDirection: 'row',
@@ -225,12 +235,12 @@ const styles = StyleSheet.create({
   lastMessage: {
     flex: 1,
     fontSize: 14,
-    color: '#666',
+    color: '#999',
     marginRight: 8,
   },
   unreadMessage: {
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#ffffff',
   },
   typingIndicator: {
     flexDirection: 'row',
@@ -239,7 +249,7 @@ const styles = StyleSheet.create({
   },
   typingText: {
     fontSize: 14,
-    color: '#666',
+    color: '#999',
     fontStyle: 'italic',
     marginRight: 8,
   },
@@ -251,7 +261,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#666',
+    backgroundColor: '#999',
     marginHorizontal: 1,
   },
   dot1: {
@@ -264,7 +274,7 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   unreadBadge: {
-    backgroundColor: '#ff3b30',
+    backgroundColor: '#FF9800',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -284,7 +294,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#ff3b30',
+    backgroundColor: '#FF9800',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
