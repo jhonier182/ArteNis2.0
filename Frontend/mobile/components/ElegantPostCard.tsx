@@ -9,6 +9,7 @@ import {
   Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -111,12 +112,27 @@ export default function ElegantPostCard({
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.followButton, isFollowed && styles.followingButton]} 
           onPress={handleFollow}
+          style={styles.followButtonContainer}
         >
-          <Text style={[styles.followText, isFollowed && styles.followingText]}>
-            {isFollowed ? 'Following' : 'Follow'}
-          </Text>
+                     {!isFollowed ? (
+             <LinearGradient
+               colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
+               start={{ x: 0, y: 0 }}
+               end={{ x: 1, y: 0 }}
+               style={styles.followButton}
+             >
+               <Text style={styles.followText}>
+                 Follow
+               </Text>
+             </LinearGradient>
+          ) : (
+            <View style={styles.followingButton}>
+              <Text style={styles.followingText}>
+                Following
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -218,8 +234,11 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 14,
   },
+  followButtonContainer: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
   followButton: {
-    backgroundColor: '#ff6b9d',
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,
