@@ -204,7 +204,7 @@ export default function HomeScreen() {
             <ElegantPostCard
               key={post.id}
               post={post}
-              currentUserId={user?.id || ''}
+              currentUserId={user?.id || 'guest'}
               onLike={handleLike}
               onComment={handleComment}
               onShare={handleShare}

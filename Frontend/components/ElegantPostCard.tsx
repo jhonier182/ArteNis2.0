@@ -113,29 +113,29 @@ export default function ElegantPostCard({
           </View>
         </TouchableOpacity>
         
-        {post.author.id !== currentUserId && (
+                {post.author.id !== currentUserId && currentUserId !== 'guest' && (
           <TouchableOpacity 
             onPress={handleFollow}
             style={styles.followButtonContainer}
           >
-                     {!isFollowed ? (
-               <LinearGradient
-                 colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
-                 start={{ x: 0, y: 0 }}
-                 end={{ x: 1, y: 0 }}
-                 style={styles.followButton}
-               >
-                 <Text style={styles.followText}>
-                   Follow
-                 </Text>
-               </LinearGradient>
-            ) : (
-              <View style={styles.followingButton}>
-                <Text style={styles.followingText}>
-                  Following
+                   {!isFollowed ? (
+              <LinearGradient
+                colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.followButton}
+              >
+                <Text style={styles.followText}>
+                  Follow
                 </Text>
-              </View>
-            )}
+              </LinearGradient>
+           ) : (
+             <View style={styles.followingButton}>
+               <Text style={styles.followingText}>
+                 Following
+               </Text>
+               </View>
+             )}
           </TouchableOpacity>
         )}
       </View>
