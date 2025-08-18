@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
     borderRadius: 0,
     marginHorizontal: 0,
-    marginBottom: 8,
+    marginBottom:4, // Aumentar el espacio entre publicaciones
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   },
   descriptionContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 20, // Aumentar el padding vertical
   },
   description: {
     color: '#ffffff',
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 24, // Aumentar el padding vertical para más espacio
     borderTopWidth: 1,
     borderTopColor: '#333',
   },
