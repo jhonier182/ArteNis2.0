@@ -98,7 +98,7 @@ export default function ElegantPostCard({
 
   const showPostOptions = () => {
     Alert.alert(
-      '📝 Opciones de Publicación',
+      'Opciones de Publicación',
       '¿Qué quieres hacer con esta publicación?',
       [
         {
@@ -106,12 +106,12 @@ export default function ElegantPostCard({
           style: 'cancel',
         },
         {
-          text: '✏️ Editar',
+          text: 'Editar',
           style: 'default',
           onPress: handleEditPost,
         },
         {
-          text: '🗑️ Eliminar',
+          text: 'Eliminar',
           style: 'destructive',
           onPress: handleDeletePost,
         },
