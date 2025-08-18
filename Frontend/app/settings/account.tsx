@@ -35,13 +35,72 @@ export default function AccountSettingsScreen() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Eliminar Cuenta',
-      '¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.',
+      '⚠️ Eliminar Cuenta Permanentemente',
+      'Esta acción iniciará un período de 15 días antes de la eliminación definitiva.\n\nDurante este tiempo:\n• Tu cuenta seguirá funcionando normalmente\n• Podrás cancelar la eliminación\n• Recibirás notificaciones sobre el progreso\n\n¿Quieres continuar?',
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => {
-          Alert.alert('Cuenta Eliminada', 'Tu cuenta ha sido eliminada');
-        }}
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Sí, Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            // TODO: Implementar lógica de eliminación programada
+            // 1. Llamar a la API para programar la eliminación en 15 días
+            // 2. Actualizar el estado local del usuario
+            // 3. Mostrar indicador de cuenta en proceso de eliminación
+            // 4. Programar notificaciones de recordatorio
+            // 5. Permitir cancelación durante el período de gracia
+            Alert.alert(
+              '🗓️ Eliminación Programada',
+              'Tu cuenta será eliminada permanentemente en 15 días.\n\nRecibirás notificaciones sobre el progreso y podrás cancelar la eliminación desde tu perfil en cualquier momento.',
+              [
+                {
+                  text: 'Entendido',
+                  style: 'default',
+                }
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeactivateAccount = () => {
+    Alert.alert(
+      '⏸️ Desactivar Cuenta',
+      'Al desactivar tu cuenta:\n\n• Tu perfil no será visible para otros usuarios\n• Se cerrará tu sesión actual\n• Podrás reactivarla iniciando sesión nuevamente\n\n¿Quieres continuar?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Sí, Desactivar',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              '✅ Cuenta Desactivada',
+              'Tu cuenta ha sido desactivada exitosamente.\n\nTu perfil ya no es visible para otros usuarios. Para reactivarla, simplemente inicia sesión nuevamente.',
+              [
+                {
+                  text: 'Entendido',
+                  style: 'default',
+                  onPress: () => {
+                    // TODO: Implementar lógica de desactivación de cuenta
+                    // 1. Llamar a la API para marcar la cuenta como desactivada
+                    // 2. Actualizar el estado local del usuario
+                    // 3. Cerrar sesión automáticamente
+                    // 4. Redirigir al login
+                    handleLogout();
+                  },
+                }
+              ]
+            );
+          },
+        },
       ]
     );
   };
@@ -217,6 +276,19 @@ export default function AccountSettingsScreen() {
             <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.5)" />
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.settingItem} onPress={handleDeactivateAccount}>
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: '#FF9800' }]}>
+                <Ionicons name="pause-circle-outline" size={20} color="#ffffff" />
+              </View>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Desactivar Cuenta</Text>
+                <Text style={styles.settingSubtitle}>Oculta tu perfil temporalmente</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.5)" />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.settingItem} onPress={handleDeleteAccount}>
             <View style={styles.settingLeft}>
               <View style={[styles.settingIcon, { backgroundColor: '#E91E63' }]}>
@@ -224,7 +296,7 @@ export default function AccountSettingsScreen() {
               </View>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingTitle}>Eliminar Cuenta</Text>
-                <Text style={styles.settingSubtitle}>Elimina permanentemente tu cuenta</Text>
+                <Text style={styles.settingSubtitle}>Eliminación permanente en 15 días</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.5)" />
