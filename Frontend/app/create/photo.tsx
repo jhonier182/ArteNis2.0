@@ -36,7 +36,8 @@ export default function CreatePhotoScreen() {
   const [description, setDescription] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -86,7 +87,7 @@ export default function CreatePhotoScreen() {
 
     try {
       setUploading(true);
-      setUploadProgress('Subiendo imagen...');
+      setUploadProgress(10); // 10% - Iniciando
       const token = await AsyncStorage.getItem('token');
       if (!token) {
         router.replace('/auth/login');
@@ -94,10 +95,10 @@ export default function CreatePhotoScreen() {
       }
 
       if (isEditMode) {
-        setUploadProgress('Guardando cambios...');
+        setUploadProgress(50); // 50% - Guardando cambios
         await handleUpdatePost(token);
       } else {
-        setUploadProgress('Creando publicación...');
+        setUploadProgress(10); // 10% - Iniciando publicación
         await handleCreatePost(token);
       }
 
@@ -174,6 +175,7 @@ export default function CreatePhotoScreen() {
       hashtags: hashtags.trim() ? hashtags.trim().split(' ').filter(tag => tag.startsWith('#')) : [],
       type: 'image',
       status: 'pending', // Estado de espera
+      progress: uploadProgress, // Progreso actual
       createdAt: new Date().toISOString(),
       author: {
         id: user?.id || '',
@@ -211,6 +213,7 @@ export default function CreatePhotoScreen() {
       imageFormData.append('image', imageFile);
       
       console.log('📤 Subiendo imagen a Cloudinary...');
+      setUploadProgress(25); // 25% - Subiendo imagen
       const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
         method: 'POST',
         headers: {
@@ -224,6 +227,7 @@ export default function CreatePhotoScreen() {
         throw new Error(errorData.message || 'Error al subir imagen');
       }
 
+      setUploadProgress(75); // 75% - Imagen subida, creando post
       const imageResult = await imageResponse.json();
       const imageUrl = imageResult.data.url;
       const cloudinaryPublicId = imageResult.data.publicId;
@@ -261,6 +265,9 @@ export default function CreatePhotoScreen() {
       
       // Notificar al feed que la publicación se completó
       console.log('📢 Notificando al feed que la publicación se completó');
+      
+      // Marcar como completado
+      setUploadProgress(100);
       
     } catch (error) {
       console.error('❌ Error en publicación en segundo plano:', error);
@@ -323,7 +330,7 @@ export default function CreatePhotoScreen() {
             {uploading ? (isEditMode ? 'Guardando...' : 'Publicando...') : (isEditMode ? 'Guardar' : 'Publicar')}
           </Text>
           {uploading && uploadProgress && (
-            <Text style={styles.progressText}>{uploadProgress}</Text>
+            <Text style={styles.progressText}>{uploadProgress}%</Text>
           )}
         </TouchableOpacity>
       </View>

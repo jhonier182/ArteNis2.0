@@ -7,32 +7,23 @@ const { width } = Dimensions.get('window');
 
 interface PendingPostCardProps {
   post: any;
+  progress?: number; // Progreso real de 0 a 100
 }
 
-export default function PendingPostCard({ post }: PendingPostCardProps) {
-  const progressAnim = useRef(new Animated.Value(-width)).current;
+export default function PendingPostCard({ post, progress = 0 }: PendingPostCardProps) {
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Animación de la barra de progreso
-    const animateProgress = () => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(progressAnim, {
-            toValue: width,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(progressAnim, {
-            toValue: -width,
-            duration: 0,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    };
+    // Animar la barra de progreso real
+    Animated.timing(progressAnim, {
+      toValue: progress,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [progress]);
 
-    animateProgress();
-  }, []);
+  // Calcular el ancho de la barra basado en el progreso
+  const progressWidth = (progress / 100) * width;
 
   return (
     <View style={styles.container}>
@@ -59,14 +50,6 @@ export default function PendingPostCard({ post }: PendingPostCardProps) {
           style={styles.postImage}
           resizeMode="cover"
         />
-        
-        {/* Overlay de estado */}
-        <View style={styles.overlay}>
-          <View style={styles.statusContainer}>
-            <Ionicons name="cloud-upload-outline" size={24} color="#ffffff" />
-            <Text style={styles.statusText}>Subiendo publicación...</Text>
-          </View>
-        </View>
       </View>
 
       {/* Barra de progreso delgada con animación */}
@@ -75,12 +58,12 @@ export default function PendingPostCard({ post }: PendingPostCardProps) {
           style={[
             styles.progressBar,
             {
-              transform: [{ translateX: progressAnim }]
+              width: progressWidth,
             }
           ]}
         >
           <LinearGradient
-            colors={['#00d4ff', '#ff6b9d', '#4ecdc4']}
+            colors={['#ff6b35', '#f7931e', '#ff4757']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.progressGradient}
@@ -154,29 +137,6 @@ const styles = StyleSheet.create({
     height: '100%',
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusContainer: {
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-    alignItems: 'center',
-  },
-  statusText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 8,
   },
   progressContainer: {
     height: 3,

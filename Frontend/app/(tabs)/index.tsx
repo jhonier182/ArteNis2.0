@@ -178,6 +178,24 @@ export default function HomeScreen() {
     }
   }, [params?.tempPost, params?.pendingPublication]);
 
+  // Efecto para simular progreso de posts temporales
+  useEffect(() => {
+    if (pendingPosts.length === 0) return;
+    
+    // Simular progreso incremental para posts temporales
+    const progressInterval = setInterval(() => {
+      pendingPosts.forEach(post => {
+        if (post.progress < 90) { // No llegar al 100% hasta que se complete
+          const increment = Math.random() * 5 + 1; // Incremento aleatorio entre 1-6%
+          const newProgress = Math.min(post.progress + increment, 90);
+          updatePendingPostProgress(post.id, newProgress);
+        }
+      });
+    }, 1000); // Actualizar cada segundo
+    
+    return () => clearInterval(progressInterval);
+  }, [pendingPosts]);
+
   // Efecto para verificar periódicamente el estado de posts temporales
   useEffect(() => {
     if (pendingPosts.length === 0) return;
@@ -189,6 +207,15 @@ export default function HomeScreen() {
     
     return () => clearInterval(interval);
   }, [pendingPosts.length]);
+
+  // Función para actualizar el progreso de un post temporal
+  const updatePendingPostProgress = (tempPostId: string, newProgress: number) => {
+    setPendingPosts(prev => prev.map(post => 
+      post.id === tempPostId 
+        ? { ...post, progress: newProgress }
+        : post
+    ));
+  };
 
   // Función para remover un post temporal cuando se complete la publicación
   const removePendingPost = (tempPostId: string) => {
@@ -440,9 +467,10 @@ export default function HomeScreen() {
           <>
             {/* Mostrar posts en espera primero */}
             {pendingPosts.map((post) => (
-              <PendingPostCard
-                key={post.id}
+              <PendingPostCard 
+                key={post.id} 
                 post={post}
+                progress={post.progress || 0}
               />
             ))}
             
