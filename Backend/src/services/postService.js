@@ -492,6 +492,47 @@ class PostService {
     }
   }
 
+  // Actualizar publicación
+  static async updatePost(userId, postId, updateData) {
+    try {
+      const post = await Post.findByPk(postId);
+      
+      if (!post) {
+        throw new Error('Publicación no encontrada');
+      }
+
+      // Verificar que el usuario sea el dueño de la publicación
+      if (post.userId !== userId) {
+        throw new Error('No tienes permisos para actualizar esta publicación');
+      }
+
+      // Actualizar solo los campos permitidos
+      const allowedFields = ['description', 'tags'];
+      const updateFields = {};
+
+      if (updateData.description !== undefined) {
+        updateFields.description = updateData.description;
+        updateFields.title = updateData.description.substring(0, 255) || 'Nuevo tatuaje';
+      }
+
+      if (updateData.hashtags !== undefined) {
+        updateFields.tags = updateData.hashtags;
+      }
+
+      // Actualizar la fecha de modificación
+      updateFields.updatedAt = new Date();
+
+      await post.update(updateFields);
+
+      return { 
+        message: 'Publicación actualizada exitosamente',
+        post: this.transformPostForFrontend(post)
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Eliminar publicación
   static async deletePost(userId, postId) {
     try {

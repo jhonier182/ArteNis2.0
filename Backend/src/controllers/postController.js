@@ -262,6 +262,38 @@ class PostController {
     }
   }
 
+  // Actualizar publicación
+  static async updatePost(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { description, hashtags } = req.body;
+
+      if (!description || !description.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Se requiere una descripción para la publicación'
+        });
+      }
+
+      const result = await PostService.updatePost(
+        req.user.id,
+        id,
+        {
+          description: description.trim(),
+          hashtags: hashtags || []
+        }
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Publicación actualizada exitosamente',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // Eliminar publicación
   static async deletePost(req, res, next) {
     try {

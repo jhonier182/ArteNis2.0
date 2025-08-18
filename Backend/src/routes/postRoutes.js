@@ -86,6 +86,12 @@ router.post('/comments/:id/like',
   PostController.likeComment
 );
 
+// PUT /api/posts/:id - Actualizar publicación
+router.put('/:id',
+  verifyToken,
+  PostController.updatePost
+);
+
 // DELETE /api/posts/:id - Eliminar publicación
 router.delete('/:id',
   verifyToken,

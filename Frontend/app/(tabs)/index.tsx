@@ -149,6 +149,8 @@ export default function HomeScreen() {
         mode: 'edit',
         postId: post.id,
         imageUrl: post.imageUrl,
+        description: post.description || '',
+        hashtags: post.hashtags ? post.hashtags.join(',') : '',
         type: 'photo'
       }
     });

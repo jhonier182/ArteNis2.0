@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   StatusBar,
   Dimensions
 } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,13 +22,31 @@ const { width } = Dimensions.get('window');
 
 export default function CreatePhotoScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { user, refreshUser } = useUser();
+  
+  // Detectar si estamos en modo edición
+  const isEditMode = params.mode === 'edit';
+  const postId = params.postId as string;
+  const initialImageUrl = params.imageUrl as string;
+  const initialDescription = params.description as string;
+  const initialHashtags = params.hashtags as string;
+  
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [uploading, setUploading] = useState(false);
 
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
+  // Cargar datos del post si estamos en modo edición
+  useEffect(() => {
+    if (isEditMode) {
+      setSelectedImage(initialImageUrl);
+      setDescription(initialDescription || '');
+      setHashtags(initialHashtags || '');
+    }
+  }, [isEditMode, initialImageUrl, initialDescription, initialHashtags]);
 
   const handleImagePick = async () => {
     try {
@@ -75,101 +93,148 @@ export default function CreatePhotoScreen() {
         return;
       }
 
-      // Detectar automáticamente el tipo MIME de la imagen
-      let mimeType = 'image/jpeg';
-      let fileExtension = 'jpg';
-      
-      if (selectedImage.startsWith('data:')) {
-        // Si es una URI de datos, extraer el tipo MIME
-        const match = selectedImage.match(/^data:([^;]+);/);
-        if (match) {
-          mimeType = match[1];
-          // Determinar la extensión basada en el tipo MIME
-          if (mimeType === 'image/png') {
-            fileExtension = 'png';
-          } else if (mimeType === 'image/gif') {
-            fileExtension = 'gif';
-          } else if (mimeType === 'image/webp') {
-            fileExtension = 'webp';
-          }
-        }
-      } else if (selectedImage.includes('.')) {
-        // Si es una URI de archivo, extraer la extensión
-        const extension = selectedImage.split('.').pop()?.toLowerCase();
-        if (extension === 'png') {
-          mimeType = 'image/png';
-          fileExtension = 'png';
-        } else if (extension === 'gif') {
-          mimeType = 'image/gif';
-          fileExtension = 'gif';
-        } else if (extension === 'webp') {
-          mimeType = 'image/webp';
-          fileExtension = 'webp';
-        }
+      if (isEditMode) {
+        // Modo edición: actualizar el post existente
+        await handleUpdatePost(token);
+      } else {
+        // Modo creación: crear nuevo post
+        await handleCreatePost(token);
       }
-
-      // Subir imagen a Cloudinary - Corregido para React Native
-      const imageFormData = new FormData();
-      const imageFile = {
-        uri: selectedImage,
-        type: mimeType,
-        name: `post.${fileExtension}`,
-        mimeType: mimeType
-      } as any;
-      
-      imageFormData.append('image', imageFile);
-      const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: imageFormData
-      });
-
-      if (!imageResponse.ok) {
-        const errorData = await imageResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Error al subir imagen');
-      }
-
-      const imageResult = await imageResponse.json();//Imagen subida exitosamente
-      const imageUrl = imageResult.data.url;
-      const cloudinaryPublicId = imageResult.data.publicId;
-
-      // Crear el post
-      const postData = {
-        imageUrl,
-        cloudinaryPublicId,
-        description: description.trim(),
-        hashtags: hashtags.trim() ? hashtags.trim().split(' ').filter(tag => tag.startsWith('#')) : [],
-        type: 'image'  // Cambiado de 'photo' a 'image' para que coincida con la validación del backend
-      };
-
-      const postResponse = await fetch(`${API_BASE_URL}/api/posts`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(postData)
-      });
-
-      if (!postResponse.ok) {
-        const errorData = await postResponse.json().catch(() => ({}));//error al crear el post
-        throw new Error(`Error al crear el post: ${postResponse.status} - ${errorData.message || 'Error desconocido'}`);
-      }
-
-      // Refrescar los datos del usuario para incluir el nuevo post
-      await refreshUser();
-      
-      // Navegar de vuelta sin mostrar alerta
-      router.back();
 
     } catch (error) {
-      console.error('Error al publicar:', error);
-      Alert.alert('Error', 'No se pudo publicar la imagen');
+      console.error('Error al procesar:', error);
+      Alert.alert('Error', isEditMode ? 'No se pudo actualizar la publicación' : 'No se pudo publicar la imagen');
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleCreatePost = async (token: string) => {
+    if (!selectedImage) {
+      throw new Error('No hay imagen seleccionada');
+    }
+
+    // Detectar automáticamente el tipo MIME de la imagen
+    let mimeType = 'image/jpeg';
+    let fileExtension = 'jpg';
+    
+    if (selectedImage.startsWith('data:')) {
+      // Si es una URI de datos, extraer el tipo MIME
+      const match = selectedImage.match(/^data:([^;]+);/);
+      if (match) {
+        mimeType = match[1];
+        // Determinar la extensión basada en el tipo MIME
+        if (mimeType === 'image/png') {
+          fileExtension = 'png';
+        } else if (mimeType === 'image/gif') {
+          fileExtension = 'gif';
+        } else if (mimeType === 'image/webp') {
+          fileExtension = 'webp';
+        }
+      }
+    } else if (selectedImage.includes('.')) {
+      // Si es una URI de archivo, extraer la extensión
+      const extension = selectedImage.split('.').pop()?.toLowerCase();
+      if (extension === 'png') {
+        mimeType = 'image/png';
+        fileExtension = 'png';
+      } else if (extension === 'gif') {
+        mimeType = 'image/gif';
+        fileExtension = 'gif';
+      } else if (extension === 'webp') {
+        mimeType = 'image/webp';
+        fileExtension = 'webp';
+      }
+    }
+
+    // Subir imagen a Cloudinary - Corregido para React Native
+    const imageFormData = new FormData();
+    const imageFile = {
+      uri: selectedImage,
+      type: mimeType,
+      name: `post.${fileExtension}`,
+      mimeType: mimeType
+    } as any;
+    
+    imageFormData.append('image', imageFile);
+    const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: imageFormData
+    });
+
+    if (!imageResponse.ok) {
+      const errorData = await imageResponse.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Error al subir imagen');
+    }
+
+    const imageResult = await imageResponse.json();//Imagen subida exitosamente
+    const imageUrl = imageResult.data.url;
+    const cloudinaryPublicId = imageResult.data.publicId;
+
+    // Crear el post
+    const postData = {
+      imageUrl,
+      cloudinaryPublicId,
+      description: description.trim(),
+      hashtags: hashtags.trim() ? hashtags.trim().split(' ').filter(tag => tag.startsWith('#')) : [],
+      type: 'image'  // Cambiado de 'photo' a 'image' para que coincida con la validación del backend
+    };
+
+    const postResponse = await fetch(`${API_BASE_URL}/api/posts`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(postData)
+    });
+
+    if (!postResponse.ok) {
+      const errorData = await postResponse.json().catch(() => ({}));//error al crear el post
+      throw new Error(`Error al crear el post: ${postResponse.status} - ${errorData.message || 'Error desconocido'}`);
+    }
+
+    // Refrescar los datos del usuario para incluir el nuevo post
+    await refreshUser();
+    
+    // Navegar de vuelta sin mostrar alerta
+    router.back();
+  };
+
+  const handleUpdatePost = async (token: string) => {
+    // Actualizar el post existente
+    const postData = {
+      description: description.trim(),
+      hashtags: hashtags.trim() ? hashtags.trim().split(' ').filter(tag => tag.startsWith('#')) : [],
+    };
+
+    const updateResponse = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(postData)
+    });
+
+    if (!updateResponse.ok) {
+      const errorData = await updateResponse.json().catch(() => ({}));
+      throw new Error(`Error al actualizar el post: ${updateResponse.status} - ${errorData.message || 'Error desconocido'}`);
+    }
+
+    // Refrescar los datos del usuario
+    await refreshUser();
+    
+    // Mostrar mensaje de éxito y navegar de vuelta
+    Alert.alert('✅ Éxito', 'Publicación actualizada correctamente', [
+      {
+        text: 'OK',
+        onPress: () => router.back()
+      }
+    ]);
   };
 
   return (
@@ -187,30 +252,40 @@ export default function CreatePhotoScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="close" size={24} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nueva Publicación</Text>
+        <Text style={styles.headerTitle}>
+          {isEditMode ? 'Editar Publicación' : 'Nueva Publicación'}
+        </Text>
         <TouchableOpacity 
           style={[styles.publishButton, (!selectedImage || !description.trim() || uploading) && styles.publishButtonDisabled]} 
           onPress={handlePublish}
           disabled={!selectedImage || !description.trim() || uploading}
         >
           <Text style={styles.publishButtonText}>
-            {uploading ? 'Publicando...' : 'Publicar'}
+            {uploading ? (isEditMode ? 'Guardando...' : 'Publicando...') : (isEditMode ? 'Guardar' : 'Publicar')}
           </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Selector de imagen */}
-        <TouchableOpacity style={styles.imageSelector} onPress={handleImagePick}>
-          {selectedImage ? (
-            <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Ionicons name="camera" size={48} color="#666" />
-              <Text style={styles.placeholderText}>Toca para seleccionar imagen</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        {isEditMode ? (
+          // Modo edición: solo mostrar la imagen
+          <View style={styles.imageSelector}>
+            {selectedImage && <Image source={{ uri: selectedImage }} style={styles.selectedImage} />}
+          </View>
+        ) : (
+          // Modo creación: permitir seleccionar imagen
+          <TouchableOpacity style={styles.imageSelector} onPress={handleImagePick}>
+            {selectedImage ? (
+              <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Ionicons name="camera" size={48} color="#666" />
+                <Text style={styles.placeholderText}>Toca para seleccionar imagen</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
 
         {/* Campos de texto */}
         <View style={styles.textFields}>
@@ -244,19 +319,36 @@ export default function CreatePhotoScreen() {
 
         {/* Información adicional */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>📸 Información de la publicación</Text>
-          <View style={styles.infoItem}>
-            <Ionicons name="image" size={16} color="#00d4ff" />
-            <Text style={styles.infoText}>La imagen se mostrará en tu perfil y en el feed</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Ionicons name="heart" size={16} color="#ff6b6b" />
-            <Text style={styles.infoText}>Otros usuarios podrán dar like y comentar</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Ionicons name="share" size={16} color="#4ecdc4" />
-            <Text style={styles.infoText}>Tu trabajo será visible para toda la comunidad</Text>
-          </View>
+          <Text style={styles.infoTitle}>
+            {isEditMode ? '✏️ Editar Publicación' : '📸 Información de la publicación'}
+          </Text>
+          {isEditMode ? (
+            <>
+              <View style={styles.infoItem}>
+                <Ionicons name="image" size={16} color="#00d4ff" />
+                <Text style={styles.infoText}>La imagen no se puede cambiar, solo la descripción y hashtags</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Ionicons name="save" size={16} color="#4ecdc4" />
+                <Text style={styles.infoText}>Los cambios se guardarán inmediatamente en tu publicación</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.infoItem}>
+                <Ionicons name="image" size={16} color="#00d4ff" />
+                <Text style={styles.infoText}>La imagen se mostrará en tu perfil y en el feed</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Ionicons name="heart" size={16} color="#ff6b6b" />
+                <Text style={styles.infoText}>Otros usuarios podrán dar like y comentar</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Ionicons name="share" size={16} color="#4ecdc4" />
+                <Text style={styles.infoText}>Tu trabajo será visible para toda la comunidad</Text>
+              </View>
+            </>
+          )}
         </View>
       </ScrollView>
     </View>
