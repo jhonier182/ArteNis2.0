@@ -36,6 +36,7 @@ interface Post {
 
 interface ElegantPostCardProps {
   post: Post;
+  currentUserId: string; // Agregar el ID del usuario actual
   onLike: (postId: string) => void;
   onComment: (postId: string) => void;
   onShare: (postId: string) => void;
@@ -45,6 +46,7 @@ interface ElegantPostCardProps {
 
 export default function ElegantPostCard({
   post,
+  currentUserId,
   onLike,
   onComment,
   onShare,
@@ -111,29 +113,31 @@ export default function ElegantPostCard({
           </View>
         </TouchableOpacity>
         
-        <TouchableOpacity 
-          onPress={handleFollow}
-          style={styles.followButtonContainer}
-        >
+        {post.author.id !== currentUserId && (
+          <TouchableOpacity 
+            onPress={handleFollow}
+            style={styles.followButtonContainer}
+          >
                      {!isFollowed ? (
-             <LinearGradient
-               colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
-               start={{ x: 0, y: 0 }}
-               end={{ x: 1, y: 0 }}
-               style={styles.followButton}
-             >
-               <Text style={styles.followText}>
-                 Follow
-               </Text>
-             </LinearGradient>
-          ) : (
-            <View style={styles.followingButton}>
-              <Text style={styles.followingText}>
-                Following
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+               <LinearGradient
+                 colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
+                 start={{ x: 0, y: 0 }}
+                 end={{ x: 1, y: 0 }}
+                 style={styles.followButton}
+               >
+                 <Text style={styles.followText}>
+                   Follow
+                 </Text>
+               </LinearGradient>
+            ) : (
+              <View style={styles.followingButton}>
+                <Text style={styles.followingText}>
+                  Following
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Imagen del post */}

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ElegantPostCard from '../../components/ElegantPostCard';
 import CategoryFilter from '../../components/CategoryFilter';
+import { useUser } from '../../context/UserContext';
 
 interface Post {
   id: string;
@@ -39,6 +40,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const { user } = useUser();
 
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -202,6 +204,7 @@ export default function HomeScreen() {
             <ElegantPostCard
               key={post.id}
               post={post}
+              currentUserId={user?.id || ''}
               onLike={handleLike}
               onComment={handleComment}
               onShare={handleShare}
