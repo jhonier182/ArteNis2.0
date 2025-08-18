@@ -228,13 +228,8 @@ export default function CreatePhotoScreen() {
     // Refrescar los datos del usuario
     await refreshUser();
     
-    // Mostrar mensaje de éxito y navegar de vuelta
-    Alert.alert('✅ Éxito', 'Publicación actualizada correctamente', [
-      {
-        text: 'OK',
-        onPress: () => router.back()
-      }
-    ]);
+    // Navegar de vuelta al feed sin mostrar alerta
+    router.back();
   };
 
   return (
