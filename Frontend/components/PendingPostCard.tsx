@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions, Animated } from 'react-native';
+import React from 'react';
+import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -11,17 +11,6 @@ interface PendingPostCardProps {
 }
 
 export default function PendingPostCard({ post, progress = 0 }: PendingPostCardProps) {
-  const progressAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    // Animar la barra de progreso real
-    Animated.timing(progressAnim, {
-      toValue: progress,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  }, [progress]);
-
   // Calcular el ancho de la barra basado en el progreso
   const progressWidth = (progress / 100) * width;
 
@@ -52,9 +41,9 @@ export default function PendingPostCard({ post, progress = 0 }: PendingPostCardP
         />
       </View>
 
-      {/* Barra de progreso delgada con animación */}
+      {/* Barra de progreso delgada */}
       <View style={styles.progressContainer}>
-        <Animated.View
+        <View
           style={[
             styles.progressBar,
             {
@@ -68,7 +57,7 @@ export default function PendingPostCard({ post, progress = 0 }: PendingPostCardP
             end={{ x: 1, y: 0 }}
             style={styles.progressGradient}
           />
-        </Animated.View>
+        </View>
       </View>
     </View>
   );
