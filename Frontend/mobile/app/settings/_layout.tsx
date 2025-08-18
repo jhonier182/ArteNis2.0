@@ -5,6 +5,9 @@ export default function SettingsLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
+        headerTitle: '',
+        headerBackTitle: '',
+        headerBackVisible: false,
         headerStyle: {
           backgroundColor: '#000000',
         },
@@ -19,6 +22,9 @@ export default function SettingsLayout() {
         options={{
           title: '',
           headerShown: false,
+          headerTitle: '',
+          headerBackTitle: '',
+          headerBackVisible: false,
         }}
       />
       <Stack.Screen
@@ -26,6 +32,9 @@ export default function SettingsLayout() {
         options={{
           title: '',
           headerShown: false,
+          headerTitle: '',
+          headerBackTitle: '',
+          headerBackVisible: false,
         }}
       />
       <Stack.Screen
@@ -33,6 +42,9 @@ export default function SettingsLayout() {
         options={{
           title: '',
           headerShown: false,
+          headerTitle: '',
+          headerBackTitle: '',
+          headerBackVisible: false,
         }}
       />
       <Stack.Screen
@@ -40,6 +52,9 @@ export default function SettingsLayout() {
         options={{
           title: '',
           headerShown: false,
+          headerTitle: '',
+          headerBackTitle: '',
+          headerBackVisible: false,
         }}
       />
       <Stack.Screen
@@ -47,6 +62,9 @@ export default function SettingsLayout() {
         options={{
           title: '',
           headerShown: false,
+          headerTitle: '',
+          headerBackTitle: '',
+          headerBackVisible: false,
         }}
       />
     </Stack>
