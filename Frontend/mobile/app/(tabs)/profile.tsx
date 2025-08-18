@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useUser } from '../../context/UserContext';
 import * as ImagePicker from 'expo-image-picker';
+import PostsGrid from '../../components/PostsGrid';
 
 const { width, height } = Dimensions.get('window');
 
@@ -363,41 +364,14 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Grid de publicaciones tipo Instagram */}
-        <View style={styles.postsGrid}>
-          <Text style={styles.sectionTitle}>Mis Publicaciones</Text>
-          
-          {/* Grid de 3 columnas */}
-          <View style={styles.gridContainer}>
-            {user.posts && user.posts.length > 0 ? (
-              user.posts.map((post, index) => (
-                <TouchableOpacity key={post.id} style={styles.postThumbnail}>
-                  <Image 
-                    source={{ uri: post.imageUrl }} 
-                    style={styles.thumbnailImage}
-                  />
-                  {post.type === 'video' && (
-                    <View style={styles.videoIndicator}>
-                      <Ionicons name="play" size={12} color="#ffffff" />
-                    </View>
-                  )}
-                  {post.likesCount > 0 && (
-                    <View style={styles.likesIndicator}>
-                      <Ionicons name="heart" size={10} color="#ff6b6b" />
-                      <Text style={styles.likesCount}>{post.likesCount}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))
-            ) : (
-              <View style={styles.noPostsContainer}>
-                <Ionicons name="images-outline" size={48} color="rgba(255,255,255,0.3)" />
-                <Text style={styles.noPostsText}>No tienes publicaciones aún</Text>
-                <Text style={styles.noPostsSubtext}>Comparte tu trabajo para que aparezca aquí</Text>
-              </View>
-            )}
-          </View>
-        </View>
+        {/* Grid de publicaciones con scroll infinito */}
+        <PostsGrid 
+          userId={user.id}
+          onPostPress={(post) => {
+            // Aquí puedes navegar a la vista detallada del post
+            console.log('Post seleccionado:', post.id);
+          }}
+        />
       </ScrollView>
 
       {/* Modal para ver imagen completa */}
@@ -675,77 +649,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
   },
-  // Estilos para la grilla de publicaciones
-  postsGrid: {
-    paddingHorizontal: 20,
-    paddingBottom: 100,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  postThumbnail: {
-    width: (width - 60) / 3, // 3 columnas con padding
-    height: (width - 60) / 3,
-    marginBottom: 2,
-    position: 'relative',
-  },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
-  },
-  videoIndicator: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  likesIndicator: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 12,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    gap: 3,
-  },
-  likesCount: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  noPostsContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  noPostsText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  noPostsSubtext: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 14,
-    textAlign: 'center',
-  },
+
 });
