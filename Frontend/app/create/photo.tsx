@@ -259,6 +259,9 @@ export default function CreatePhotoScreen() {
       await refreshUser();
       console.log('🔄 Datos del usuario actualizados');
       
+      // Notificar al feed que la publicación se completó
+      console.log('📢 Notificando al feed que la publicación se completó');
+      
     } catch (error) {
       console.error('❌ Error en publicación en segundo plano:', error);
       // El error se manejará en el feed mostrando el post como fallido

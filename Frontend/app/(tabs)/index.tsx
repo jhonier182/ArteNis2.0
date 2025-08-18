@@ -83,18 +83,37 @@ export default function HomeScreen() {
         // Verificar si hay posts temporales que se pueden limpiar
         // (cuando se complete la publicación, el post real aparecerá en newPosts)
         if (pendingPosts.length > 0 && newPosts.length > 0) {
+          console.log('🔍 Verificando posts temporales en fetchPosts...');
+          console.log(`⏳ Posts temporales: ${pendingPosts.length}`);
+          console.log(`📊 Posts nuevos: ${newPosts.length}`);
+          
           // Buscar posts que coincidan con los temporales por descripción
           pendingPosts.forEach(pendingPost => {
-            const matchingRealPost = newPosts.find((realPost: any) => 
-              realPost.description === pendingPost.description &&
-              realPost.author.id === pendingPost.author.id &&
-              realPost.type === pendingPost.type
-            );
+            const matchingRealPost = newPosts.find((realPost: any) => {
+              // Comparar descripción, autor y tipo
+              const basicMatch = realPost.description === pendingPost.description &&
+                               realPost.author.id === pendingPost.author.id &&
+                               realPost.type === pendingPost.type;
+              
+              // También verificar que el post real sea reciente (últimos 5 minutos)
+              if (basicMatch) {
+                const realPostTime = new Date(realPost.createdAt).getTime();
+                const pendingPostTime = new Date(pendingPost.createdAt).getTime();
+                const timeDiff = Math.abs(realPostTime - pendingPostTime);
+                const isRecent = timeDiff < 5 * 60 * 1000; // 5 minutos
+                
+                console.log(`⏰ Comparación de tiempo: ${timeDiff}ms, Reciente: ${isRecent}`);
+                return isRecent;
+              }
+              
+              return false;
+            });
             
             if (matchingRealPost) {
               // Remover el post temporal ya que se completó la publicación
+              console.log('🎉 Post temporal completado en fetchPosts:', pendingPost.id);
+              console.log('📝 Descripción:', pendingPost.description);
               removePendingPost(pendingPost.id);
-              console.log('Post temporal removido:', pendingPost.id);
             }
           });
         }
@@ -118,6 +137,14 @@ export default function HomeScreen() {
   useFocusEffect(
     React.useCallback(() => {
       fetchPosts();
+      
+      // Verificar posts temporales al enfocar la pantalla
+      if (pendingPosts.length > 0) {
+        console.log('🔍 Verificación inicial de posts temporales al enfocar...');
+        setTimeout(() => {
+          checkPendingPostsStatus();
+        }, 1000); // Esperar 1 segundo para que se carguen los posts
+      }
     }, [])
   );
 
@@ -155,10 +182,10 @@ export default function HomeScreen() {
   useEffect(() => {
     if (pendingPosts.length === 0) return;
     
-    // Verificar cada 3 segundos si hay posts temporales
+    // Verificar cada 2 segundos si hay posts temporales (más frecuente)
     const interval = setInterval(() => {
       checkPendingPostsStatus();
-    }, 3000);
+    }, 2000);
     
     return () => clearInterval(interval);
   }, [pendingPosts.length]);
@@ -176,6 +203,8 @@ export default function HomeScreen() {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
+      console.log('🔍 Verificando estado de posts temporales...');
+      
       // Obtener posts recientes del usuario para verificar si se completaron
       const response = await fetch(`${API_BASE_URL}/api/posts/user/me`, {
         headers: {
@@ -188,22 +217,40 @@ export default function HomeScreen() {
         const data = await response.json();
         const recentPosts = data.data.posts || [];
         
+        console.log(`📊 Posts recientes encontrados: ${recentPosts.length}`);
+        console.log(`⏳ Posts temporales pendientes: ${pendingPosts.length}`);
+        
         // Verificar cada post temporal
         pendingPosts.forEach(pendingPost => {
-          const matchingRealPost = recentPosts.find((realPost: any) => 
-            realPost.description === pendingPost.description &&
-            realPost.author.id === pendingPost.author.id &&
-            realPost.type === pendingPost.type
-          );
+          const matchingRealPost = recentPosts.find((realPost: any) => {
+            // Comparar descripción, autor y tipo
+            const basicMatch = realPost.description === pendingPost.description &&
+                             realPost.author.id === pendingPost.author.id &&
+                             realPost.type === pendingPost.type;
+            
+            // También verificar que el post real sea reciente (últimos 5 minutos)
+            if (basicMatch) {
+              const realPostTime = new Date(realPost.createdAt).getTime();
+              const pendingPostTime = new Date(pendingPost.createdAt).getTime();
+              const timeDiff = Math.abs(realPostTime - pendingPostTime);
+              const isRecent = timeDiff < 5 * 60 * 1000; // 5 minutos
+              
+              console.log(`⏰ Comparación de tiempo: ${timeDiff}ms, Reciente: ${isRecent}`);
+              return isRecent;
+            }
+            
+            return false;
+          });
           
           if (matchingRealPost) {
             console.log('🎉 Post temporal completado:', pendingPost.id);
+            console.log('📝 Descripción:', pendingPost.description);
             removePendingPost(pendingPost.id);
           }
         });
       }
     } catch (error) {
-      console.error('Error verificando estado de posts temporales:', error);
+      console.error('❌ Error verificando estado de posts temporales:', error);
     }
   };
 
