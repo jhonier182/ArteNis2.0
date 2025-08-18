@@ -333,15 +333,6 @@ export default function ProfileScreen() {
 
           {/* Información del usuario */}
           <View style={styles.userInfo}>
-            <View style={styles.usernameContainer}>
-              <Text style={styles.username}>{user.username}</Text>
-              {user.isVerified && (
-                <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={20} color="#FF9800" />
-                </View>
-              )}
-            </View>
-            
             <Text style={styles.bio}>
               {user.bio || 'Tatuador profesional | Artista digital | Amante del arte'}
             </Text>
@@ -605,21 +596,6 @@ const styles = StyleSheet.create({
   userInfo: {
     alignItems: 'center',
     marginBottom: 25,
-  },
-  usernameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  username: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginRight: 8,
-  },
-  verifiedBadge: {
-    backgroundColor: 'rgba(255,152,0,0.2)',
-    borderRadius: 10,
   },
   bio: {
     fontSize: 16,
