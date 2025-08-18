@@ -21,6 +21,7 @@ export default function AccountSettingsScreen() {
   const [biometricEnabled, setBiometricEnabled] = useState(false);
 
   const handleChangePassword = () => {
+    // Implementar cambio de contraseña
     Alert.alert('Cambiar Contraseña', 'Funcionalidad en desarrollo');
   };
 
@@ -30,10 +31,6 @@ export default function AccountSettingsScreen() {
 
   const handlePrivacySettings = () => {
     router.push('/settings/privacy');
-  };
-
-  const handleDataExport = () => {
-    Alert.alert('Exportar Datos', 'Funcionalidad en desarrollo');
   };
 
   const handleDeleteAccount = () => {
@@ -201,18 +198,6 @@ export default function AccountSettingsScreen() {
             <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.5)" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem} onPress={handleDataExport}>
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: '#8BC34A' }]}>
-                <Ionicons name="download-outline" size={20} color="#ffffff" />
-              </View>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Exportar Datos</Text>
-                <Text style={styles.settingSubtitle}>Descarga tu información</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.5)" />
-          </TouchableOpacity>
         </View>
 
         {/* Sección de Cuenta */}
