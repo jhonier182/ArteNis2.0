@@ -33,7 +33,6 @@ interface PostsGridProps {
 }
 
 export default function PostsGrid({ userId, onPostPress }: PostsGridProps) {
-  console.log('🔍 PostsGrid renderizado con userId:', userId);
   const shimmerAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -58,13 +57,10 @@ export default function PostsGrid({ userId, onPostPress }: PostsGridProps) {
 
   const fetchPosts = useCallback(async (page: number, pageSize: number) => {
     try {
-      console.log('🔄 Fetching posts para userId:', userId, 'página:', page);
-      
       const token = await AsyncStorage.getItem('token');
       if (!token) throw new Error('No hay token');
       
       const url = `${process.env.EXPO_PUBLIC_API_URL}/api/posts/user/${userId}?page=${page}&limit=${pageSize}`;
-      console.log('🌐 URL de la API:', url);
       
       const response = await fetch(url, {
         headers: {
@@ -73,21 +69,15 @@ export default function PostsGrid({ userId, onPostPress }: PostsGridProps) {
         }
       });
       
-      console.log('📡 Respuesta de la API:', response.status, response.statusText);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Error en la respuesta:', errorText);
         throw new Error(`Error ${response.status}: ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('✅ Datos recibidos:', data);
       
       const posts = data.data?.posts || [];
       const hasMore = data.data?.pagination?.currentPage < data.data?.pagination?.totalPages;
-      
-      console.log('📊 Posts extraídos:', posts.length, 'hasMore:', hasMore);
       
       return {
         data: posts,
@@ -108,20 +98,13 @@ export default function PostsGrid({ userId, onPostPress }: PostsGridProps) {
     refresh,
   } = useInfiniteScroll(fetchPosts, { pageSize: POSTS_PER_PAGE });
 
-  console.log('📊 PostsGrid estado:', { 
-    postsCount: posts.length, 
-    loading, 
-    hasMore, 
-    error,
-    userId 
-  });
+
 
   // Type assertion to fix TypeScript error
   const typedPosts = posts as Post[];
 
   // Cargar posts iniciales cuando el componente se monte
   useEffect(() => {
-    console.log('🚀 PostsGrid: Cargando posts iniciales');
     refresh();
   }, [refresh]);
 

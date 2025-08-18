@@ -60,16 +60,11 @@ export default function ProfileScreen() {
       setError(null);
       
       const token = await AsyncStorage.getItem('token');
-      console.log('🔑 Token encontrado:', token ? 'Sí' : 'No');
-      
       if (!token) {
-        console.log('❌ No hay token, redirigiendo a login');
         router.replace('/auth/login');
         return;
       }
-
-      console.log('🌐 Intentando conectar a:', API_BASE_URL);
-      
+ 
       const response = await fetch(`${API_BASE_URL}/api/users/me/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -77,10 +72,7 @@ export default function ProfileScreen() {
         }
       });
 
-      console.log('📡 Respuesta del servidor:', response.status, response.statusText);
-
       if (response.status === 401) {
-        console.log('🔒 Token expirado, intentando refresh...');
         // Intentar refresh del token
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         if (refreshToken) {
@@ -94,7 +86,6 @@ export default function ProfileScreen() {
             if (refreshResponse.ok) {
               const { accessToken } = await refreshResponse.json();
               await AsyncStorage.setItem('token', accessToken);
-              console.log('✅ Token refrescado, reintentando...');
               // Reintentar la petición original
               return fetchProfile();
             }
@@ -113,30 +104,24 @@ export default function ProfileScreen() {
       }
 
       if (response.status === 500) {
-        console.log('💥 Error del servidor (500)');
-        setError('Error del servidor. Intenta más tarde.');
+        setError('Error del servidor. Intenta más tarde.');//error del servidor
         return;
       }
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.log('❌ Error en la respuesta:', errorText);
+        const errorText = await response.text(); //error en la respuesta
         setError(`Error ${response.status}: ${errorText}`);
         return;
       }
 
-      const data = await response.json();
-      console.log('✅ Datos del perfil recibidos:', data);
-      
+      const data = await response.json(); //datos recibidos del perfil
       if (data.user) {
         setUser(data.user);
       } else if (data.data && data.data.user) {
         setUser(data.data.user);
       } else {
-        console.log('⚠️ Estructura de datos inesperada:', data);
-        setError('Formato de datos inesperado');
+        setError('Formato de datos inesperado');//estructura de datos inesperada
       }
-      
     } catch (error) {
       console.error('💥 Error al cargar perfil:', error);
       setError('Error de conexión. Verifica tu internet.');
@@ -208,9 +193,7 @@ export default function ProfileScreen() {
           });
 
           if (imageResponse.ok) {
-            const imageResult = await imageResponse.json();
-            console.log('✅ Avatar actualizado exitosamente:', imageResult);
-            
+            const imageResult = await imageResponse.json();//resultado de la imagen 
             // Actualizar el estado local del usuario
             if (user) {
               setUser({
@@ -368,7 +351,7 @@ export default function ProfileScreen() {
           userId={user.id}
           onPostPress={(post) => {
             // Aquí puedes navegar a la vista detallada del post
-            console.log('Post seleccionado:', post.id);
+           
           }}
         />
       </View>
@@ -382,7 +365,7 @@ export default function ProfileScreen() {
         >
           <Image 
             source={{ 
-              uri: user.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face'
+              uri: user.avatar
             }} 
             style={styles.modalImage}
             resizeMode="contain"

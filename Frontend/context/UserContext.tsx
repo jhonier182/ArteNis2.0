@@ -37,18 +37,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       // Obtener publicaciones del usuario
-      console.log('🔄 Obteniendo publicaciones del usuario...');
       const postsRes = await axios.get(`${apiUrl}/api/posts/user/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      console.log('📡 Respuesta de posts:', postsRes.data);
       
       const fetchedUser: UserProfile = profileRes.data?.data?.user;
       const userPosts = postsRes.data?.data?.posts || [];
       
-      console.log('👤 Usuario obtenido:', fetchedUser?.username);
-      console.log('📸 Publicaciones obtenidas:', userPosts.length);
+      
       
       if (fetchedUser) {
         // Combinar perfil con publicaciones
@@ -57,13 +54,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           posts: userPosts
         };
         
-        console.log('🔄 Actualizando contexto con:', userWithPosts.posts?.length, 'publicaciones');
-        console.log('👤 Usuario completo a guardar:', userWithPosts);
         setUser(userWithPosts);
         await AsyncStorage.setItem('userProfile', JSON.stringify(userWithPosts));
-        console.log('✅ Contexto y AsyncStorage actualizados');
       } else {
-        console.log('❌ No se pudo obtener el usuario del perfil');
+        console.log('No se pudo obtener el usuario del perfil');
       }
     } catch (error) {
       // Silenciar errores aquí; manejo se hace en pantallas

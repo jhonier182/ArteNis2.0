@@ -33,14 +33,12 @@ export function useInfiniteScroll<T>(
   const fetchData = useCallback(async (page: number, isRefresh = false) => {
     if (isLoadingRef.current) return;
     
-    try {
-      console.log('🔄 useInfiniteScroll: Iniciando fetch para página', page);
+    try { 
       isLoadingRef.current = true;
       setLoading(true);
       setError(null);
       
       const result = await fetchFunction(page, pageSize);
-      console.log('✅ useInfiniteScroll: Fetch completado, posts recibidos:', result.data.length);
       
       if (isRefresh) {
         setData(result.data);
@@ -52,7 +50,6 @@ export function useInfiniteScroll<T>(
       setCurrentPage(page);
       
     } catch (err) {
-      console.error('💥 useInfiniteScroll: Error en fetch:', err);
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError(errorMessage);
     } finally {

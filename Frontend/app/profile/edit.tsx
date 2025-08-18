@@ -169,10 +169,6 @@ export default function EditProfileScreen() {
         socialLinks: formData.socialLinks || null
       };
 
-      console.log('📤 Datos a enviar:', updateData);
-
-
-
       // Actualizar perfil
       const response = await fetch(`${API_BASE_URL}/api/users/me/profile`, {
         method: 'PUT',
@@ -185,9 +181,6 @@ export default function EditProfileScreen() {
 
       if (response.ok) {
         console.log('✅ Perfil actualizado exitosamente');
-        
-        // Actualizar el contexto del usuario si existe
-        // Esto asegura que los datos se reflejen inmediatamente en el perfil
         if (user) {
           setUser({
             ...user,

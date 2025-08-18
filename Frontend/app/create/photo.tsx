@@ -118,14 +118,6 @@ export default function CreatePhotoScreen() {
       } as any;
       
       imageFormData.append('image', imageFile);
-      
-      console.log('📤 FormData creado:', {
-        uri: selectedImage,
-        type: imageFile.type,
-        name: imageFile.name,
-        mimeType: imageFile.mimeType
-      });
-
       const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
         method: 'POST',
         headers: {
@@ -139,9 +131,7 @@ export default function CreatePhotoScreen() {
         throw new Error(errorData.message || 'Error al subir imagen');
       }
 
-      const imageResult = await imageResponse.json();
-      console.log('✅ Imagen subida exitosamente:', imageResult);
-      
+      const imageResult = await imageResponse.json();//Imagen subida exitosamente
       const imageUrl = imageResult.data.url;
       const cloudinaryPublicId = imageResult.data.publicId;
 
@@ -154,8 +144,6 @@ export default function CreatePhotoScreen() {
         type: 'image'  // Cambiado de 'photo' a 'image' para que coincida con la validación del backend
       };
 
-      console.log('📤 Datos del post a enviar:', postData);
-
       const postResponse = await fetch(`${API_BASE_URL}/api/posts`, {
         method: 'POST',
         headers: {
@@ -166,8 +154,7 @@ export default function CreatePhotoScreen() {
       });
 
       if (!postResponse.ok) {
-        const errorData = await postResponse.json().catch(() => ({}));
-        console.log('❌ Error del servidor:', postResponse.status, errorData);
+        const errorData = await postResponse.json().catch(() => ({}));//error al crear el post
         throw new Error(`Error al crear el post: ${postResponse.status} - ${errorData.message || 'Error desconocido'}`);
       }
 
