@@ -36,6 +36,7 @@ export default function CreatePhotoScreen() {
   const [description, setDescription] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
 
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -74,11 +75,10 @@ export default function CreatePhotoScreen() {
   };
 
   const handlePublish = async () => {
-    if (!selectedImage) {
+    if (!selectedImage && !isEditMode) { // Only require image if not in edit mode
       Alert.alert('Error', 'Debes seleccionar una imagen');
       return;
     }
-
     if (!description.trim()) {
       Alert.alert('Error', 'Debes agregar una descripción');
       return;
@@ -86,24 +86,43 @@ export default function CreatePhotoScreen() {
 
     try {
       setUploading(true);
+      setUploadProgress('Subiendo imagen...');
       const token = await AsyncStorage.getItem('token');
-      
       if (!token) {
         router.replace('/auth/login');
         return;
       }
 
       if (isEditMode) {
-        // Modo edición: actualizar el post existente
+        setUploadProgress('Guardando cambios...');
         await handleUpdatePost(token);
       } else {
-        // Modo creación: crear nuevo post
+        setUploadProgress('Creando publicación...');
         await handleCreatePost(token);
       }
 
     } catch (error) {
       console.error('Error al procesar:', error);
-      Alert.alert('Error', isEditMode ? 'No se pudo actualizar la publicación' : 'No se pudo publicar la imagen');
+      
+      let errorMessage = 'Error desconocido';
+      if (error instanceof Error) {
+        if (error.message.includes('Tiempo de espera agotado')) {
+          errorMessage = 'La operación tardó demasiado. Verifica tu conexión a internet.';
+        } else if (error.message.includes('Network request failed')) {
+          errorMessage = 'Error de conexión. Verifica tu internet.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      Alert.alert(
+        '❌ Error', 
+        isEditMode ? `No se pudo actualizar la publicación: ${errorMessage}` : `No se pudo publicar la imagen: ${errorMessage}`,
+        [
+          { text: 'Reintentar', onPress: () => handlePublish() },
+          { text: 'Cancelar', style: 'cancel' }
+        ]
+      );
     } finally {
       setUploading(false);
     }
@@ -141,67 +160,95 @@ export default function CreatePhotoScreen() {
       } else if (extension === 'gif') {
         mimeType = 'image/gif';
         fileExtension = 'gif';
-      } else if (extension === 'webp') {
+      } else if (extension === 'image/webp') {
         mimeType = 'image/webp';
         fileExtension = 'webp';
       }
     }
 
-    // Subir imagen a Cloudinary - Corregido para React Native
-    const imageFormData = new FormData();
-    const imageFile = {
-      uri: selectedImage,
-      type: mimeType,
-      name: `post.${fileExtension}`,
-      mimeType: mimeType
-    } as any;
-    
-    imageFormData.append('image', imageFile);
-    const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      body: imageFormData
-    });
+    try {
+      setUploadProgress('Subiendo imagen a Cloudinary...');
+      // Subir imagen a Cloudinary con timeout
+      const imageFormData = new FormData();
+      const imageFile = {
+        uri: selectedImage,
+        type: mimeType,
+        name: `post.${fileExtension}`,
+        mimeType: mimeType
+      } as any;
+      
+      imageFormData.append('image', imageFile);
+      
+      // Crear AbortController para timeout
+      const imageController = new AbortController();
+      const imageTimeout = setTimeout(() => imageController.abort(), 30000); // 30 segundos timeout
+      
+      const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: imageFormData,
+        signal: imageController.signal
+      });
+      
+      clearTimeout(imageTimeout);
 
-    if (!imageResponse.ok) {
-      const errorData = await imageResponse.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Error al subir imagen');
+      if (!imageResponse.ok) {
+        const errorData = await imageResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Error al subir imagen');
+      }
+
+      const imageResult = await imageResponse.json();
+      const imageUrl = imageResult.data.url;
+      const cloudinaryPublicId = imageResult.data.publicId;
+
+      setUploadProgress('Creando publicación...');
+      // Crear el post con timeout
+      const postData = {
+        imageUrl,
+        cloudinaryPublicId,
+        description: description.trim(),
+        hashtags: hashtags.trim() ? hashtags.trim().split(' ').filter(tag => tag.startsWith('#')) : [],
+        type: 'image'
+      };
+
+      // Crear AbortController para timeout del post
+      const postController = new AbortController();
+      const postTimeout = setTimeout(() => postController.abort(), 15000); // 15 segundos timeout
+      
+      const postResponse = await fetch(`${API_BASE_URL}/api/posts`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(postData),
+        signal: postController.signal
+      });
+      
+      clearTimeout(postTimeout);
+
+      if (!postResponse.ok) {
+        const errorData = await postResponse.json().catch(() => ({}));
+        throw new Error(`Error al crear el post: ${postResponse.status} - ${errorData.message || 'Error desconocido'}`);
+      }
+
+      setUploadProgress('Finalizando...');
+      // Refrescar los datos del usuario para incluir el nuevo post
+      await refreshUser();
+      
+      // Navegar de vuelta sin mostrar alerta
+      router.back();
+      
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Tiempo de espera agotado. Verifica tu conexión a internet.');
+      }
+      throw error;
+    } finally {
+      setUploadProgress('');
     }
-
-    const imageResult = await imageResponse.json();//Imagen subida exitosamente
-    const imageUrl = imageResult.data.url;
-    const cloudinaryPublicId = imageResult.data.publicId;
-
-    // Crear el post
-    const postData = {
-      imageUrl,
-      cloudinaryPublicId,
-      description: description.trim(),
-      hashtags: hashtags.trim() ? hashtags.trim().split(' ').filter(tag => tag.startsWith('#')) : [],
-      type: 'image'  // Cambiado de 'photo' a 'image' para que coincida con la validación del backend
-    };
-
-    const postResponse = await fetch(`${API_BASE_URL}/api/posts`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(postData)
-    });
-
-    if (!postResponse.ok) {
-      const errorData = await postResponse.json().catch(() => ({}));//error al crear el post
-      throw new Error(`Error al crear el post: ${postResponse.status} - ${errorData.message || 'Error desconocido'}`);
-    }
-
-    // Refrescar los datos del usuario para incluir el nuevo post
-    await refreshUser();
-    
-    // Navegar de vuelta sin mostrar alerta
-    router.back();
   };
 
   const handleUpdatePost = async (token: string) => {
@@ -258,6 +305,9 @@ export default function CreatePhotoScreen() {
           <Text style={styles.publishButtonText}>
             {uploading ? (isEditMode ? 'Guardando...' : 'Publicando...') : (isEditMode ? 'Guardar' : 'Publicar')}
           </Text>
+          {uploading && uploadProgress && (
+            <Text style={styles.progressText}>{uploadProgress}</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -342,6 +392,10 @@ export default function CreatePhotoScreen() {
                 <Ionicons name="share" size={16} color="#4ecdc4" />
                 <Text style={styles.infoText}>Tu trabajo será visible para toda la comunidad</Text>
               </View>
+              <View style={styles.infoItem}>
+                <Ionicons name="wifi" size={16} color="#ffd700" />
+                <Text style={styles.infoText}>Asegúrate de tener una conexión estable a internet</Text>
+              </View>
             </>
           )}
         </View>
@@ -391,6 +445,12 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 14,
     fontWeight: '600',
+  },
+  progressText: {
+    color: '#000000',
+    fontSize: 12,
+    marginTop: 5,
+    textAlign: 'center',
   },
   content: {
     flex: 1,
