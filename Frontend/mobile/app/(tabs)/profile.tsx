@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Image,
   Dimensions,
@@ -19,7 +18,7 @@ import { useUser } from '../../context/UserContext';
 import * as ImagePicker from 'expo-image-picker';
 import PostsGrid from '../../components/PostsGrid';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface User {
   id: string;
@@ -291,7 +290,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
         {/* Sección del perfil principal */}
         <View style={styles.profileSection}>
           {/* Nombre de usuario arriba del avatar */}
@@ -372,7 +371,7 @@ export default function ProfileScreen() {
             console.log('Post seleccionado:', post.id);
           }}
         />
-      </ScrollView>
+      </View>
 
       {/* Modal para ver imagen completa */}
       {showImageModal && (
