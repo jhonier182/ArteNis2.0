@@ -2,6 +2,7 @@ const express = require('express');
 const PostController = require('../controllers/postController');
 const { verifyToken, optionalAuth } = require('../middlewares/auth');
 const { upload, handleMulterError } = require('../middlewares/upload');
+const { trackPostView, trackFeedViews } = require('../middlewares/viewTracking');
 const { 
   validateCreatePost, 
   validateComment, 
@@ -18,9 +19,22 @@ router.get('/',
   PostController.getFeed
 );
 
+// POST /api/posts/track-views - Trackear visualizaciones del feed
+router.post('/track-views',
+  verifyToken,
+  trackFeedViews,
+  (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: 'Visualizaciones trackeadas correctamente'
+    });
+  }
+);
+
 // GET /api/posts/:id - Obtener publicación por ID
 router.get('/:id',
   optionalAuth,
+  trackPostView, // Trackear visualización
   PostController.getPostById
 );
 

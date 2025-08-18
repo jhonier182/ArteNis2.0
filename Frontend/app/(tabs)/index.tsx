@@ -63,13 +63,21 @@ export default function HomeScreen() {
         }
       });
 
-      if (!response.ok) {
+      if (response.ok) {
+        const data = await response.json();
+        const newPosts = data.data.posts || [];
+        
+        setPosts(newPosts);
+        setLoading(false);
+        
+        // Trackear visualizaciones del feed
+        if (newPosts.length > 0) {
+          const postIds = newPosts.map((post: any) => post.id);
+          trackFeedViews(postIds);
+        }
+      } else {
         throw new Error('Error al cargar publicaciones');
       }
-
-      const data = await response.json();
-      setPosts(data.data.posts || []);
-      
     } catch (error) {
       console.error('Error al cargar posts:', error);
       setError('Error de conexión');
@@ -189,6 +197,25 @@ export default function HomeScreen() {
 
   const handleFollow = (userId: string) => {
     // TODO: Implementar lógica de follow
+  };
+
+  // Trackear visualizaciones del feed
+  const trackFeedViews = async (postIds: string[]) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      await fetch(`${API_BASE_URL}/api/posts/track-views`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ postIds })
+      });
+    } catch (error) {
+      console.error('Error tracking feed views:', error);
+    }
   };
 
   const handleCategorySelect = (categoryId: string) => {
