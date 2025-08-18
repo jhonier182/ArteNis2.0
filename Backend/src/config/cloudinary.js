@@ -75,6 +75,21 @@ const uploadPostImage = async (imageBuffer, userId, postId) => {
   }
 };
 
+// Función para eliminar imagen de post
+const deletePostImage = async (publicId) => {
+  try {
+    await cloudinary.uploader.destroy(publicId, {
+      invalidate: true,
+      resource_type: 'image',
+      type: 'upload'
+    });
+    return true;
+  } catch (error) {
+    console.error('Error deleting post image from Cloudinary:', error);
+    return false;
+  }
+};
+
 // Función para generar URLs optimizadas
 const getOptimizedUrl = (publicId, options = {}) => {
   const defaultOptions = {
@@ -90,5 +105,6 @@ module.exports = {
   uploadAvatar,
   deleteAvatar,
   uploadPostImage,
+  deletePostImage,
   getOptimizedUrl
 };

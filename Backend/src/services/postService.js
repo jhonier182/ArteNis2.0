@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { Post, User, Comment, Like } = require('../models');
 const { sequelize } = require('../config/db');
+const { deletePostImage } = require('../config/cloudinary');
 
 class PostService {
   // Función helper para transformar posts al formato esperado por el frontend
@@ -547,6 +548,9 @@ class PostService {
         throw new Error('No tienes permisos para eliminar esta publicación');
       }
 
+      // Guardar el publicId de Cloudinary antes de eliminar el post
+      const cloudinaryPublicId = post.cloudinaryPublicId;
+
       await sequelize.transaction(async (t) => {
         await post.destroy({ transaction: t });
 
@@ -556,6 +560,16 @@ class PostService {
           transaction: t
         });
       });
+
+      // Eliminar la imagen de Cloudinary después de eliminar el post de la BD
+      if (cloudinaryPublicId) {
+        try {
+          await deletePostImage(cloudinaryPublicId);
+        } catch (cloudinaryError) {
+          console.error('Error al eliminar imagen de Cloudinary:', cloudinaryError);
+          // No fallar la operación si hay error en Cloudinary
+        }
+      }
 
       return { message: 'Publicación eliminada exitosamente' };
     } catch (error) {

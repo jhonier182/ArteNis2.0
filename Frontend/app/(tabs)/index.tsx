@@ -176,7 +176,7 @@ export default function HomeScreen() {
       if (response.ok) {
         // Recargar los posts para mostrar los cambios
         fetchPosts();
-        Alert.alert('Publicación eliminada');
+        Alert.alert('✅ Éxito', 'Publicación eliminada correctamente');
       } else {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Error al eliminar la publicación');
