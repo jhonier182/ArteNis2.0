@@ -52,7 +52,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { refreshUser } = useUser();
 
-  const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.6:3000';
+  const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
   const fetchProfile = async () => {
     try {

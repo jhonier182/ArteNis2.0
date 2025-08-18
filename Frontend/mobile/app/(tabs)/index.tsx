@@ -40,7 +40,7 @@ export default function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.6:3000';
+  const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
   const fetchPosts = async () => {
     try {

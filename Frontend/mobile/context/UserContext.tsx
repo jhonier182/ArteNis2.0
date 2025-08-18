@@ -1,7 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import Constants from 'expo-constants';
 
 export interface UserProfile {
   id: string;
@@ -25,7 +24,7 @@ const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const apiUrl = (Constants.expoConfig?.extra as any)?.apiUrl || 'http://localhost:3000';
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL ;
 
   const refreshUser = useCallback(async () => {
     try {

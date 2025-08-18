@@ -14,7 +14,7 @@ export default function Logout() {
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
         if (refreshToken) {
           try {
-            const apiUrl = (require('expo-constants').default.expoConfig?.extra as any)?.apiUrl || 'http://localhost:3000';
+            const apiUrl = process.env.EXPO_PUBLIC_API_URL;
             await fetch(`${apiUrl}/api/users/logout`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

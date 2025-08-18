@@ -5,7 +5,7 @@ import Checkbox from 'expo-checkbox';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import axios from 'axios';
-import Constants from 'expo-constants';
+  
 import { Link, useRouter } from 'expo-router';
 
 const background = require('@/assets/images/fondototal.jpg');
@@ -17,7 +17,7 @@ export default function Login() {
   const [remember, setRemember] = useState(true);
   const [secure, setSecure] = useState(true);
   const [loading, setLoading] = useState(false);
-  const apiUrl = (Constants.expoConfig?.extra as any)?.apiUrl || 'http://localhost:3000';
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
   const onLogin = async () => {
     if (!identifier || !password) return;

@@ -85,7 +85,7 @@ export default function EditProfileScreen() {
     }
   });
 
-  const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.6:3000';
+  const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
   useEffect(() => {
     fetchUserProfile();

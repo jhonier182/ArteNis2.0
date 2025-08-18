@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ImageBackground, StyleSheet, View, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
-import Constants from 'expo-constants';
+
 import { Link, useRouter } from 'expo-router';
 
 const background = require('@/assets/images/fondototal.jpg');
@@ -13,7 +13,7 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const apiUrl = (Constants.expoConfig?.extra as any)?.apiUrl || 'http://localhost:3000';
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
   const onSignup = async () => {
     if (!username || !email || !password) {

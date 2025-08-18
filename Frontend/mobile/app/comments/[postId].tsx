@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
+
 import axios from 'axios';
 
 interface Comment {
@@ -48,7 +48,7 @@ export default function CommentsScreen() {
   const [hasMore, setHasMore] = useState(true);
   const inputRef = useRef<TextInput>(null);
 
-  const apiUrl = (Constants.expoConfig?.extra as any)?.apiUrl || 'http://localhost:3000';
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
   const fetchComments = async (pageNum: number = 1, isRefresh: boolean = false) => {
     try {

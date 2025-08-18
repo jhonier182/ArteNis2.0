@@ -62,7 +62,7 @@ export default function AccountSettingsScreen() {
             try {
               const refreshToken = await AsyncStorage.getItem('refreshToken');
               if (refreshToken) {
-                await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.6:3000'}/api/users/logout`, {
+                await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/users/logout`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ refreshToken })

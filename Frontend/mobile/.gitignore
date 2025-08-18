@@ -53,3 +53,4 @@ android/
 # Expo/EAS adicionales
 .expo-shared/
 .eas/
+.env
