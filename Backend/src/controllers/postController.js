@@ -5,13 +5,6 @@ class PostController {
   // Subir imagen para post
   static async uploadPostImage(req, res, next) {
     try {
-      console.log('🔍 Debug uploadPostImage:');
-      console.log('Headers:', req.headers);
-      console.log('Body keys:', Object.keys(req.body));
-      console.log('Files:', req.files);
-      console.log('File:', req.file);
-      console.log('Content-Type:', req.headers['content-type']);
-      
       if (!req.file) {
         return res.status(400).json({
           success: false,

@@ -175,8 +175,7 @@ export default function PostsGrid({ userId, onPostPress }: PostsGridProps) {
       <Ionicons name="images-outline" size={64} color="rgba(255,255,255,0.3)" />
       <Text style={styles.emptyTitle}>No tienes publicaciones aún</Text>
       <Text style={styles.emptySubtitle}>Comparte tu trabajo para que aparezca aquí</Text>
-      <Text style={styles.debugText}>Debug: UserID = {userId}</Text>
-      <Text style={styles.debugText}>Debug: API URL = {process.env.EXPO_PUBLIC_API_URL}</Text>
+
     </View>
   );
 
@@ -205,7 +204,6 @@ export default function PostsGrid({ userId, onPostPress }: PostsGridProps) {
       <View style={styles.errorContainer}>
         <Ionicons name="warning" size={48} color="#ff6b6b" />
         <Text style={styles.errorText}>{error}</Text>
-        <Text style={styles.errorText}>UserID: {userId}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={refresh}>
           <Text style={styles.retryButtonText}>Reintentar</Text>
         </TouchableOpacity>
@@ -217,13 +215,7 @@ export default function PostsGrid({ userId, onPostPress }: PostsGridProps) {
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Mis Publicaciones</Text>
       
-      {/* Debug info */}
-      <View style={styles.debugInfo}>
-        <Text style={styles.debugText}>Estado: {loading ? 'Cargando' : 'Listo'}</Text>
-        <Text style={styles.debugText}>Posts: {typedPosts.length}</Text>
-        <Text style={styles.debugText}>Error: {error || 'Ninguno'}</Text>
-        <Text style={styles.debugText}>UserID: {userId}</Text>
-      </View>
+
       
       <FlatList
         data={typedPosts}
@@ -416,15 +408,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  debugInfo: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    padding: 10,
-    marginBottom: 20,
-    borderRadius: 8,
-  },
-  debugText: {
-    color: '#ffffff',
-    fontSize: 12,
-    marginBottom: 2,
-  },
+
 });

@@ -60,7 +60,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('No se pudo obtener el usuario del perfil');
       }
     } catch (error) {
-      // Silenciar errores aquí; manejo se hace en pantallas
       console.log('Error al refrescar usuario:', error);
     }
   }, [apiUrl]);

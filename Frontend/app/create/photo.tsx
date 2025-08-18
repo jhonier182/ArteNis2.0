@@ -158,8 +158,6 @@ export default function CreatePhotoScreen() {
         throw new Error(`Error al crear el post: ${postResponse.status} - ${errorData.message || 'Error desconocido'}`);
       }
 
-      console.log('✅ Post creado exitosamente');
-      
       // Refrescar los datos del usuario para incluir el nuevo post
       await refreshUser();
       

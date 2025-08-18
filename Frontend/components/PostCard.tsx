@@ -48,12 +48,7 @@ export default function PostCard({
 }: PostCardProps) {
   // Validación de seguridad: verificar que post.author existe
   if (!post.author) {
-    console.log('⚠️ PostCard: post.author es undefined para el post:', post.id);
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Error: Información del usuario no disponible</Text>
-      </View>
-    );
+    return null;
   }
 
   // Validar y establecer valores por defecto para campos opcionales

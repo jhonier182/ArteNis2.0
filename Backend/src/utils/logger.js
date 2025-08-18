@@ -50,20 +50,17 @@ const simpleLogger = {
   },
   
   error: (message, meta = {}) => {
-    console.error(`❌ ${message}`, meta);
     logger.error(message, meta);
   },
   
   warn: (message, meta = {}) => {
     if (process.env.NODE_ENV === 'development') {
-      console.warn(`⚠️  ${message}`, meta);
     }
     logger.warn(message, meta);
   },
   
   debug: (message, meta = {}) => {
     if (process.env.NODE_ENV === 'development') {
-      console.log(`🐛 ${message}`, meta);
     }
     logger.debug(message, meta);
   }

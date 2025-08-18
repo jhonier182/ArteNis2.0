@@ -350,8 +350,6 @@ const setupAssociations = () => {
   // Refresh tokens
   RefreshToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
   User.hasMany(RefreshToken, { foreignKey: 'userId', as: 'refreshTokens', onDelete: 'CASCADE' });
-
-  console.log('✅ Asociaciones de modelos establecidas correctamente');
 };
 
 module.exports = {

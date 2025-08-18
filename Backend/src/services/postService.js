@@ -6,11 +6,6 @@ class PostService {
   // Función helper para transformar posts al formato esperado por el frontend
   static transformPostForFrontend(post) {
     const postData = post.toJSON ? post.toJSON() : post;
-    console.log('🔍 Transformando post:', {
-      id: postData.id,
-      mediaUrl: postData.mediaUrl,
-      imageUrl: postData.mediaUrl
-    });
     
     const transformed = {
       ...postData,
@@ -33,11 +28,7 @@ class PostService {
       } : null
     };
     
-    console.log('🔍 Post transformado:', {
-      id: transformed.id,
-      imageUrl: transformed.imageUrl,
-      author: transformed.author
-    });
+    
     
     return transformed;
   }
@@ -90,7 +81,6 @@ class PostService {
   // Obtener feed de publicaciones
   static async getFeed(options = {}) {
     try {
-      console.log('🔍 getFeed service llamado con opciones:', options);
       const {
         page = 1,
         limit = 20,
@@ -107,7 +97,6 @@ class PostService {
         isPublic: true,
         status: 'published'
       };
-      console.log('🔍 Where clause:', where);
 
       // Filtros
       if (type !== 'all') {
@@ -160,12 +149,7 @@ class PostService {
         offset: parseInt(offset)
       });
       
-      console.log('🔍 Posts encontrados:', posts.rows.length);
-      console.log('🔍 Primer post:', posts.rows[0] ? {
-        id: posts.rows[0].id,
-        mediaUrl: posts.rows[0].mediaUrl,
-        author: posts.rows[0].author
-      } : 'No hay posts');
+      
 
       return {
         posts: posts.rows,

@@ -123,7 +123,6 @@ export default function ProfileScreen() {
         setError('Formato de datos inesperado');//estructura de datos inesperada
       }
     } catch (error) {
-      console.error('💥 Error al cargar perfil:', error);
       setError('Error de conexión. Verifica tu internet.');
     } finally {
       setLoading(false);
