@@ -149,32 +149,23 @@ export default function ElegantPostCard({
         />
       </View>
 
-      {/* Descripción del post */}
-      {post.description && (
-        <View style={styles.descriptionContainer}>
-          <Text style={styles.description} numberOfLines={3}>
-            {post.description}
-          </Text>
+      {/* Descripción del post con visualizaciones */}
+      <View style={styles.descriptionContainer}>
+        <View style={styles.descriptionRow}>
+          {post.description && (
+            <Text style={styles.description} numberOfLines={3}>
+              {post.description}
+            </Text>
+          )}
+          <View style={styles.viewsContainer}>
+            <Ionicons name="eye-outline" size={16} color="#666" />
+            <Text style={styles.viewsText}>{formatNumber(post.viewsCount || 0)}</Text>
+          </View>
         </View>
-      )}
+      </View>
 
       {/* Métricas de engagement */}
       <View style={styles.metricsContainer}>
-        <View style={styles.metricItem}>
-          <Ionicons name="eye-outline" size={20} color="#666" />
-          <Text style={styles.metricText}>{formatNumber(post.viewsCount || 0)}</Text>
-        </View>
-        
-        <View style={styles.metricItem}>
-          <Ionicons name="chatbubble-outline" size={20} color="#666" />
-          <Text style={styles.metricText}>{formatNumber(post.commentsCount || 0)}</Text>
-        </View>
-        
-        <View style={styles.metricItem}>
-          <Ionicons name="share-outline" size={20} color="#666" />
-          <Text style={styles.metricText}>{formatNumber(post.sharesCount || 0)}</Text>
-        </View>
-        
         <TouchableOpacity style={styles.metricItem} onPress={handleLike}>
           <Ionicons 
             name={isLiked ? "heart" : "heart-outline"} 
@@ -184,6 +175,16 @@ export default function ElegantPostCard({
           <Text style={[styles.metricText, isLiked && styles.likedText]}>
             {formatNumber(likesCount)}
           </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.metricItem} onPress={() => onComment(post.id)}>
+          <Ionicons name="chatbubble-outline" size={20} color="#666" />
+          <Text style={styles.metricText}>{formatNumber(post.commentsCount || 0)}</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.metricItem} onPress={() => onShare(post.id)}>
+          <Ionicons name="share-outline" size={20} color="#666" />
+          <Text style={styles.metricText}>{formatNumber(post.sharesCount || 0)}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -272,10 +273,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20, // Aumentar el padding vertical
   },
+  descriptionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
   description: {
     color: '#ffffff',
     fontSize: 16,
     lineHeight: 22,
+    flex: 1,
+    marginRight: 20,
+  },
+  viewsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  viewsText: {
+    color: '#666',
+    fontSize: 12,
+    fontWeight: '500',
   },
   metricsContainer: {
     flexDirection: 'row',
