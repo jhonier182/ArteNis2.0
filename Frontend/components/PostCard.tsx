@@ -37,6 +37,11 @@ interface PostCardProps {
   onComment: (postId: string) => void;
   onShare: (postId: string) => void;
   onUserPress: (userId: string) => void;
+  isOwnPost?: boolean; // Para saber si es el post propio del usuario
+  onEditPost?: (post: Post) => void; // Función para editar post
+  onDeletePost?: (post: Post) => void; // Función para eliminar post
+  onFollowUser?: (userId: string) => void; // Función para seguir usuario
+  isFollowing?: boolean; // Si el usuario actual está siguiendo al autor del post
 }
 
 export default function PostCard({ 
@@ -44,7 +49,12 @@ export default function PostCard({
   onLike, 
   onComment, 
   onShare, 
-  onUserPress 
+  onUserPress,
+  isOwnPost = false,
+  onEditPost,
+  onDeletePost,
+  onFollowUser,
+  isFollowing = false
 }: PostCardProps) {
   // Validación de seguridad: verificar que post.author existe
   if (!post.author) {
@@ -64,6 +74,57 @@ export default function PostCard({
     setIsLiked(!isLiked);
     setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
     onLike(post.id);
+  };
+
+  const handleEditPost = () => {
+    onEditPost?.(post);
+  };
+
+  const handleDeletePost = () => {
+    Alert.alert(
+      '🗑️ Eliminar Publicación',
+      '¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            onDeletePost?.(post);
+          },
+        },
+      ]
+    );
+  };
+
+  const showPostOptions = () => {
+    Alert.alert(
+      '📝 Opciones de Publicación',
+      '¿Qué quieres hacer con esta publicación?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: '✏️ Editar',
+          style: 'default',
+          onPress: handleEditPost,
+        },
+        {
+          text: '🗑️ Eliminar',
+          style: 'destructive',
+          onPress: handleDeletePost,
+        },
+      ]
+    );
+  };
+
+  const handleFollowUser = () => {
+    onFollowUser?.(post.author.id);
   };
 
   const formatDate = (dateString: string) => {
@@ -113,9 +174,26 @@ export default function PostCard({
           </View>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.moreButton}>
-          <Ionicons name="ellipsis-horizontal" size={20} color="#ffffff" />
-        </TouchableOpacity>
+        {/* Menú de tres puntos para posts propios o botón de follow para posts de otros */}
+        {isOwnPost ? (
+          <TouchableOpacity style={styles.moreButton} onPress={showPostOptions}>
+            <Ionicons name="ellipsis-horizontal" size={20} color="#ffffff" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={[styles.followButton, isFollowing && styles.followingButton]} 
+            onPress={handleFollowUser}
+          >
+            <Ionicons 
+              name={isFollowing ? "checkmark" : "add"} 
+              size={16} 
+              color="#ffffff" 
+            />
+            <Text style={styles.followButtonText}>
+              {isFollowing ? 'Siguiendo' : 'Seguir'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Imagen del post */}
@@ -231,6 +309,23 @@ const styles = StyleSheet.create({
   },
   moreButton: {
     padding: 8,
+  },
+  followButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#00d4ff',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    gap: 8,
+  },
+  followingButton: {
+    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+  },
+  followButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   imageContainer: {
     width: '100%',

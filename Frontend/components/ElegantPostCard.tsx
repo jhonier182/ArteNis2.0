@@ -42,6 +42,8 @@ interface ElegantPostCardProps {
   onShare: (postId: string) => void;
   onFollow: (userId: string) => void;
   onUserPress: (userId: string) => void;
+  onEditPost?: (post: Post) => void; // Función para editar post
+  onDeletePost?: (post: Post) => void; // Función para eliminar post
 }
 
 export default function ElegantPostCard({
@@ -52,6 +54,8 @@ export default function ElegantPostCard({
   onShare,
   onFollow,
   onUserPress,
+  onEditPost,
+  onDeletePost,
 }: ElegantPostCardProps) {
   const [isLiked, setIsLiked] = useState(post.isLiked || false);
   const [isFollowed, setIsFollowed] = useState(post.isFollowed || false);
@@ -66,6 +70,53 @@ export default function ElegantPostCard({
   const handleFollow = () => {
     setIsFollowed(!isFollowed);
     onFollow(post.author.id);
+  };
+
+  const handleEditPost = () => {
+    onEditPost?.(post);
+  };
+
+  const handleDeletePost = () => {
+    Alert.alert(
+      '🗑️ Eliminar Publicación',
+      '¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            onDeletePost?.(post);
+          },
+        },
+      ]
+    );
+  };
+
+  const showPostOptions = () => {
+    Alert.alert(
+      '📝 Opciones de Publicación',
+      '¿Qué quieres hacer con esta publicación?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: '✏️ Editar',
+          style: 'default',
+          onPress: handleEditPost,
+        },
+        {
+          text: '🗑️ Eliminar',
+          style: 'destructive',
+          onPress: handleDeletePost,
+        },
+      ]
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -113,30 +164,42 @@ export default function ElegantPostCard({
           </View>
         </TouchableOpacity>
         
-                {post.author.id !== currentUserId && currentUserId !== 'guest' && (
+        {/* Menú de tres puntos para posts propios o botón de follow para posts de otros */}
+        {post.author.id === currentUserId ? (
+          // Es el usuario propio - mostrar menú de tres puntos
           <TouchableOpacity 
-            onPress={handleFollow}
-            style={styles.followButtonContainer}
+            style={styles.moreButton}
+            onPress={showPostOptions}
           >
-                   {!isFollowed ? (
-              <LinearGradient
-                colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.followButton}
-              >
-                <Text style={styles.followText}>
-                  Follow
-                </Text>
-              </LinearGradient>
-           ) : (
-             <View style={styles.followingButton}>
-               <Text style={styles.followingText}>
-                 Following
-               </Text>
-               </View>
-             )}
+            <Ionicons name="ellipsis-horizontal" size={20} color="#ffffff" />
           </TouchableOpacity>
+        ) : (
+          // Es otro usuario - mostrar botón de follow
+          currentUserId !== 'guest' && (
+            <TouchableOpacity 
+              onPress={handleFollow}
+              style={styles.followButtonContainer}
+            >
+              {!isFollowed ? (
+                <LinearGradient
+                  colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.followButton}
+                >
+                  <Text style={styles.followText}>
+                    Follow
+                  </Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.followingButton}>
+                  <Text style={styles.followingText}>
+                    Following
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )
         )}
       </View>
 
@@ -319,5 +382,8 @@ const styles = StyleSheet.create({
   },
   likedText: {
     color: '#ff6b6b',
+  },
+  moreButton: {
+    padding: 8,
   },
 });

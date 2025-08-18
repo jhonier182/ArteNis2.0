@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ElegantPostCard from '../../components/ElegantPostCard';
 import CategoryFilter from '../../components/CategoryFilter';
 import { useUser } from '../../context/UserContext';
+import { router } from 'expo-router';
 
 interface Post {
   id: string;
@@ -130,7 +131,58 @@ export default function HomeScreen() {
   };
 
   const handleUserPress = (userId: string) => {
-    Alert.alert('Perfil de usuario', 'Navegación al perfil en desarrollo');
+    // Navegar al perfil del usuario
+    if (userId === user?.id) {
+      // Si es el usuario actual, ir a su perfil
+      router.push('/(tabs)/profile');
+    } else {
+      // Si es otro usuario, mostrar alert temporal
+      Alert.alert('Perfil de usuario', 'Navegación al perfil de otros usuarios en desarrollo');
+    }
+  };
+
+  const handleEditPost = (post: any) => {
+    // Navegar al editor de publicaciones con los datos del post
+    router.push({
+      pathname: '/create/photo',
+      params: { 
+        mode: 'edit',
+        postId: post.id,
+        imageUrl: post.imageUrl,
+        type: 'photo'
+      }
+    });
+  };
+
+  const handleDeletePost = async (post: any) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        router.replace('/auth/login');
+        return;
+      }
+
+      // Llamar a la API para eliminar el post
+      const response = await fetch(`${API_BASE_URL}/api/posts/${post.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Recargar los posts para mostrar los cambios
+        fetchPosts();
+        Alert.alert('✅ Éxito', 'Publicación eliminada correctamente');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Error al eliminar la publicación');
+      }
+    } catch (error) {
+      console.error('Error al eliminar publicación:', error);
+      Alert.alert('❌ Error', 'No se pudo eliminar la publicación');
+    }
   };
 
   const handleFollow = (userId: string) => {
@@ -210,6 +262,8 @@ export default function HomeScreen() {
               onShare={handleShare}
               onFollow={handleFollow}
               onUserPress={handleUserPress}
+              onEditPost={handleEditPost}
+              onDeletePost={handleDeletePost}
             />
           ))
         ) : (
