@@ -9,11 +9,12 @@ import {
   Alert,
   StatusBar
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ElegantPostCard from '../../components/ElegantPostCard';
 import CategoryFilter from '../../components/CategoryFilter';
+import PendingPostCard from '../../components/PendingPostCard';
 import { useUser } from '../../context/UserContext';
 import { router } from 'expo-router';
 
@@ -36,11 +37,14 @@ interface Post {
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [pendingPosts, setPendingPosts] = useState<any[]>([]); // Posts en espera
   const { user } = useUser();
 
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -75,6 +79,25 @@ export default function HomeScreen() {
           const postIds = newPosts.map((post: any) => post.id);
           trackFeedViews(postIds);
         }
+        
+        // Verificar si hay posts temporales que se pueden limpiar
+        // (cuando se complete la publicación, el post real aparecerá en newPosts)
+        if (pendingPosts.length > 0 && newPosts.length > 0) {
+          // Buscar posts que coincidan con los temporales por descripción
+          pendingPosts.forEach(pendingPost => {
+            const matchingRealPost = newPosts.find((realPost: any) => 
+              realPost.description === pendingPost.description &&
+              realPost.author.id === pendingPost.author.id &&
+              realPost.type === pendingPost.type
+            );
+            
+            if (matchingRealPost) {
+              // Remover el post temporal ya que se completó la publicación
+              removePendingPost(pendingPost.id);
+              console.log('Post temporal removido:', pendingPost.id);
+            }
+          });
+        }
       } else {
         throw new Error('Error al cargar publicaciones');
       }
@@ -97,6 +120,92 @@ export default function HomeScreen() {
       fetchPosts();
     }, [])
   );
+
+  // Efecto para detectar posts temporales cuando cambian los parámetros
+  useEffect(() => {
+    if (params?.tempPost && params?.pendingPublication === 'true') {
+      try {
+        const tempPost = JSON.parse(params.tempPost as string);
+        
+        // Verificar que no sea un duplicado antes de agregar
+        setPendingPosts(prev => {
+          // Verificar si ya existe un post temporal con la misma descripción y autor
+          const isDuplicate = prev.some(p => 
+            p.description === tempPost.description && 
+            p.author.id === tempPost.author.id &&
+            p.status === 'pending'
+          );
+          
+          if (isDuplicate) {
+            console.log('Post temporal duplicado detectado, no se agrega');
+            return prev;
+          }
+          
+          console.log('Post temporal agregado:', tempPost.id);
+          return [tempPost, ...prev];
+        });
+        
+      } catch (error) {
+        console.error('Error al procesar post temporal:', error);
+      }
+    }
+  }, [params?.tempPost, params?.pendingPublication]);
+
+  // Efecto para verificar periódicamente el estado de posts temporales
+  useEffect(() => {
+    if (pendingPosts.length === 0) return;
+    
+    // Verificar cada 3 segundos si hay posts temporales
+    const interval = setInterval(() => {
+      checkPendingPostsStatus();
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [pendingPosts.length]);
+
+  // Función para remover un post temporal cuando se complete la publicación
+  const removePendingPost = (tempPostId: string) => {
+    setPendingPosts(prev => prev.filter(p => p.id !== tempPostId));
+  };
+
+  // Función para verificar si los posts temporales se han completado
+  const checkPendingPostsStatus = async () => {
+    if (pendingPosts.length === 0) return;
+    
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      // Obtener posts recientes del usuario para verificar si se completaron
+      const response = await fetch(`${API_BASE_URL}/api/posts/user/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const recentPosts = data.data.posts || [];
+        
+        // Verificar cada post temporal
+        pendingPosts.forEach(pendingPost => {
+          const matchingRealPost = recentPosts.find((realPost: any) => 
+            realPost.description === pendingPost.description &&
+            realPost.author.id === pendingPost.author.id &&
+            realPost.type === pendingPost.type
+          );
+          
+          if (matchingRealPost) {
+            console.log('🎉 Post temporal completado:', pendingPost.id);
+            removePendingPost(pendingPost.id);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error verificando estado de posts temporales:', error);
+    }
+  };
 
   const handleLike = async (postId: string) => {
     try {
@@ -281,20 +390,31 @@ export default function HomeScreen() {
         }
       >
         {posts.length > 0 ? (
-          posts.map((post) => (
-            <ElegantPostCard
-              key={post.id}
-              post={post}
-              currentUserId={user?.id || 'guest'}
-              onLike={handleLike}
-              onComment={handleComment}
-              onShare={handleShare}
-              onFollow={handleFollow}
-              onUserPress={handleUserPress}
-              onEditPost={handleEditPost}
-              onDeletePost={handleDeletePost}
-            />
-          ))
+          <>
+            {/* Mostrar posts en espera primero */}
+            {pendingPosts.map((post) => (
+              <PendingPostCard
+                key={post.id}
+                post={post}
+              />
+            ))}
+            
+            {/* Mostrar posts normales */}
+            {posts.map((post) => (
+              <ElegantPostCard
+                key={post.id}
+                post={post}
+                currentUserId={user?.id || 'guest'}
+                onLike={handleLike}
+                onComment={handleComment}
+                onShare={handleShare}
+                onFollow={handleFollow}
+                onUserPress={handleUserPress}
+                onEditPost={handleEditPost}
+                onDeletePost={handleDeletePost}
+              />
+            ))}
+          </>
         ) : (
           <View style={styles.emptyContainer}>
             <Ionicons name="images-outline" size={64} color="rgba(255,255,255,0.3)" />

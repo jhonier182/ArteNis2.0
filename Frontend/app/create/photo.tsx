@@ -157,7 +157,7 @@ export default function CreatePhotoScreen() {
       if (extension === 'png') {
         mimeType = 'image/png';
         fileExtension = 'png';
-      } else if (extension === 'gif') {
+      } else if (extension === 'image/gif') {
         mimeType = 'image/gif';
         fileExtension = 'gif';
       } else if (extension === 'image/webp') {
@@ -166,9 +166,40 @@ export default function CreatePhotoScreen() {
       }
     }
 
+    // Crear un post temporal en modo "espera"
+    const tempPost = {
+      id: `temp_${Date.now()}`,
+      imageUrl: selectedImage,
+      description: description.trim(),
+      hashtags: hashtags.trim() ? hashtags.trim().split(' ').filter(tag => tag.startsWith('#')) : [],
+      type: 'image',
+      status: 'pending', // Estado de espera
+      createdAt: new Date().toISOString(),
+      author: {
+        id: user?.id || '',
+        username: user?.username || '',
+        avatar: user?.avatar || null
+      },
+      likesCount: 0,
+      commentsCount: 0,
+      viewsCount: 0,
+      isLiked: false
+    };
+
+    // Navegar inmediatamente al feed con el post temporal
+    router.push({
+      pathname: '/(tabs)',
+      params: { 
+        tempPost: JSON.stringify(tempPost),
+        pendingPublication: 'true'
+      }
+    });
+
+    // Continuar con la publicación en segundo plano
     try {
-      setUploadProgress('Subiendo imagen a Cloudinary...');
-      // Subir imagen a Cloudinary con timeout
+      console.log('🚀 Iniciando publicación en segundo plano...');
+      
+      // Subir imagen a Cloudinary
       const imageFormData = new FormData();
       const imageFile = {
         uri: selectedImage,
@@ -179,20 +210,14 @@ export default function CreatePhotoScreen() {
       
       imageFormData.append('image', imageFile);
       
-      // Crear AbortController para timeout
-      const imageController = new AbortController();
-      const imageTimeout = setTimeout(() => imageController.abort(), 30000); // 30 segundos timeout
-      
+      console.log('📤 Subiendo imagen a Cloudinary...');
       const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        body: imageFormData,
-        signal: imageController.signal
+        body: imageFormData
       });
-      
-      clearTimeout(imageTimeout);
 
       if (!imageResponse.ok) {
         const errorData = await imageResponse.json().catch(() => ({}));
@@ -202,9 +227,9 @@ export default function CreatePhotoScreen() {
       const imageResult = await imageResponse.json();
       const imageUrl = imageResult.data.url;
       const cloudinaryPublicId = imageResult.data.publicId;
+      console.log('✅ Imagen subida exitosamente a Cloudinary');
 
-      setUploadProgress('Creando publicación...');
-      // Crear el post con timeout
+      // Crear el post real
       const postData = {
         imageUrl,
         cloudinaryPublicId,
@@ -213,41 +238,30 @@ export default function CreatePhotoScreen() {
         type: 'image'
       };
 
-      // Crear AbortController para timeout del post
-      const postController = new AbortController();
-      const postTimeout = setTimeout(() => postController.abort(), 15000); // 15 segundos timeout
-      
+      console.log('📝 Creando post en la base de datos...');
       const postResponse = await fetch(`${API_BASE_URL}/api/posts`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(postData),
-        signal: postController.signal
+        body: JSON.stringify(postData)
       });
-      
-      clearTimeout(postTimeout);
 
       if (!postResponse.ok) {
         const errorData = await postResponse.json().catch(() => ({}));
         throw new Error(`Error al crear el post: ${postResponse.status} - ${errorData.message || 'Error desconocido'}`);
       }
 
-      setUploadProgress('Finalizando...');
-      // Refrescar los datos del usuario para incluir el nuevo post
-      await refreshUser();
+      console.log('✅ Post creado exitosamente en la base de datos');
       
-      // Navegar de vuelta sin mostrar alerta
-      router.back();
+      // Refrescar los datos del usuario
+      await refreshUser();
+      console.log('🔄 Datos del usuario actualizados');
       
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Tiempo de espera agotado. Verifica tu conexión a internet.');
-      }
-      throw error;
-    } finally {
-      setUploadProgress('');
+      console.error('❌ Error en publicación en segundo plano:', error);
+      // El error se manejará en el feed mostrando el post como fallido
     }
   };
 
