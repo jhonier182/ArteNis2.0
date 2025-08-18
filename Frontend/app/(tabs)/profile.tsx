@@ -7,7 +7,9 @@ import {
   Image,
   Dimensions,
   StatusBar,
-  Alert
+  Alert,
+  ScrollView,
+  RefreshControl
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -49,6 +51,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [showImageModal, setShowImageModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const { refreshUser } = useUser();
 
@@ -228,6 +231,12 @@ export default function ProfileScreen() {
     return num.toString();
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchProfile();
+    setRefreshing(false);
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -272,8 +281,19 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
-        {/* Sección del perfil principal */}
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FF9800"
+            colors={["#FF9800"]}
+          />
+        }
+      >
+        {/* Sección del perfil principal - Sticky Header */}
         <View style={styles.profileSection}>
           {/* Nombre de usuario arriba del avatar */}
           <Text style={styles.usernameAboveAvatar}>@{user.username}</Text>
@@ -340,20 +360,21 @@ export default function ProfileScreen() {
                 <Text style={styles.buttonText}>Editar Perfil</Text>
               </LinearGradient>
             </TouchableOpacity>
-
-
           </View>
         </View>
 
-        {/* Grid de publicaciones con scroll infinito */}
-        <PostsGrid 
-          userId={user.id}
-          onPostPress={(post) => {
-            // Aquí puedes navegar a la vista detallada del post
-           
-          }}
-        />
-      </View>
+        {/* Grid de publicaciones integrado en el scroll */}
+        <View style={styles.postsSection}>
+          <Text style={styles.postsSectionTitle}>Mis Publicaciones</Text>
+          <PostsGrid 
+            userId={user.id}
+            onPostPress={(post) => {
+              // Aquí puedes navegar a la vista detallada del post
+            }}
+            isEmbedded={true}
+          />
+        </View>
+      </ScrollView>
 
       {/* Modal para ver imagen completa */}
       {showImageModal && (
@@ -457,6 +478,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
+    backgroundColor: '#000000',
+    shadowColor: '#FF9800',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,152,0,0.05)',
   },
   headerLeft: {
     width: 44, // Espacio para balancear el header
@@ -471,13 +504,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
   },
-  content: {
+  scrollView: {
     flex: 1,
   },
   profileSection: {
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 30,
+    paddingTop: 20,
+    backgroundColor: '#000000',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,152,0,0.1)',
   },
   usernameAboveAvatar: {
     color: '#FF9800',
@@ -497,6 +534,14 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: 'relative',
     marginBottom: 20,
+    shadowColor: '#FF9800',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
   },
   avatar: {
     width: 120,
@@ -514,6 +559,14 @@ const styles = StyleSheet.create({
     borderRadius: 65,
     backgroundColor: 'rgba(255,152,0,0.2)',
     zIndex: -1,
+    shadowColor: '#FF9800',
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 15,
   },
   cameraOverlay: {
     position: 'absolute',
@@ -587,6 +640,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
+    shadowColor: '#FF9800',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   buttonGradient: {
     flex: 1,
@@ -599,6 +660,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  postsSection: {
+    paddingHorizontal: 0, // Sin padding horizontal para que las imágenes ocupen todo el ancho
+    paddingBottom: 30,
+    backgroundColor: '#000000',
+  },
+  postsSectionTitle: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+    paddingHorizontal: 20, // Padding solo para el título
   },
 
   imageModal: {

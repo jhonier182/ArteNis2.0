@@ -30,9 +30,10 @@ interface Post {
 interface PostsGridProps {
   userId: string;
   onPostPress?: (post: Post) => void;
+  isEmbedded?: boolean;
 }
 
-export default function PostsGrid({ userId, onPostPress }: PostsGridProps) {
+export default function PostsGrid({ userId, onPostPress, isEmbedded = false }: PostsGridProps) {
   const shimmerAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -212,32 +213,66 @@ export default function PostsGrid({ userId, onPostPress }: PostsGridProps) {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Mis Publicaciones</Text>
+    <View style={[styles.container, isEmbedded && styles.embeddedContainer]}>
+      {!isEmbedded && <Text style={styles.sectionTitle}>Mis Publicaciones</Text>}
       
-
-      
-      <FlatList
-        data={typedPosts}
-        renderItem={renderPostThumbnail}
-        keyExtractor={(item) => item.id}
-        numColumns={3}
-        columnWrapperStyle={styles.row}
-        showsVerticalScrollIndicator={false}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.1}
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={loading ? renderSkeleton : renderEmpty}
-        refreshControl={
-          <RefreshControl
-            refreshing={loading && typedPosts.length === 0}
-            onRefresh={refresh}
-            tintColor="#FF9800"
-            colors={["#FF9800"]}
-          />
-        }
-        contentContainerStyle={styles.listContainer}
-      />
+      {isEmbedded ? (
+        // Vista embebida sin FlatList para el perfil
+        <View style={styles.embeddedGrid}>
+          {loading && typedPosts.length === 0 ? (
+            // Skeleton loading para vista embebida
+            Array.from({ length: 6 }, (_, index) => (
+              <View key={index} style={styles.embeddedPostThumbnail}>
+                <Animated.View 
+                  style={[
+                    styles.skeletonImage,
+                    {
+                      opacity: shimmerAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.3, 0.7],
+                      }),
+                    },
+                  ]} 
+                />
+              </View>
+            ))
+          ) : typedPosts.length > 0 ? (
+            typedPosts.map((post) => (
+              <View key={post.id} style={styles.embeddedPostThumbnail}>
+                {renderPostThumbnail({ item: post })}
+              </View>
+            ))
+          ) : (
+            <View style={styles.embeddedEmpty}>
+              <Ionicons name="images-outline" size={48} color="rgba(255,255,255,0.3)" />
+              <Text style={styles.embeddedEmptyText}>No tienes publicaciones aún</Text>
+            </View>
+          )}
+        </View>
+      ) : (
+        // Vista normal con FlatList para uso independiente
+        <FlatList
+          data={typedPosts}
+          renderItem={renderPostThumbnail}
+          keyExtractor={(item) => item.id}
+          numColumns={3}
+          columnWrapperStyle={styles.row}
+          showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.1}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={loading ? renderSkeleton : renderEmpty}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading && typedPosts.length === 0}
+              onRefresh={refresh}
+              tintColor="#FF9800"
+              colors={["#FF9800"]}
+            />
+          }
+          contentContainerStyle={styles.listContainer}
+        />
+      )}
     </View>
   );
 }
@@ -247,6 +282,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingBottom: 100,
+  },
+  embeddedContainer: {
+    paddingHorizontal: 0,
+    paddingBottom: 0,
   },
   sectionTitle: {
     fontSize: 20,
@@ -263,10 +302,10 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   postThumbnail: {
-    width: (width - 60) / 3, // 3 columnas con padding
-    height: (width - 60) / 3,
+    width: width / 3, // 3 columnas que ocupan todo el ancho
+    height: width / 3,
     position: 'relative',
-    borderRadius: 8,
+    borderRadius: 0, // Sin bordes redondeados para que se vean como Instagram
     overflow: 'hidden',
   },
   thumbnailImage: {
@@ -350,14 +389,14 @@ const styles = StyleSheet.create({
   skeletonContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 0,
   },
   skeletonThumbnail: {
-    width: (width - 60) / 3,
-    height: (width - 60) / 3,
-    marginBottom: 2,
-    borderRadius: 8,
+    width: width / 3,
+    height: width / 3,
+    marginBottom: 0,
+    borderRadius: 0,
     overflow: 'hidden',
   },
   skeletonImage: {
@@ -407,6 +446,40 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 14,
     fontWeight: '600',
+  },
+  embeddedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start', // Alinear desde el inicio
+    paddingHorizontal: 0, // Sin padding horizontal
+  },
+  embeddedPostThumbnail: {
+    width: width / 3,
+    height: width / 3,
+    marginBottom: 0, // Sin margen entre filas
+    borderRadius: 0,
+    overflow: 'hidden',
+  },
+  embeddedLoading: {
+    width: (width - 60) / 3,
+    height: (width - 60) / 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
+  },
+  embeddedEmpty: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  embeddedEmptyText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 10,
   },
 
 });
