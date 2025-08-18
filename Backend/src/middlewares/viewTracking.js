@@ -6,12 +6,13 @@ const trackPostView = async (req, res, next) => {
     const { postId } = req.params;
     const userId = req.user?.id || null;
 
-    if (postId) {
+    if (postId && userId) {
       // Incrementar visualización de forma asíncrona (no bloquear la respuesta)
       setImmediate(async () => {
         try {
           const post = await Post.findByPk(postId);
-          if (post) {
+          if (post && post.userId !== userId) {
+            // Solo incrementar si el usuario NO es el creador del post
             await post.incrementViews();
           }
         } catch (error) {
@@ -33,13 +34,14 @@ const trackFeedViews = async (req, res, next) => {
     const { postIds } = req.body; // Array de IDs de posts vistos
     const userId = req.user?.id || null;
 
-    if (postIds && Array.isArray(postIds) && postIds.length > 0) {
+    if (postIds && Array.isArray(postIds) && postIds.length > 0 && userId) {
       // Incrementar visualizaciones de forma asíncrona
       setImmediate(async () => {
         try {
           for (const postId of postIds) {
             const post = await Post.findByPk(postId);
-            if (post) {
+            if (post && post.userId !== userId) {
+              // Solo incrementar si el usuario NO es el creador del post
               await post.incrementViews();
             }
           }

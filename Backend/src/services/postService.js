@@ -198,9 +198,6 @@ class PostService {
         throw new Error('Publicación no encontrada');
       }
 
-      // Incrementar contador de vistas
-      await post.incrementViews();
-
       // Verificar si el usuario ha dado like
       let hasLiked = false;
       if (userId) {
