@@ -265,6 +265,11 @@ export default function CreatePhotoScreen() {
       
       // Notificar al feed que la publicación se completó
       console.log('📢 Notificando al feed que la publicación se completó');
+      console.log('📝 Datos del post creado:', {
+        description: description.trim(),
+        type: 'image',
+        timestamp: new Date().toISOString()
+      });
       
       // Marcar como completado
       setUploadProgress(100);
