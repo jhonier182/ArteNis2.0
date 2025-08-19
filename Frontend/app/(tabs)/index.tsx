@@ -541,8 +541,17 @@ export default function HomeScreen() {
       
       {/* Header del feed */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Feed de Seguidos</Text>
-        <Text style={styles.headerSubtitle}>Publicaciones de usuarios que sigues</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Feed de Seguidos</Text>
+          <Text style={styles.headerSubtitle}>Publicaciones de usuarios que sigues</Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.savedBoardsButton}
+          onPress={() => router.push('/(tabs)/boards')}
+        >
+          <Ionicons name="bookmark" size={20} color="#FF9800" />
+          <Text style={styles.savedBoardsText}>Tableros Guardados</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Filtro de categorías */}
@@ -602,7 +611,7 @@ export default function HomeScreen() {
               <Text style={styles.emptySubtitle}>
                 Sigue a algunos usuarios para ver sus publicaciones aquí
               </Text>
-              <TouchableOpacity style={styles.exploreButton} onPress={() => router.push('/(tabs)/boards')}>
+              <TouchableOpacity style={styles.exploreButton} onPress={() => router.push('/(tabs)/explore')}>
                 <Text style={styles.exploreButtonText}>Explorar Publicaciones</Text>
               </TouchableOpacity>
             </View>
@@ -661,15 +670,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    flexDirection: 'column', // Changed to column for subtitle
+    flexDirection: 'row', // Changed to row for headerLeft and savedBoardsButton
+    justifyContent: 'space-between', // Distribute space between left and right
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
     backgroundColor: '#1a1a1a',
     borderBottomWidth: 1,
     borderBottomColor: '#333',
+  },
+  headerLeft: {
+    flex: 1, // Allow left side to take available space
   },
   headerTitle: {
     color: '#ffffff',
@@ -681,6 +693,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 5,
     textAlign: 'center',
+  },
+  savedBoardsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#333',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FF9800',
+  },
+  savedBoardsText: {
+    color: '#FF9800',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   searchButton: {
     width: 44,

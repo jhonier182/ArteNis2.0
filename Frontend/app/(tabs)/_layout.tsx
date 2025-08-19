@@ -79,10 +79,24 @@ export default function TabLayout() {
         <Tabs.Screen
           name="boards"
           options={{
-            title: 'Boards',
+            title: 'Tableros',
             tabBarIcon: ({ color, focused }) => (
               <Ionicons 
-                name={focused ? "grid" : "grid-outline"} 
+                name={focused ? "bookmark" : "bookmark-outline"} 
+                size={24} 
+                color={focused ? "#ff3b30" : color} 
+              />
+            ),
+          }}
+        />
+        
+        <Tabs.Screen
+          name="explore"
+          options={{
+            title: 'Explorar',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons 
+                name={focused ? "compass" : "compass-outline"} 
                 size={24} 
                 color={focused ? "#ff3b30" : color} 
               />
