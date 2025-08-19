@@ -113,6 +113,21 @@ export default function HomeScreen() {
               // Remover el post temporal ya que se completó la publicación
               console.log('🎉 Post temporal completado en fetchPosts:', pendingPost.id);
               console.log('📝 Descripción:', pendingPost.description);
+              
+              // Agregar el post real al feed antes de eliminar el temporal
+              setPosts(prevPosts => {
+                // Verificar que el post real no esté ya en el feed
+                const alreadyExists = prevPosts.some(post => post.id === matchingRealPost.id);
+                if (!alreadyExists) {
+                  console.log('📱 Agregando post real al feed desde fetchPosts:', matchingRealPost.id);
+                  return [matchingRealPost, ...prevPosts];
+                } else {
+                  console.log('📱 Post real ya existe en el feed desde fetchPosts:', matchingRealPost.id);
+                  return prevPosts;
+                }
+              });
+              
+              // Ahora eliminar el post temporal
               removePendingPost(pendingPost.id);
             }
           });
@@ -156,6 +171,28 @@ export default function HomeScreen() {
       }
     }, [])
   );
+
+  // Efecto para detectar cuando se complete una publicación
+  useEffect(() => {
+    if (params?.publicationCompleted === 'true' && params?.completedPost) {
+      try {
+        const completedPost = JSON.parse(params.completedPost as string);
+        console.log('🎉 Publicación completada detectada:', completedPost.id);
+        
+        // Agregar el post completado al feed
+        addPostToFeed(completedPost);
+        
+        // Limpiar los parámetros para evitar duplicados
+        router.setParams({
+          publicationCompleted: undefined,
+          completedPost: undefined
+        });
+        
+      } catch (error) {
+        console.error('❌ Error procesando post completado:', error);
+      }
+    }
+  }, [params?.publicationCompleted, params?.completedPost]);
 
   // Efecto para detectar posts temporales cuando cambian los parámetros
   useEffect(() => {
@@ -216,6 +253,22 @@ export default function HomeScreen() {
     
     return () => clearInterval(interval);
   }, [pendingPosts.length]);
+
+  // Función para agregar un post directamente al feed
+  const addPostToFeed = (newPost: any) => {
+    console.log('📱 Agregando post directamente al feed:', newPost.id);
+    setPosts(prevPosts => {
+      // Verificar que el post no esté ya en el feed
+      const alreadyExists = prevPosts.some(post => post.id === newPost.id);
+      if (!alreadyExists) {
+        console.log('✅ Post agregado exitosamente al feed');
+        return [newPost, ...prevPosts];
+      } else {
+        console.log('⚠️ Post ya existe en el feed, no se duplica');
+        return prevPosts;
+      }
+    });
+  };
 
   // Función para actualizar el progreso de un post temporal
   const updatePendingPostProgress = (tempPostId: string, newProgress: number) => {
@@ -321,6 +374,21 @@ export default function HomeScreen() {
           if (matchingRealPost) {
             console.log('🎉 Post temporal completado:', pendingPost.id);
             console.log('📝 Descripción:', pendingPost.description);
+            
+            // Agregar el post real al feed antes de eliminar el temporal
+            setPosts(prevPosts => {
+              // Verificar que el post real no esté ya en el feed
+              const alreadyExists = prevPosts.some(post => post.id === matchingRealPost.id);
+              if (!alreadyExists) {
+                console.log('📱 Agregando post real al feed:', matchingRealPost.id);
+                return [matchingRealPost, ...prevPosts];
+              } else {
+                console.log('📱 Post real ya existe en el feed:', matchingRealPost.id);
+                return prevPosts;
+              }
+            });
+            
+            // Ahora eliminar el post temporal
             removePendingPost(pendingPost.id);
           } else {
             // Verificar si el post temporal ha estado demasiado tiempo (más de 2 minutos)

@@ -271,6 +271,35 @@ export default function CreatePhotoScreen() {
         timestamp: new Date().toISOString()
       });
       
+      // Crear el objeto del post completado para enviar al feed
+      const completedPost = {
+        id: postResponse.headers.get('post-id') || `post_${Date.now()}`,
+        imageUrl,
+        cloudinaryPublicId,
+        description: description.trim(),
+        hashtags: hashtags.trim() ? hashtags.trim().split(' ').filter(tag => tag.startsWith('#')) : [],
+        type: 'image',
+        createdAt: new Date().toISOString(),
+        author: {
+          id: user?.id || '',
+          username: user?.username || '',
+          avatar: user?.avatar || null
+        },
+        likesCount: 0,
+        commentsCount: 0,
+        viewsCount: 0,
+        isLiked: false
+      };
+      
+      // Navegar al feed con la notificación de publicación completada
+      router.push({
+        pathname: '/(tabs)',
+        params: {
+          publicationCompleted: 'true',
+          completedPost: JSON.stringify(completedPost)
+        }
+      });
+      
       // Marcar como completado
       setUploadProgress(100);
       
