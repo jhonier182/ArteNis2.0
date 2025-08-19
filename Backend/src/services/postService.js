@@ -90,7 +90,8 @@ class PostService {
         bodyPart,
         location,
         featured,
-        sortBy = 'recent'
+        sortBy = 'recent',
+        userId = null // Agregar userId para verificar seguimiento
       } = options;
 
       const offset = (page - 1) * limit;
@@ -149,11 +150,35 @@ class PostService {
         limit: parseInt(limit),
         offset: parseInt(offset)
       });
-      
-      
 
+      // Agregar campo isFollowing si hay usuario autenticado
+      if (userId) {
+        console.log('🔍 Agregando campo isFollowing para usuario:', userId);
+        for (const post of posts.rows) {
+          const isFollowing = await Follow.isFollowing(userId, post.author.id);
+          post.author.isFollowing = isFollowing;
+          console.log(`🔍 Post de ${post.author.username}: isFollowing = ${isFollowing}`);
+        }
+      } else {
+        console.log('⚠️ No hay userId, no se agrega campo isFollowing');
+      }
+      
+      // Convertir posts a JSON para incluir campos agregados dinámicamente
+      const postsWithFollowing = posts.rows.map(post => {
+        const postJson = post.toJSON();
+        if (post.author.isFollowing !== undefined) {
+          postJson.author.isFollowing = post.author.isFollowing;
+        }
+        return postJson;
+      });
+      
+      console.log('🔍 Posts con isFollowing:', postsWithFollowing.map(p => ({
+        username: p.author.username,
+        isFollowing: p.author.isFollowing
+      })));
+      
       return {
-        posts: posts.rows,
+        posts: postsWithFollowing,
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(posts.count / limit),

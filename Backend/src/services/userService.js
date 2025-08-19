@@ -441,6 +441,56 @@ class UserService {
       throw error;
     }
   }
+
+  // Obtener usuarios que sigues
+  static async getFollowingUsers(userId) {
+    try {
+      console.log('🔍 === getFollowingUsers iniciado ===');
+      console.log('🔍 userId:', userId);
+      console.log('🔍 Tipo de userId:', typeof userId);
+      
+      // Verificar que el usuario existe
+      console.log('🔍 Buscando usuario en base de datos...');
+      const userExists = await User.findByPk(userId);
+      if (!userExists) {
+        console.log('❌ Usuario no encontrado:', userId);
+        throw new Error('Usuario no encontrado');
+      }
+      
+      console.log('✅ Usuario encontrado:', userExists.username);
+      console.log('✅ Usuario ID:', userExists.id);
+      
+      // Obtener los follows
+      console.log('🔍 Buscando follows para usuario:', userId);
+      const follows = await Follow.findAll({
+        where: { followerId: userId },
+        include: [{
+          model: User,
+          as: 'following',
+          attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
+        }]
+      });
+      
+      console.log('🔍 Follows encontrados:', follows.length);
+      console.log('🔍 Follows raw:', follows.map(f => ({ id: f.id, followerId: f.followerId, followingId: f.followingId })));
+      
+      // Extraer los usuarios seguidos
+      const followingUsers = follows.map(follow => {
+        console.log('🔍 Follow:', follow.id, '-> Usuario:', follow.following?.username, 'ID:', follow.following?.id);
+        return follow.following;
+      }).filter(user => user !== null);
+      
+      console.log('✅ Usuarios seguidos extraídos:', followingUsers.length);
+      console.log('✅ IDs de usuarios seguidos:', followingUsers.map(u => u.id));
+      console.log('✅ Usernames de usuarios seguidos:', followingUsers.map(u => u.username));
+      
+      return followingUsers;
+    } catch (error) {
+      console.log('❌ Error en getFollowingUsers:', error.message);
+      console.log('❌ Stack trace:', error.stack);
+      throw error;
+    }
+  }
 }
 
 module.exports = UserService;

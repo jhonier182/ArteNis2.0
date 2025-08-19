@@ -35,11 +35,7 @@ router.get('/search',
   UserController.searchUsers
 );
 
-// GET /api/users/:id - Obtener usuario por ID
-router.get('/:id',
-  optionalAuth,
-  UserController.getUserById
-);
+// (Movido más abajo para no capturar /following como :id)
 
 // Rutas protegidas (requieren autenticación)
 
@@ -73,6 +69,18 @@ router.post('/follow',
 router.delete('/:userId/follow',
   verifyToken,
   UserController.unfollowUser
+);
+
+// GET /api/users/following - Obtener usuarios que sigues
+router.get('/following',
+  verifyToken,
+  UserController.getFollowingUsers
+);
+
+// GET /api/users/:id - Obtener usuario por ID
+router.get('/:id',
+  optionalAuth,
+  UserController.getUserById
 );
 
 // POST /api/users/logout - Cerrar sesión
