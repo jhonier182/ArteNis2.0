@@ -9,7 +9,8 @@ import {
   Image,
   Alert,
   StatusBar,
-  Dimensions
+  Dimensions,
+  Platform
 } from 'react-native';
 import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -158,10 +159,10 @@ export default function CreatePhotoScreen() {
       if (extension === 'png') {
         mimeType = 'image/png';
         fileExtension = 'png';
-      } else if (extension === 'image/gif') {
+      } else if (extension === 'gif') {
         mimeType = 'image/gif';
         fileExtension = 'gif';
-      } else if (extension === 'image/webp') {
+      } else if (extension === 'webp') {
         mimeType = 'image/webp';
         fileExtension = 'webp';
       }
@@ -201,27 +202,63 @@ export default function CreatePhotoScreen() {
     try {
       // Subir imagen a Cloudinary
       const imageFormData = new FormData();
-      const imageFile = {
-        uri: selectedImage,
-        type: mimeType,
-        name: `post.${fileExtension}`,
-        mimeType: mimeType
-      } as any;
       
-      imageFormData.append('image', imageFile);
+      // Crear el archivo de imagen de manera compatible con web y mobile
+      if (Platform.OS === 'web') {
+        // Para web: convertir URI a Blob
+        try {
+          const response = await fetch(selectedImage);
+          const blob = await response.blob();
+          const file = new File([blob], `post.${fileExtension}`, { type: mimeType });
+          imageFormData.append('image', file);
+        } catch (error) {
+          console.error('Error convirtiendo imagen a Blob:', error);
+          // Fallback: usar la URI directamente como string
+          imageFormData.append('image', selectedImage);
+        }
+      } else {
+        // Para mobile: usar el formato nativo
+        const imageFile = {
+          uri: selectedImage,
+          type: mimeType,
+          name: `post.${fileExtension}`,
+          mimeType: mimeType
+        } as any;
+        imageFormData.append('image', imageFile);
+      }
       
       setUploadProgress(25); // 25% - Subiendo imagen
+      
+      // Headers compatibles con web y mobile
+      const headers: any = {
+        'Authorization': `Bearer ${token}`
+      };
+      
+      // NO incluir Content-Type en web para que el navegador lo establezca automáticamente
+      if (Platform.OS !== 'web') {
+        headers['Content-Type'] = 'multipart/form-data';
+      }
+      
+      console.log('🔍 === SUBIENDO IMAGEN ===');
+      console.log('🔍 Platform:', Platform.OS);
+      console.log('🔍 Headers:', headers);
+      console.log('🔍 URL:', `${API_BASE_URL}/api/posts/upload`);
+      
       const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: imageFormData
+        headers,
+        body: imageFormData,
+        // Timeout más largo para subida de archivos
+        signal: AbortSignal.timeout(60000) // 60 segundos
       });
+      
+      console.log('🔍 Respuesta de subida:', imageResponse.status, imageResponse.statusText);
+      console.log('🔍 Headers de respuesta:', Object.fromEntries(imageResponse.headers.entries()));
 
       if (!imageResponse.ok) {
         const errorData = await imageResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Error al subir imagen');
+        console.error('Error en respuesta de subida:', imageResponse.status, errorData);
+        throw new Error(errorData.message || `Error al subir imagen: ${imageResponse.status}`);
       }
 
       setUploadProgress(75); // 75% - Imagen subida, creando post
@@ -438,6 +475,12 @@ export default function CreatePhotoScreen() {
                 <Ionicons name="wifi" size={16} color="#ffd700" />
                 <Text style={styles.infoText}>Asegúrate de tener una conexión estable a internet</Text>
               </View>
+              {Platform.OS === 'web' && (
+                <View style={styles.infoItem}>
+                  <Ionicons name="desktop" size={16} color="#ff9800" />
+                  <Text style={styles.infoText}>Modo navegador web: La subida puede tardar más tiempo</Text>
+                </View>
+              )}
             </>
           )}
         </View>
