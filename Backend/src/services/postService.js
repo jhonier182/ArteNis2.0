@@ -20,6 +20,8 @@ class PostService {
         console.error(`❌ Error calculando isLiked para post ${postData.id}:`, error);
         postData.isLiked = false;
       }
+    } else if (postData.isLiked !== undefined) {
+      console.log(`✅ Usando isLiked existente para post ${postData.id}: ${postData.isLiked}`);
     }
     
     const transformed = {
@@ -174,7 +176,7 @@ class PostService {
           const hasLiked = await Like.exists(userId, post.id);
           post.isLiked = !!hasLiked;
           
-          console.log(`📝 Post ${post.id}: isFollowing=${isFollowing}, isLiked=${post.isLiked}`);
+          console.log(`📝 Post ${post.id}: isFollowing=${isFollowing}, isLiked=${post.isLiked} (antes de transformar)`);
         }
       }
       
@@ -182,6 +184,11 @@ class PostService {
       const transformedPosts = await Promise.all(
         posts.rows.map(post => this.transformPostForFrontend(post, userId))
       );
+      
+      // Verificar que los posts transformados tengan isLiked
+      transformedPosts.forEach(post => {
+        console.log(`🎯 Post transformado ${post.id}: isLiked=${post.isLiked}, likesCount=${post.likesCount}`);
+      });
       
       return {
         posts: transformedPosts,
@@ -275,6 +282,8 @@ class PostService {
           console.log(`🆕 Creando nuevo like`);
           // Crear nuevo like con transacción optimizada
           const result = await sequelize.transaction(async (t) => {
+            console.log(`🔄 Iniciando transacción para post ${postId}`);
+            
             // Usar lock optimista para evitar deadlocks
             const lockedPost = await Post.findByPk(postId, { 
               lock: true, 
@@ -296,20 +305,31 @@ class PostService {
 
             console.log(`✅ Like creado en base de datos`);
 
-            // Incrementar contador de likes usando el método del modelo
-            await lockedPost.incrementLikes();
+            // Incrementar contador de likes usando el método directo de Sequelize
+            console.log(`📈 Intentando incrementar likes...`);
+            await Post.increment('likesCount', {
+              where: { id: postId },
+              transaction: t
+            });
+            console.log(`✅ Likes incrementados exitosamente`);
 
-            console.log(`📈 Contador de likes incrementado`);
+            // Verificar que el incremento funcionó
+            await lockedPost.reload({ transaction: t });
+            console.log(`🔍 Post después del incremento - Likes: ${lockedPost.likesCount}`);
 
             return { message: 'Like agregado' };
           }, {
             timeout: 10000 // 10 segundos de timeout para transacciones
           });
 
+          console.log(`🎉 Transacción completada exitosamente:`, result);
           return result;
         }
       } catch (error) {
         attempt++;
+        
+        console.error(`❌ Error en likePost (intento ${attempt}/${maxRetries}):`, error);
+        console.error(`❌ Stack trace:`, error.stack);
         
         // Si es un deadlock y no hemos agotado los reintentos, esperar y reintentar
         if (error.message.includes('Deadlock') && attempt < maxRetries) {
@@ -341,6 +361,8 @@ class PostService {
         }
 
         const result = await sequelize.transaction(async (t) => {
+          console.log(`🔄 Iniciando transacción para unlike en post ${postId}`);
+          
           // Usar lock optimista para evitar deadlocks
           const lockedPost = await Post.findByPk(postId, { 
             lock: true, 
@@ -351,17 +373,30 @@ class PostService {
             throw new Error('Publicación no encontrada');
           }
 
+          console.log(`🔒 Post bloqueado - Likes antes: ${lockedPost.likesCount}`);
+
           // Eliminar el like
           await like.destroy({ transaction: t });
+          console.log(`✅ Like eliminado de la base de datos`);
 
-          // Decrementar contador de likes usando el método del modelo
-          await lockedPost.decrementLikes();
+          // Decrementar contador de likes usando el método directo de Sequelize
+          console.log(`📉 Intentando decrementar likes...`);
+          await Post.decrement('likesCount', {
+            where: { id: postId },
+            transaction: t
+          });
+          console.log(`✅ Likes decrementados exitosamente`);
+
+          // Verificar que el decremento funcionó
+          await lockedPost.reload({ transaction: t });
+          console.log(`🔍 Post después del decremento - Likes: ${lockedPost.likesCount}`);
 
           return { message: 'Like removido' };
         }, {
           timeout: 10000 // 10 segundos de timeout para transacciones
         });
 
+        console.log(`🎉 Transacción de unlike completada exitosamente:`, result);
         return result;
       } catch (error) {
         attempt++;
@@ -553,6 +588,7 @@ class PostService {
         for (const post of posts.rows) {
           const hasLiked = await Like.exists(requesterId, post.id);
           post.isLiked = !!hasLiked;
+          console.log(`📝 Post ${post.id}: isLiked=${post.isLiked} (antes de transformar)`);
         }
       }
 
@@ -560,6 +596,11 @@ class PostService {
       const transformedPosts = await Promise.all(
         posts.rows.map(post => this.transformPostForFrontend(post, requesterId))
       );
+      
+      // Verificar que los posts transformados tengan isLiked
+      transformedPosts.forEach(post => {
+        console.log(`🎯 Post transformado ${post.id}: isLiked=${post.isLiked}, likesCount=${post.likesCount}`);
+      });
 
       return {
         posts: transformedPosts,
@@ -591,13 +632,16 @@ class PostService {
       
       if (existingLike) {
         // Quitar like
+        console.log(`🔄 Quitando like del comentario ${commentId}`);
         await sequelize.transaction(async (t) => {
           await existingLike.destroy({ transaction: t });
           await comment.decrementLikes();
         });
+        console.log(`✅ Like removido del comentario ${commentId}`);
         return { message: 'Like removido del comentario' };
       } else {
         // Dar like
+        console.log(`🔄 Agregando like al comentario ${commentId}`);
         await sequelize.transaction(async (t) => {
           await Like.create({
             userId,
@@ -606,6 +650,7 @@ class PostService {
           }, { transaction: t });
           await comment.incrementLikes();
         });
+        console.log(`✅ Like agregado al comentario ${commentId}`);
         return { message: 'Like agregado al comentario' };
       }
     } catch (error) {
@@ -731,12 +776,18 @@ class PostService {
         for (const post of rows) {
           const hasLiked = await Like.exists(userId, post.id);
           post.isLiked = !!hasLiked;
+          console.log(`📝 Post ${post.id}: isLiked=${post.isLiked} (antes de transformar)`);
         }
 
         // Transformar posts usando transformPostForFrontend
         const transformedPosts = await Promise.all(
           rows.map(post => this.transformPostForFrontend(post, userId))
         );
+        
+        // Verificar que los posts transformados tengan isLiked
+        transformedPosts.forEach(post => {
+          console.log(`🎯 Post transformado ${post.id}: isLiked=${post.isLiked}, likesCount=${post.likesCount}`);
+        });
         
         // Marcar todos los posts como no seguidos ya que no sigue a nadie
         transformedPosts.forEach(post => {
@@ -774,6 +825,7 @@ class PostService {
       for (const post of rows) {
         const hasLiked = await Like.exists(userId, post.id);
         post.isLiked = !!hasLiked;
+        console.log(`📝 Post ${post.id}: isLiked=${post.isLiked} (antes de transformar)`);
       }
 
       // Transformar los posts para el frontend usando transformPostForFrontend
@@ -781,6 +833,11 @@ class PostService {
         rows.map(post => this.transformPostForFrontend(post, userId))
       );
       
+      // Verificar que los posts transformados tengan isLiked
+      transformedPosts.forEach(post => {
+        console.log(`🎯 Post transformado ${post.id}: isLiked=${post.isLiked}, likesCount=${post.likesCount}`);
+      });
+
       // Marcar todos los posts como seguidos ya que son de usuarios que sigue
       transformedPosts.forEach(post => {
         post.author.isFollowing = true;
@@ -829,7 +886,7 @@ class PostService {
           const hasLiked = await Like.exists(userId, post.id);
           post.isLiked = !!hasLiked;
           
-          console.log(`📝 Post ${post.id}: isFollowing=${isFollowing}, isLiked=${post.isLiked}`);
+          console.log(`📝 Post ${post.id}: isFollowing=${isFollowing}, isLiked=${post.isLiked} (antes de transformar)`);
         }
       }
 
@@ -837,6 +894,11 @@ class PostService {
       const transformedPosts = await Promise.all(
         posts.rows.map(post => this.transformPostForFrontend(post, userId))
       );
+      
+      // Verificar que los posts transformados tengan isLiked
+      transformedPosts.forEach(post => {
+        console.log(`🎯 Post transformado ${post.id}: isLiked=${post.isLiked}, likesCount=${post.likesCount}`);
+      });
 
       return {
         posts: transformedPosts,
