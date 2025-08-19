@@ -114,20 +114,8 @@ export default function HomeScreen() {
               console.log('🎉 Post temporal completado en fetchPosts:', pendingPost.id);
               console.log('📝 Descripción:', pendingPost.description);
               
-              // Agregar el post real al feed antes de eliminar el temporal
-              setPosts(prevPosts => {
-                // Verificar que el post real no esté ya en el feed
-                const alreadyExists = prevPosts.some(post => post.id === matchingRealPost.id);
-                if (!alreadyExists) {
-                  console.log('📱 Agregando post real al feed desde fetchPosts:', matchingRealPost.id);
-                  return [matchingRealPost, ...prevPosts];
-                } else {
-                  console.log('📱 Post real ya existe en el feed desde fetchPosts:', matchingRealPost.id);
-                  return prevPosts;
-                }
-              });
-              
-              // Ahora eliminar el post temporal
+              // Solo eliminar el post temporal, no agregar al feed (ya se agregó automáticamente)
+              console.log('📱 Post temporal removido, el real ya está en el feed');
               removePendingPost(pendingPost.id);
             }
           });
@@ -181,6 +169,12 @@ export default function HomeScreen() {
         
         // Agregar el post completado al feed
         addPostToFeed(completedPost);
+        
+        // Limpiar posts temporales que coincidan con el post completado
+        setPendingPosts(prev => prev.filter(pendingPost => 
+          !(pendingPost.description === completedPost.description &&
+            pendingPost.author.id === completedPost.author.id)
+        ));
         
         // Limpiar los parámetros para evitar duplicados
         router.setParams({
@@ -257,16 +251,30 @@ export default function HomeScreen() {
   // Función para agregar un post directamente al feed
   const addPostToFeed = (newPost: any) => {
     console.log('📱 Agregando post directamente al feed:', newPost.id);
+    console.log('📝 Descripción:', newPost.description);
+    
     setPosts(prevPosts => {
-      // Verificar que el post no esté ya en el feed
-      const alreadyExists = prevPosts.some(post => post.id === newPost.id);
-      if (!alreadyExists) {
-        console.log('✅ Post agregado exitosamente al feed');
-        return [newPost, ...prevPosts];
-      } else {
-        console.log('⚠️ Post ya existe en el feed, no se duplica');
+      // Verificar que el post no esté ya en el feed por ID
+      const alreadyExistsById = prevPosts.some(post => post.id === newPost.id);
+      
+      // También verificar por descripción y autor para evitar duplicados por contenido
+      const alreadyExistsByContent = prevPosts.some(post => 
+        post.description === newPost.description &&
+        post.author.id === newPost.author.id
+      );
+      
+      if (alreadyExistsById) {
+        console.log('⚠️ Post ya existe en el feed por ID, no se duplica');
         return prevPosts;
       }
+      
+      if (alreadyExistsByContent) {
+        console.log('⚠️ Post ya existe en el feed por contenido, no se duplica');
+        return prevPosts;
+      }
+      
+      console.log('✅ Post agregado exitosamente al feed');
+      return [newPost, ...prevPosts];
     });
   };
 
@@ -375,20 +383,8 @@ export default function HomeScreen() {
             console.log('🎉 Post temporal completado:', pendingPost.id);
             console.log('📝 Descripción:', pendingPost.description);
             
-            // Agregar el post real al feed antes de eliminar el temporal
-            setPosts(prevPosts => {
-              // Verificar que el post real no esté ya en el feed
-              const alreadyExists = prevPosts.some(post => post.id === matchingRealPost.id);
-              if (!alreadyExists) {
-                console.log('📱 Agregando post real al feed:', matchingRealPost.id);
-                return [matchingRealPost, ...prevPosts];
-              } else {
-                console.log('📱 Post real ya existe en el feed:', matchingRealPost.id);
-                return prevPosts;
-              }
-            });
-            
-            // Ahora eliminar el post temporal
+            // Solo eliminar el post temporal, no agregar al feed (ya se agregó automáticamente)
+            console.log('📱 Post temporal removido, el real ya está en el feed');
             removePendingPost(pendingPost.id);
           } else {
             // Verificar si el post temporal ha estado demasiado tiempo (más de 2 minutos)
