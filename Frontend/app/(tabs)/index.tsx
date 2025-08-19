@@ -387,10 +387,12 @@ export default function HomeScreen() {
     }
   };
 
-  const handleLike = async (postId: string) => {
+  const handleLike = async (postId: string): Promise<void> => {
     try {
       const token = await AsyncStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        throw new Error('No hay token de autenticación');
+      }
 
       const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/like`, {
         method: 'POST',
@@ -400,22 +402,19 @@ export default function HomeScreen() {
         }
       });
 
-      if (response.ok) {
-        // Actualizar el estado local
-        setPosts(prevPosts => 
-          prevPosts.map(post => 
-            post.id === postId 
-              ? { 
-                  ...post, 
-                  isLiked: !post.isLiked,
-                  likesCount: post.isLiked ? (post.likesCount || 0) - 1 : (post.likesCount || 0) + 1
-                }
-              : post
-          )
-        );
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
       }
+
+      // La actualización del estado local ya se hace en el componente
+      // Solo verificamos que la API respondió correctamente
+      console.log('✅ Like procesado correctamente');
+      
     } catch (error) {
       console.error('Error al dar like:', error);
+      // Re-lanzar el error para que el componente lo maneje
+      throw error;
     }
   };
 

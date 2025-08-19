@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  Alert
+  Alert,
+  Animated
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -39,7 +40,7 @@ interface Post {
 
 interface ElegantPostCardProps {
   post: Post;
-  onLike: (postId: string) => void;
+  onLike: (postId: string) => Promise<void>;
   onComment: (postId: string) => void;
   onEditPost?: (post: Post) => void;
   onDeletePost?: (post: Post) => void;
@@ -56,13 +57,65 @@ export default function ElegantPostCard({
 }: ElegantPostCardProps) {
   const [isLiked, setIsLiked] = useState(post.isLiked || false);
   const [likesCount, setLikesCount] = useState(post.likesCount || 0);
+  const [isLiking, setIsLiking] = useState(false);
+  const [spinValue] = useState(new Animated.Value(0));
   const { user } = useUser();
   const router = useRouter();
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
-    onLike(post.id);
+  // Sincronizar estado local con props cuando cambien
+  useEffect(() => {
+    setIsLiked(post.isLiked || false);
+    setLikesCount(post.likesCount || 0);
+  }, [post.isLiked, post.likesCount]);
+
+  // Animación de rotación para el indicador de carga
+  useEffect(() => {
+    if (isLiking) {
+      Animated.loop(
+        Animated.timing(spinValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      ).start();
+    } else {
+      spinValue.setValue(0);
+    }
+  }, [isLiking, spinValue]);
+
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg']
+  });
+
+  const handleLike = async () => {
+    if (isLiking) return; // Evitar múltiples clicks
+    
+    const newIsLiked = !isLiked;
+    const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1;
+    
+    // Actualizar estado local inmediatamente (optimistic update)
+    setIsLiked(newIsLiked);
+    setLikesCount(newLikesCount);
+    setIsLiking(true);
+    
+    try {
+      // Llamar a la función del padre para manejar la API
+      await onLike(post.id);
+    } catch (error) {
+      // Si hay error, revertir el estado local
+      setIsLiked(!newIsLiked);
+      setLikesCount(!newIsLiked ? likesCount + 1 : likesCount - 1);
+      
+      // Mostrar alerta de error
+      Alert.alert(
+        'Error',
+        'No se pudo procesar el like. Por favor, inténtalo de nuevo.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsLiking(false);
+    }
   };
 
   const handleFollowUser = () => {
@@ -241,7 +294,7 @@ export default function ElegantPostCard({
 
       {/* Métricas de engagement */}
       <View style={styles.metricsContainer}>
-        <TouchableOpacity style={styles.metricItem} onPress={handleLike}>
+        <TouchableOpacity style={styles.metricItem} onPress={handleLike} disabled={isLiking}>
           <Ionicons 
             name={isLiked ? "heart" : "heart-outline"} 
             size={20} 
@@ -250,6 +303,11 @@ export default function ElegantPostCard({
           <Text style={[styles.metricText, isLiked && styles.likedText]}>
             {formatNumber(likesCount)}
           </Text>
+          {isLiking && (
+            <Animated.View style={[styles.loadingIndicator, { transform: [{ rotate: spin }] }]}>
+              <Ionicons name="sync" size={12} color="#666" />
+            </Animated.View>
+          )}
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.metricItem} onPress={() => onComment(post.id)}>
@@ -395,5 +453,10 @@ const styles = StyleSheet.create({
   },
   moreButton: {
     padding: 8,
+  },
+  loadingIndicator: {
+    marginLeft: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

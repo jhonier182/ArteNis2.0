@@ -12,7 +12,7 @@ class PostService {
       ...postData,
       imageUrl: postData.mediaUrl, // Transformar mediaUrl a imageUrl
       hashtags: postData.tags || [], // Transformar tags a hashtags
-      isLiked: postData.hasLiked || false, // Asegurar que isLiked esté presente
+      isLiked: postData.isLiked || false, // Usar isLiked (agregado en getFeed)
       likesCount: postData.likesCount || 0,
       commentsCount: postData.commentsCount || 0,
       viewsCount: postData.viewsCount || 0,
@@ -28,8 +28,6 @@ class PostService {
         userType: postData.author.userType || 'user'
       } : null
     };
-    
-    
     
     return transformed;
   }
@@ -156,6 +154,10 @@ class PostService {
         for (const post of posts.rows) {
           const isFollowing = await Follow.isFollowing(userId, post.author.id);
           post.author.isFollowing = isFollowing;
+          
+          // Agregar campo isLiked para indicar si el usuario ya dio like
+          const hasLiked = await Like.exists(userId, post.id);
+          post.isLiked = !!hasLiked;
         }
       }
       
@@ -164,6 +166,9 @@ class PostService {
         const postJson = post.toJSON();
         if (post.author.isFollowing !== undefined) {
           postJson.author.isFollowing = post.author.isFollowing;
+        }
+        if (post.isLiked !== undefined) {
+          postJson.isLiked = post.isLiked;
         }
         return postJson;
       });
@@ -215,15 +220,15 @@ class PostService {
       }
 
       // Verificar si el usuario ha dado like
-      let hasLiked = false;
+      let isLiked = false;
       if (userId) {
         const like = await Like.exists(userId, postId);
-        hasLiked = !!like;
+        isLiked = !!like;
       }
 
       return {
         ...post.toJSON(),
-        hasLiked
+        isLiked
       };
     } catch (error) {
       throw error;
@@ -521,8 +526,19 @@ class PostService {
         offset: parseInt(offset)
       });
 
+      // Agregar campo isLiked si hay usuario solicitante
+      if (requesterId) {
+        for (const post of posts.rows) {
+          const hasLiked = await Like.exists(requesterId, post.id);
+          post.isLiked = !!hasLiked;
+        }
+      }
+
+      // Transformar los posts para el frontend
+      const transformedPosts = this.transformPostsForFrontend(posts.rows);
+
       return {
-        posts: posts.rows,
+        posts: transformedPosts,
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(posts.count / limit),
@@ -687,6 +703,12 @@ class PostService {
           offset
         });
 
+        // Agregar campo isLiked para el usuario actual
+        for (const post of rows) {
+          const hasLiked = await Like.exists(userId, post.id);
+          post.isLiked = !!hasLiked;
+        }
+
         const transformedPosts = this.transformPostsForFrontend(rows);
         
         // Marcar todos los posts como no seguidos ya que no sigue a nadie
@@ -721,12 +743,20 @@ class PostService {
         offset
       });
 
+      // Agregar campo isLiked para el usuario actual
+      for (const post of rows) {
+        const hasLiked = await Like.exists(userId, post.id);
+        post.isLiked = !!hasLiked;
+      }
+
       // Transformar los posts para el frontend
       const transformedPosts = this.transformPostsForFrontend(rows);
       
       // Marcar todos los posts como seguidos ya que son de usuarios que sigue
+      // y agregar campo isLiked para el usuario actual
       transformedPosts.forEach(post => {
         post.author.isFollowing = true;
+        // Agregar campo isLiked (se establecerá en transformPostForFrontend si está disponible)
       });
 
       return {
