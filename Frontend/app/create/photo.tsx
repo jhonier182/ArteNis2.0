@@ -239,11 +239,6 @@ export default function CreatePhotoScreen() {
         headers['Content-Type'] = 'multipart/form-data';
       }
       
-      console.log('🔍 === SUBIENDO IMAGEN ===');
-      console.log('🔍 Platform:', Platform.OS);
-      console.log('🔍 Headers:', headers);
-      console.log('🔍 URL:', `${API_BASE_URL}/api/posts/upload`);
-      
       const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
         method: 'POST',
         headers,
@@ -251,9 +246,6 @@ export default function CreatePhotoScreen() {
         // Timeout más largo para subida de archivos
         signal: AbortSignal.timeout(60000) // 60 segundos
       });
-      
-      console.log('🔍 Respuesta de subida:', imageResponse.status, imageResponse.statusText);
-      console.log('🔍 Headers de respuesta:', Object.fromEntries(imageResponse.headers.entries()));
 
       if (!imageResponse.ok) {
         const errorData = await imageResponse.json().catch(() => ({}));

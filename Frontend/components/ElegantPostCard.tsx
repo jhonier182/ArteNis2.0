@@ -155,11 +155,6 @@ export default function ElegantPostCard({
   };
 
   const renderFollowButton = () => {
-    console.log('Renderizando botón de seguimiento para:', post.author.username);
-    console.log('Estado isFollowing:', post.author.isFollowing);
-    console.log('Usuario actual:', user?.id);
-    console.log('Autor del post:', post.author.id);
-    
     if (post.author.id === user?.id) {
       return (
         <TouchableOpacity 

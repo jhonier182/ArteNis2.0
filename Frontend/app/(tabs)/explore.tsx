@@ -38,9 +38,6 @@ interface Post {
 }
 
 export default function ExploreScreen() {
-  console.log('🚀 === EXPLORE SCREEN RENDERIZANDO ===');
-  console.log('🚀 Componente ExploreScreen montado');
-  
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -49,19 +46,15 @@ export default function ExploreScreen() {
   const [page, setPage] = useState(1);
   const [followingUsers, setFollowingUsers] = useState<string[]>([]);
   const { user } = useUser();
-  
-  console.log('🚀 Estado inicial:', { posts: posts.length, loading, error, user: user?.username });
 
   // Obtener lista de usuarios que sigue
   const fetchFollowingUsers = async () => {
-    console.log('🚀 === INICIANDO fetchFollowingUsers ===');
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
         console.log('❌ No hay token disponible');
         return;
       }
-      console.log('🔍 Token obtenido, haciendo request a /api/users/following');
 
       // Intentar obtener la lista de usuarios seguidos
       // Si el endpoint /api/users/following falla, usaremos una alternativa
@@ -74,22 +67,15 @@ export default function ExploreScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('🔍 Respuesta completa del API following:', data);
         const followingIds = data.data?.users?.map((u: any) => u.id) || [];
         setFollowingUsers(followingIds);
-        console.log('✅ Lista de usuarios seguidos obtenida:', followingIds.length);
-        console.log('✅ IDs de usuarios seguidos:', followingIds);
       } else {
         console.log('⚠️ Endpoint /api/users/following no disponible, usando filtro alternativo');
-        console.log('⚠️ Status:', response.status);
-        const errorText = await response.text();
-        console.log('⚠️ Error response:', errorText);
         // Si falla, dejamos la lista vacía y usamos el filtro por isFollowing
         setFollowingUsers([]);
       }
     } catch (error) {
       console.log('⚠️ Error al obtener usuarios seguidos, usando filtro alternativo');
-      console.log('⚠️ Error details:', error);
       setFollowingUsers([]);
     }
   };
@@ -108,62 +94,31 @@ export default function ExploreScreen() {
         }
       });
 
-             if (response.ok) {
-         const data = await response.json();
-         let newPosts = data.data?.posts || [];
-         
-                                     console.log('🔍 === FILTRANDO POSTS EN EXPLORE ===');
-         console.log('🔍 Posts recibidos del API:', newPosts.length);
-         console.log('🔍 Usuario actual ID:', user?.id);
-         console.log('🔍 Usuario actual username:', user?.username);
-         console.log('🔍 Lista de usuarios seguidos:', followingUsers);
-         console.log('🔍 Cantidad de usuarios seguidos:', followingUsers.length);
-         
-         // Mostrar ejemplo del primer post para debug
-         if (newPosts.length > 0) {
-           const firstPost = newPosts[0];
-           console.log('🔍 Ejemplo del primer post:');
-           console.log('  - ID del post:', firstPost.id);
-           console.log('  - Autor ID:', firstPost.author.id);
-           console.log('  - Autor username:', firstPost.author.username);
-           console.log('  - isFollowing:', firstPost.author.isFollowing);
-           console.log('  - ¿Es mi post?', firstPost.author.id === user?.id);
-           console.log('  - ¿Está en mi lista de seguidos?', followingUsers.includes(firstPost.author.id));
-         }
-         
-         // Filtrar: solo posts de usuarios que NO sigues
-         newPosts = newPosts.filter((post: Post) => {
-           // Excluir posts propios
-           if (post.author.id === user?.id) {
-             console.log('❌ Excluyendo post propio:', post.author.username);
-             return false;
-           }
-           
-           // Comentario: El filtro ahora usa la lista real de usuarios seguidos
-           
-           // Excluir posts de usuarios que ya sigues
-           // Primero intentar usar la lista de followingUsers (más confiable)
-           if (followingUsers.length > 0 && followingUsers.includes(post.author.id)) {
-             console.log('❌ Excluyendo usuario seguido (por lista):', post.author.username, 'ID:', post.author.id);
-             return false;
-           }
-           
-           // Si no tenemos la lista, usar isFollowing como respaldo
-           if (followingUsers.length === 0 && post.author.isFollowing === true) {
-             console.log('❌ Excluyendo usuario seguido (por isFollowing):', post.author.username, 'ID:', post.author.id);
-             return false;
-           }
-           
-           // Solo incluir posts de usuarios que NO sigues
-           console.log('✅ Incluyendo post de:', post.author.username, 'ID:', post.author.id);
-           return true;
-         });
-         
-         console.log('=== RESUMEN DEL FILTRADO ===');
-         console.log('Posts originales:', data.data?.posts?.length || 0);
-         console.log('Posts después del filtro:', newPosts.length);
-         console.log('Posts excluidos:', (data.data?.posts?.length || 0) - newPosts.length);
-         console.log('=== FIN RESUMEN ===');
+                     if (response.ok) {
+          const data = await response.json();
+          let newPosts = data.data?.posts || [];
+          
+          // Filtrar: solo posts de usuarios que NO sigues
+          newPosts = newPosts.filter((post: Post) => {
+            // Excluir posts propios
+            if (post.author.id === user?.id) {
+              return false;
+            }
+            
+            // Excluir posts de usuarios que ya sigues
+            // Primero intentar usar la lista de followingUsers (más confiable)
+            if (followingUsers.length > 0 && followingUsers.includes(post.author.id)) {
+              return false;
+            }
+            
+            // Si no tenemos la lista, usar isFollowing como respaldo
+            if (followingUsers.length === 0 && post.author.isFollowing === true) {
+              return false;
+            }
+            
+            // Solo incluir posts de usuarios que NO sigues
+            return true;
+          });
          
          if (pageNum === 1) {
            setPosts(newPosts);
@@ -316,24 +271,17 @@ export default function ExploreScreen() {
   };
 
   useEffect(() => {
-    console.log('🚀 useEffect ejecutándose...');
     // Solo obtener usuarios seguidos, fetchAllPosts se ejecutará en otro useEffect
     const initializeData = async () => {
-      console.log('🚀 Iniciando fetchFollowingUsers...');
       await fetchFollowingUsers();
-      console.log('🚀 fetchFollowingUsers completado');
     };
     initializeData();
   }, []);
 
   // Efecto separado para cuando followingUsers cambie
   useEffect(() => {
-    console.log('🔍 followingUsers cambió:', followingUsers);
-    console.log('🔍 Cantidad de usuarios seguidos:', followingUsers.length);
-    
     // Solo ejecutar fetchAllPosts si ya tenemos la lista de usuarios seguidos
     if (followingUsers.length >= 0) { // Incluye 0 para cuando no sigues a nadie
-      console.log('🚀 Ejecutando fetchAllPosts después de obtener followingUsers...');
       fetchAllPosts(1);
     }
   }, [followingUsers]);

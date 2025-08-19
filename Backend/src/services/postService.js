@@ -153,14 +153,10 @@ class PostService {
 
       // Agregar campo isFollowing si hay usuario autenticado
       if (userId) {
-        console.log('🔍 Agregando campo isFollowing para usuario:', userId);
         for (const post of posts.rows) {
           const isFollowing = await Follow.isFollowing(userId, post.author.id);
           post.author.isFollowing = isFollowing;
-          console.log(`🔍 Post de ${post.author.username}: isFollowing = ${isFollowing}`);
         }
-      } else {
-        console.log('⚠️ No hay userId, no se agrega campo isFollowing');
       }
       
       // Convertir posts a JSON para incluir campos agregados dinámicamente
@@ -171,11 +167,6 @@ class PostService {
         }
         return postJson;
       });
-      
-      console.log('🔍 Posts con isFollowing:', postsWithFollowing.map(p => ({
-        username: p.author.username,
-        isFollowing: p.author.isFollowing
-      })));
       
       return {
         posts: postsWithFollowing,

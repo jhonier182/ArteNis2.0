@@ -120,13 +120,6 @@ class UserController {
   // Obtener usuarios que sigues
   static async getFollowingUsers(req, res, next) {
     try {
-      console.log('🔍 === getFollowingUsers controller iniciado ===');
-      console.log('🔍 req.user:', req.user);
-      console.log('🔍 req.user.id:', req.user?.id);
-      console.log('🔍 req.url:', req.url);
-      console.log('🔍 req.path:', req.path);
-      console.log('🔍 req.route.path:', req.route?.path);
-      
       const userId = req.user.id;
       if (!userId) {
         console.log('❌ No hay userId en req.user');
@@ -136,12 +129,7 @@ class UserController {
         });
       }
       
-      console.log('✅ userId obtenido:', userId);
-      console.log('🚀 Llamando a UserService.getFollowingUsers...');
       const result = await UserService.getFollowingUsers(userId);
-      
-      console.log('✅ Resultado obtenido:', result.length, 'usuarios');
-      console.log('✅ IDs de usuarios seguidos:', result.map(u => u.id));
       
       res.status(200).json({
         success: true,
@@ -150,7 +138,6 @@ class UserController {
       });
     } catch (error) {
       console.log('❌ Error en controller getFollowingUsers:', error.message);
-      console.log('❌ Stack trace:', error.stack);
       next(error);
     }
   }
