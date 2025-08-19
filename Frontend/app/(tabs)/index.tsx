@@ -49,6 +49,7 @@ export default function HomeScreen() {
   const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showSavedPosts, setShowSavedPosts] = useState(false);
   const { user } = useUser();
 
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -542,16 +543,33 @@ export default function HomeScreen() {
       {/* Header del feed */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>Feed de Seguidos</Text>
-          <Text style={styles.headerSubtitle}>Publicaciones de usuarios que sigues</Text>
+          <Text style={styles.headerTitle}>
+            {showSavedPosts ? 'Publicaciones Guardadas' : 'Feed de Seguidos'}
+          </Text>
+          <Text style={styles.headerSubtitle}>
+            {showSavedPosts ? 'Tus publicaciones favoritas' : 'Publicaciones de usuarios que sigues'}
+          </Text>
         </View>
         <TouchableOpacity 
-          style={styles.savedBoardsButton}
-          onPress={() => router.push('/(tabs)/boards')}
+          style={[
+            styles.savedPostsButton,
+            showSavedPosts && styles.savedPostsButtonActive
+          ]}
+          onPress={() => setShowSavedPosts(!showSavedPosts)}
         >
-          <Ionicons name="bookmark" size={20} color="#FF9800" />
-          <Text style={styles.savedBoardsText}>Tableros Guardados</Text>
+          <Ionicons 
+            name={showSavedPosts ? "bookmark" : "bookmark-outline"} 
+            size={20} 
+            color={showSavedPosts ? "#ffffff" : "#FF9800"} 
+          />
+          <Text style={[
+            styles.savedPostsText,
+            showSavedPosts && styles.savedPostsTextActive
+          ]}>
+            {showSavedPosts ? 'Todas' : 'Guardadas'}
+          </Text>
         </TouchableOpacity>
+
       </View>
 
       {/* Filtro de categorías */}
@@ -563,7 +581,10 @@ export default function HomeScreen() {
 
       {/* Feed de publicaciones */}
       <FlatList
-        data={[...pendingPosts, ...posts]}
+        data={showSavedPosts ? 
+          [...pendingPosts, ...posts].filter(post => post.isLiked) : 
+          [...pendingPosts, ...posts]
+        }
         renderItem={({ item }) => (
           item.status === 'pending' ? (
             <PendingPostCard
@@ -606,13 +627,24 @@ export default function HomeScreen() {
         ListEmptyComponent={
           !loading && posts.length === 0 && pendingPosts.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={64} color="rgba(255,255,255,0.3)" />
-              <Text style={styles.emptyTitle}>No hay publicaciones para mostrar</Text>
+              <Ionicons 
+                name={showSavedPosts ? "bookmark-outline" : "people-outline"} 
+                size={64} 
+                color="rgba(255,255,255,0.3)" 
+              />
+              <Text style={styles.emptyTitle}>
+                {showSavedPosts ? 'No hay publicaciones guardadas' : 'No hay publicaciones para mostrar'}
+              </Text>
               <Text style={styles.emptySubtitle}>
-                Sigue a algunos usuarios para ver sus publicaciones aquí
+                {showSavedPosts ? 
+                  'Guarda publicaciones que te gusten para verlas aquí' : 
+                  'Sigue a algunos usuarios para ver sus publicaciones aquí'
+                }
               </Text>
               <TouchableOpacity style={styles.exploreButton} onPress={() => router.push('/(tabs)/explore')}>
-                <Text style={styles.exploreButtonText}>Explorar Publicaciones</Text>
+                <Text style={styles.exploreButtonText}>
+                  {showSavedPosts ? 'Explorar Publicaciones' : 'Explorar Publicaciones'}
+                </Text>
               </TouchableOpacity>
             </View>
           ) : null
@@ -694,7 +726,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
     textAlign: 'center',
   },
-  savedBoardsButton: {
+  savedPostsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#333',
@@ -704,12 +736,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FF9800',
   },
-  savedBoardsText: {
+  savedPostsText: {
     color: '#FF9800',
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
   },
+  savedPostsButtonActive: {
+    backgroundColor: '#FF9800',
+    borderColor: '#FF9800',
+  },
+  savedPostsTextActive: {
+    color: '#ffffff',
+  },
+
   searchButton: {
     width: 44,
     height: 44,

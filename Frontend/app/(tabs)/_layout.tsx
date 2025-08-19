@@ -77,20 +77,6 @@ export default function TabLayout() {
         />
         
         <Tabs.Screen
-          name="boards"
-          options={{
-            title: 'Tableros',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons 
-                name={focused ? "bookmark" : "bookmark-outline"} 
-                size={24} 
-                color={focused ? "#ff3b30" : color} 
-              />
-            ),
-          }}
-        />
-        
-        <Tabs.Screen
           name="explore"
           options={{
             title: 'Explorar',
