@@ -28,7 +28,7 @@ const sequelize = new Sequelize({
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT) || 3306,
   dialect: 'mysql',
-  logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  logging: false, // Desactivado para mantener terminal limpia
   pool: {
     max: 10,      // Máximo 10 conexiones simultáneas
     min: 0,       // Mínimo 0 conexiones
@@ -77,13 +77,16 @@ const connectDB = async () => {
 
     // Probar la conexión
     await sequelize.authenticate();
+    console.log('✅ Conexión a MySQL establecida correctamente');
     
     // Sincronizar modelos
     if (process.env.NODE_ENV === 'development') {
       // Usar force: false para evitar recrear índices
       await sequelize.sync({ force: false, alter: false });
+      console.log('✅ Modelos sincronizados');
     } else {
       await sequelize.sync();
+      console.log('✅ Modelos sincronizados');
     }
     
   } catch (error) {
@@ -96,6 +99,7 @@ const connectDB = async () => {
 const closeDB = async () => {
   try {
     await sequelize.close();
+    console.log('✅ Conexión a la base de datos cerrada');
   } catch (error) {
     console.error('❌ Error cerrando la conexión:', error);
   }

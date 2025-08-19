@@ -15,7 +15,7 @@ const startServer = async () => {
     
     // Iniciar servidor
     const server = app.listen(PORT, () => {
-      // Servidor iniciado (logs comentados para mantener terminal limpia)
+      console.log(`✅ Servidor ArteNis iniciado en http://localhost:${PORT}`);
     });
 
     // Manejo elegante del cierre del servidor
