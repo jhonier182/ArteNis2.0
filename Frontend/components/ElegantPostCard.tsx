@@ -314,6 +314,9 @@ const styles = StyleSheet.create({
   },
   followingButton: {
     backgroundColor: '#333',
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   followText: {
     color: '#ffffff',
