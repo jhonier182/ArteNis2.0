@@ -85,16 +85,11 @@ class PostController {
       
       const result = await PostService.getFeed(options);
       
-      // Transformar los posts para el frontend
-      const transformedPosts = PostService.transformPostsForFrontend(result.posts);
-      
+      // Los posts ya están transformados en el servicio
       res.status(200).json({
         success: true,
         message: 'Feed obtenido exitosamente',
-        data: {
-          ...result,
-          posts: transformedPosts
-        }
+        data: result
       });
     } catch (error) {
       console.error('❌ Error en getFeed:', error);
@@ -110,13 +105,11 @@ class PostController {
       
       const post = await PostService.getPostById(id, userId);
       
-      // Transformar el post para el frontend
-      const transformedPost = PostService.transformPostForFrontend(post);
-      
+      // El post ya está transformado en el servicio
       res.status(200).json({
         success: true,
         message: 'Publicación obtenida exitosamente',
-        data: { post: transformedPost }
+        data: { post }
       });
     } catch (error) {
       next(error);
@@ -129,7 +122,11 @@ class PostController {
       const { id } = req.params;
       const { type = 'like' } = req.body;
       
+      console.log(`❤️ Usuario ${req.user.id} dando like al post ${id}`);
+      
       const result = await PostService.likePost(req.user.id, id, type);
+      
+      console.log(`✅ Like procesado exitosamente:`, result);
       
       res.status(200).json({
         success: true,
@@ -249,16 +246,11 @@ class PostController {
       
       const result = await PostService.getUserPosts(userId, options);
       
-      // Transformar los posts para el frontend
-      const transformedPosts = PostService.transformPostsForFrontend(result.posts);
-      
+      // Los posts ya están transformados en el servicio
       res.status(200).json({
         success: true,
         message: 'Publicaciones obtenidas exitosamente',
-        data: {
-          ...result,
-          posts: transformedPosts
-        }
+        data: result
       });
     } catch (error) {
       next(error);
@@ -275,16 +267,11 @@ class PostController {
       
       const result = await PostService.getUserPosts(req.user.id, options);
       
-      // Transformar los posts para el frontend
-      const transformedPosts = PostService.transformPostForFrontend(result.posts);
-      
+      // Los posts ya están transformados en el servicio
       res.status(200).json({
         success: true,
         message: 'Publicaciones obtenidas exitosamente',
-        data: {
-          ...result,
-          posts: transformedPosts
-        }
+        data: result
       });
     } catch (error) {
       next(error);

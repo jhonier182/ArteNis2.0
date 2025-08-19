@@ -5,14 +5,28 @@ const { deletePostImage } = require('../config/cloudinary');
 
 class PostService {
   // Función helper para transformar posts al formato esperado por el frontend
-  static transformPostForFrontend(post) {
+  static async transformPostForFrontend(post, userId = null) {
     const postData = post.toJSON ? post.toJSON() : post;
+    
+    console.log(`🔄 Transformando post ${postData.id}: isLiked=${postData.isLiked}, likesCount=${postData.likesCount}`);
+    
+    // Si no tenemos isLiked y tenemos userId, calcularlo
+    if (postData.isLiked === undefined && userId) {
+      try {
+        const hasLiked = await Like.exists(userId, postData.id);
+        postData.isLiked = !!hasLiked;
+        console.log(`🔍 Calculando isLiked para post ${postData.id}: ${postData.isLiked}`);
+      } catch (error) {
+        console.error(`❌ Error calculando isLiked para post ${postData.id}:`, error);
+        postData.isLiked = false;
+      }
+    }
     
     const transformed = {
       ...postData,
       imageUrl: postData.mediaUrl, // Transformar mediaUrl a imageUrl
       hashtags: postData.tags || [], // Transformar tags a hashtags
-      isLiked: postData.isLiked || false, // Usar isLiked (agregado en getFeed)
+      isLiked: postData.isLiked || false, // Usar isLiked calculado o false por defecto
       likesCount: postData.likesCount || 0,
       commentsCount: postData.commentsCount || 0,
       viewsCount: postData.viewsCount || 0,
@@ -151,6 +165,7 @@ class PostService {
 
       // Agregar campo isFollowing si hay usuario autenticado
       if (userId) {
+        console.log(`👤 Agregando campos para usuario autenticado: ${userId}`);
         for (const post of posts.rows) {
           const isFollowing = await Follow.isFollowing(userId, post.author.id);
           post.author.isFollowing = isFollowing;
@@ -158,23 +173,18 @@ class PostService {
           // Agregar campo isLiked para indicar si el usuario ya dio like
           const hasLiked = await Like.exists(userId, post.id);
           post.isLiked = !!hasLiked;
+          
+          console.log(`📝 Post ${post.id}: isFollowing=${isFollowing}, isLiked=${post.isLiked}`);
         }
       }
       
-      // Convertir posts a JSON para incluir campos agregados dinámicamente
-      const postsWithFollowing = posts.rows.map(post => {
-        const postJson = post.toJSON();
-        if (post.author.isFollowing !== undefined) {
-          postJson.author.isFollowing = post.author.isFollowing;
-        }
-        if (post.isLiked !== undefined) {
-          postJson.isLiked = post.isLiked;
-        }
-        return postJson;
-      });
+      // Transformar posts al formato del frontend usando transformPostForFrontend
+      const transformedPosts = await Promise.all(
+        posts.rows.map(post => this.transformPostForFrontend(post, userId))
+      );
       
       return {
-        posts: postsWithFollowing,
+        posts: transformedPosts,
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(posts.count / limit),
@@ -226,10 +236,10 @@ class PostService {
         isLiked = !!like;
       }
 
-      return {
-        ...post.toJSON(),
-        isLiked
-      };
+      // Transformar post al formato del frontend
+      const transformedPost = await this.transformPostForFrontend(post, userId);
+      
+      return transformedPost;
     } catch (error) {
       throw error;
     }
@@ -242,21 +252,27 @@ class PostService {
 
     while (attempt < maxRetries) {
       try {
+        console.log(`🔄 Procesando like - Usuario: ${userId}, Post: ${postId}, Tipo: ${type}`);
+        
         // Verificar si la publicación existe
         const post = await Post.findByPk(postId);
         if (!post) {
           throw new Error('Publicación no encontrada');
         }
 
+        console.log(`📝 Post encontrado - Likes actuales: ${post.likesCount}`);
+
         // Verificar si ya ha dado like
         const existingLike = await Like.exists(userId, postId);
         
         if (existingLike) {
+          console.log(`🔄 Usuario ya dio like, actualizando tipo`);
           // Si ya existe, actualizar el tipo de like
           existingLike.type = type;
           await existingLike.save();
           return { message: 'Like actualizado' };
         } else {
+          console.log(`🆕 Creando nuevo like`);
           // Crear nuevo like con transacción optimizada
           const result = await sequelize.transaction(async (t) => {
             // Usar lock optimista para evitar deadlocks
@@ -269,6 +285,8 @@ class PostService {
               throw new Error('Publicación no encontrada');
             }
 
+            console.log(`🔒 Post bloqueado - Likes antes: ${lockedPost.likesCount}`);
+
             // Crear el like
             const newLike = await Like.create({
               userId,
@@ -276,8 +294,12 @@ class PostService {
               type
             }, { transaction: t });
 
-            // Incrementar contador de likes
-            await lockedPost.increment('likesCount', { transaction: t });
+            console.log(`✅ Like creado en base de datos`);
+
+            // Incrementar contador de likes usando el método del modelo
+            await lockedPost.incrementLikes();
+
+            console.log(`📈 Contador de likes incrementado`);
 
             return { message: 'Like agregado' };
           }, {
@@ -332,8 +354,8 @@ class PostService {
           // Eliminar el like
           await like.destroy({ transaction: t });
 
-          // Decrementar contador de likes
-          await lockedPost.decrement('likesCount', { transaction: t });
+          // Decrementar contador de likes usando el método del modelo
+          await lockedPost.decrementLikes();
 
           return { message: 'Like removido' };
         }, {
@@ -534,8 +556,10 @@ class PostService {
         }
       }
 
-      // Transformar los posts para el frontend
-      const transformedPosts = this.transformPostsForFrontend(posts.rows);
+      // Transformar los posts para el frontend usando transformPostForFrontend
+      const transformedPosts = await Promise.all(
+        posts.rows.map(post => this.transformPostForFrontend(post, requesterId))
+      );
 
       return {
         posts: transformedPosts,
@@ -709,7 +733,10 @@ class PostService {
           post.isLiked = !!hasLiked;
         }
 
-        const transformedPosts = this.transformPostsForFrontend(rows);
+        // Transformar posts usando transformPostForFrontend
+        const transformedPosts = await Promise.all(
+          rows.map(post => this.transformPostForFrontend(post, userId))
+        );
         
         // Marcar todos los posts como no seguidos ya que no sigue a nadie
         transformedPosts.forEach(post => {
@@ -749,14 +776,14 @@ class PostService {
         post.isLiked = !!hasLiked;
       }
 
-      // Transformar los posts para el frontend
-      const transformedPosts = this.transformPostsForFrontend(rows);
+      // Transformar los posts para el frontend usando transformPostForFrontend
+      const transformedPosts = await Promise.all(
+        rows.map(post => this.transformPostForFrontend(post, userId))
+      );
       
       // Marcar todos los posts como seguidos ya que son de usuarios que sigue
-      // y agregar campo isLiked para el usuario actual
       transformedPosts.forEach(post => {
         post.author.isFollowing = true;
-        // Agregar campo isLiked (se establecerá en transformPostForFrontend si está disponible)
       });
 
       return {
@@ -765,6 +792,63 @@ class PostService {
       };
     } catch (error) {
       console.error('Error in getFollowingPosts:', error);
+      throw error;
+    }
+  }
+
+  // Obtener todas las publicaciones con paginación
+  static async getAllPosts(page = 1, limit = 20, userId = null) {
+    try {
+      const offset = (page - 1) * limit;
+      
+      const posts = await Post.findAndCountAll({
+        include: [
+          {
+            model: User,
+            as: 'author',
+            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
+          }
+        ],
+        where: {
+          isPublic: true,
+          status: 'published'
+        },
+        order: [['publishedAt', 'DESC']],
+        limit,
+        offset
+      });
+
+      // Agregar campo isFollowing si hay usuario autenticado
+      if (userId) {
+        console.log(`👤 Agregando campos para usuario autenticado: ${userId}`);
+        for (const post of posts.rows) {
+          const isFollowing = await Follow.isFollowing(userId, post.author.id);
+          post.author.isFollowing = isFollowing;
+          
+          // Agregar campo isLiked para indicar si el usuario ya dio like
+          const hasLiked = await Like.exists(userId, post.id);
+          post.isLiked = !!hasLiked;
+          
+          console.log(`📝 Post ${post.id}: isFollowing=${isFollowing}, isLiked=${post.isLiked}`);
+        }
+      }
+
+      // Transformar posts al formato del frontend
+      const transformedPosts = await Promise.all(
+        posts.rows.map(post => this.transformPostForFrontend(post, userId))
+      );
+
+      return {
+        posts: transformedPosts,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(posts.count / limit),
+          totalItems: posts.count,
+          itemsPerPage: limit
+        }
+      };
+    } catch (error) {
+      console.error('Error en getAllPosts:', error);
       throw error;
     }
   }
