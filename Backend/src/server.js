@@ -8,23 +8,14 @@ const PORT = process.env.PORT || 3000;
 // Función principal para inicializar el servidor
 const startServer = async () => {
   try {
-    console.log('🚀 Iniciando ArteNis Backend...');
+    // Iniciando ArteNis Backend...
     
     // Conectar a la base de datos
     await connectDB();
     
     // Iniciar servidor
     const server = app.listen(PORT, () => {
-      console.log(`
-🎨 ================================
-   ArteNis Backend
-🎨 ================================
-📍 Servidor: http://localhost:${PORT}
-🌍 Entorno: ${process.env.NODE_ENV || 'development'}
-📊 Salud: http://localhost:${PORT}/health
-📚 API: http://localhost:${PORT}/api
-🎨 ================================
-      `);
+      // Servidor iniciado (logs comentados para mantener terminal limpia)
     });
 
     // Manejo elegante del cierre del servidor

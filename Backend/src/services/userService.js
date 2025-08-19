@@ -448,7 +448,6 @@ class UserService {
       // Verificar que el usuario existe
       const userExists = await User.findByPk(userId);
       if (!userExists) {
-        console.log('❌ Usuario no encontrado:', userId);
         throw new Error('Usuario no encontrado');
       }
       
@@ -467,7 +466,6 @@ class UserService {
       
       return followingUsers;
     } catch (error) {
-      console.log('❌ Error en getFollowingUsers:', error.message);
       throw error;
     }
   }

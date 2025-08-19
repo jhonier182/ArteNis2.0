@@ -52,7 +52,6 @@ export default function ExploreScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
-        console.log('❌ No hay token disponible');
         return;
       }
 
@@ -70,12 +69,10 @@ export default function ExploreScreen() {
         const followingIds = data.data?.users?.map((u: any) => u.id) || [];
         setFollowingUsers(followingIds);
       } else {
-        console.log('⚠️ Endpoint /api/users/following no disponible, usando filtro alternativo');
         // Si falla, dejamos la lista vacía y usamos el filtro por isFollowing
         setFollowingUsers([]);
       }
     } catch (error) {
-      console.log('⚠️ Error al obtener usuarios seguidos, usando filtro alternativo');
       setFollowingUsers([]);
     }
   };
@@ -195,19 +192,16 @@ export default function ExploreScreen() {
   // Manejar comentario
   const handleComment = (postId: string) => {
     // TODO: Implementar navegación a comentarios
-    console.log('Navegar a comentarios del post:', postId);
   };
 
   // Manejar edición de post (solo para posts propios)
   const handleEditPost = (post: Post) => {
     // TODO: Implementar navegación a editor
-    console.log('Editar post:', post.id);
   };
 
   // Manejar eliminación de post (solo para posts propios)
   const handleDeletePost = async (post: Post) => {
     // TODO: Implementar eliminación
-    console.log('Eliminar post:', post.id);
   };
 
   // Manejar seguimiento de usuario

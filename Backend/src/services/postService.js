@@ -593,22 +593,15 @@ class PostService {
   // Obtener posts de usuarios seguidos
   static async getFollowingPosts(userId, page, limit, offset) {
     try {
-      console.log('getFollowingPosts called with:', { userId, page, limit, offset });
-      
       // Obtener IDs de usuarios seguidos
       const followingUsers = await Follow.findAll({
         where: { followerId: userId },
         attributes: ['followingId']
       });
 
-      console.log('Following users found:', followingUsers.length);
-      console.log('Following users:', followingUsers);
-
       const followingIds = followingUsers.map(follow => follow.followingId);
 
       if (followingIds.length === 0) {
-        console.log('No following users found, returning recent posts instead');
-        
         // Si no sigue a nadie, devolver posts recientes
         const { count, rows } = await Post.findAndCountAll({
           where: {
@@ -640,8 +633,6 @@ class PostService {
         };
       }
 
-      console.log('Following IDs:', followingIds);
-
       // Obtener posts de usuarios seguidos
       const { count, rows } = await Post.findAndCountAll({
         where: {
@@ -663,9 +654,6 @@ class PostService {
         offset
       });
 
-      console.log('Posts found:', count);
-      console.log('Posts rows:', rows.length);
-
       // Transformar los posts para el frontend
       const transformedPosts = this.transformPostsForFrontend(rows);
       
@@ -673,8 +661,6 @@ class PostService {
       transformedPosts.forEach(post => {
         post.author.isFollowing = true;
       });
-
-      console.log('Transformed posts:', transformedPosts.length);
 
       return {
         posts: transformedPosts,

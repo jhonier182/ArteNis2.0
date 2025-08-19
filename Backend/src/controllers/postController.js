@@ -77,25 +77,16 @@ class PostController {
   // Obtener feed de publicaciones
   static async getFeed(req, res, next) {
     try {
-      console.log('🔍 getFeed llamado con query:', req.query);
-      console.log('🔍 req.user disponible:', !!req.user);
-      console.log('🔍 req.user.id:', req.user?.id);
-      
       // Agregar userId si hay usuario autenticado
       const options = { ...req.query };
       if (req.user) {
         options.userId = req.user.id;
-        console.log('🔍 userId agregado a options:', options.userId);
-      } else {
-        console.log('⚠️ No hay req.user, no se agrega userId');
       }
       
       const result = await PostService.getFeed(options);
-      console.log('🔍 Resultado del servicio:', result);
       
       // Transformar los posts para el frontend
       const transformedPosts = PostService.transformPostsForFrontend(result.posts);
-      console.log('🔍 Posts transformados:', transformedPosts);
       
       res.status(200).json({
         success: true,

@@ -6,22 +6,10 @@ const storage = multer.memoryStorage();
 
 // Filtro para validar tipos de archivo
 const fileFilter = (req, file, cb) => {
-  console.log('🔍 FileFilter - Archivo recibido:', {
-    fieldname: file.fieldname,
-    originalname: file.originalname,
-    mimetype: file.mimetype,
-    encoding: file.encoding,
-    size: file.size
-  });
-
   // Verificar que el archivo sea válido
   if (!file || !file.mimetype) {
-    console.log('❌ FileFilter - Archivo inválido o corrupto');
     return cb(new Error('Archivo inválido o corrupto'), false);
   }
-  
-  // En React Native, file.size puede ser undefined, pero el archivo sigue siendo válido
-  console.log('🔍 FileFilter - Tamaño del archivo:', file.size || 'No disponible (React Native)');
 
   // Tipos de archivo permitidos
   const allowedImageTypes = [
@@ -44,20 +32,9 @@ const fileFilter = (req, file, cb) => {
   const isImage = allowedImageTypes.includes(file.mimetype);
   const isVideo = allowedVideoTypes.includes(file.mimetype);
 
-  console.log('🔍 FileFilter - Validación:', {
-    isImage,
-    isVideo,
-    mimetype: file.mimetype,
-    allowed: isImage || isVideo,
-    size: file.size || 'No disponible',
-    buffer: file.buffer ? 'Presente' : 'No disponible'
-  });
-
   if (isImage || isVideo) {
-    console.log('✅ FileFilter - Archivo aceptado');
     cb(null, true);
   } else {
-    console.log('❌ FileFilter - Archivo rechazado:', file.mimetype);
     cb(new Error(`Tipo de archivo no permitido: ${file.mimetype}`), false);
   }
 };
@@ -71,36 +48,17 @@ const upload = multer({
   }
 });
 
-// Middleware para debuggear multer
+// Middleware para debuggear multer (comentado para producción)
 const debugMulter = (req, res, next) => {
-  console.log('🔍 Debug Multer:');
-  console.log('Content-Type:', req.headers['content-type']);
-  console.log('Content-Length:', req.headers['content-length']);
-  console.log('Body keys:', Object.keys(req.body));
-  console.log('Body content:', req.body);
-  console.log('Files:', req.files);
-  console.log('File:', req.file);
-  
-  // Verificar si hay algún middleware que esté interfiriendo
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log('⚠️  ADVERTENCIA: El body ya tiene contenido antes de multer');
-    console.log('Body content:', req.body);
-    
-    // Detectar si el archivo llegó como objeto en lugar de archivo real
-    if (req.body.image && typeof req.body.image === 'string' && req.body.image.includes('[object Object]')) {
-      console.log('🚨 PROBLEMA DETECTADO: El archivo llegó como objeto serializado, no como archivo binario');
-      console.log('🚨 Esto indica un problema en el cliente (React Native)');
-    }
-  }
-  
+  // Debug logs comentados para mantener la terminal limpia
   next();
 };
 
-// Log de configuración de multer
-console.log('🔧 Configuración de Multer:');
-console.log('Storage:', storage);
-console.log('FileFilter:', fileFilter);
-console.log('Limits:', { fileSize: '50MB' });
+// Log de configuración de multer (comentado para producción)
+// console.log('🔧 Configuración de Multer:');
+// console.log('Storage:', storage);
+// console.log('FileFilter:', fileFilter);
+// console.log('Limits:', { fileSize: '50MB' });
 
 // Middleware para manejar errores de multer
 const handleMulterError = (error, req, res, next) => {

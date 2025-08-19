@@ -84,9 +84,7 @@ if (process.env.NODE_ENV === 'production') {
   });
   app.use(prodLimiter);
 } else {
-  // En desarrollo: rate limiting permisivo para la mayoría de rutas
-  console.log('🚀 Modo desarrollo: Rate limiting permisivo habilitado');
-  
+ 
   // Rate limiting estricto solo para autenticación
   app.use('/api/users/login', strictRateLimit);
   app.use('/api/users/register', strictRateLimit);

@@ -14,7 +14,7 @@ const devRateLimit = rateLimit({
   legacyHeaders: false,
   // En desarrollo, ser más permisivo
   handler: (req, res) => {
-    console.log(`⚠️ Rate limit alcanzado para IP: ${req.ip}, Path: ${req.path}`);
+          // Rate limit alcanzado (log comentado para mantener terminal limpia)
     res.status(429).json({
       success: false,
       message: 'Rate limit alcanzado (desarrollo)',
@@ -36,7 +36,7 @@ const strictRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    console.log(`🚫 Rate limit estricto alcanzado para IP: ${req.ip}, Path: ${req.path}`);
+          // Rate limit estricto alcanzado (log comentado para mantener terminal limpia)
     res.status(429).json({
       success: false,
       message: 'Demasiados intentos de autenticación',

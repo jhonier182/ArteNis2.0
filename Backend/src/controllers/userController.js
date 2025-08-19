@@ -122,7 +122,6 @@ class UserController {
     try {
       const userId = req.user.id;
       if (!userId) {
-        console.log('❌ No hay userId en req.user');
         return res.status(400).json({
           success: false,
           message: 'Usuario no autenticado'
@@ -137,7 +136,6 @@ class UserController {
         data: { users: result }
       });
     } catch (error) {
-      console.log('❌ Error en controller getFollowingUsers:', error.message);
       next(error);
     }
   }
