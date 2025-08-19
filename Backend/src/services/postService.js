@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Post, User, Comment, Like } = require('../models');
+const { Post, User, Comment, Like, Follow } = require('../models');
 const { sequelize } = require('../config/db');
 const { deletePostImage } = require('../config/cloudinary');
 
@@ -570,6 +570,92 @@ class PostService {
 
       return { message: 'Publicación eliminada exitosamente' };
     } catch (error) {
+      throw error;
+    }
+  }
+
+  // Obtener posts de usuarios seguidos
+  static async getFollowingPosts(userId, page, limit, offset) {
+    try {
+      console.log('getFollowingPosts called with:', { userId, page, limit, offset });
+      
+      // Obtener IDs de usuarios seguidos
+      const followingUsers = await Follow.findAll({
+        where: { followerId: userId },
+        attributes: ['followingId']
+      });
+
+      console.log('Following users found:', followingUsers.length);
+      console.log('Following users:', followingUsers);
+
+      const followingIds = followingUsers.map(follow => follow.followingId);
+
+      if (followingIds.length === 0) {
+        console.log('No following users found, returning recent posts instead');
+        
+        // Si no sigue a nadie, devolver posts recientes
+        const { count, rows } = await Post.findAndCountAll({
+          where: {
+            isPublic: true,
+            status: 'published'
+          },
+          include: [
+            {
+              model: User,
+              as: 'author',
+              attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
+            }
+          ],
+          order: [['createdAt', 'DESC']],
+          limit,
+          offset
+        });
+
+        const transformedPosts = this.transformPostsForFrontend(rows);
+        
+        return {
+          posts: transformedPosts,
+          total: count
+        };
+      }
+
+      console.log('Following IDs:', followingIds);
+
+      // Obtener posts de usuarios seguidos
+      const { count, rows } = await Post.findAndCountAll({
+        where: {
+          userId: {
+            [Op.in]: followingIds
+          },
+          isPublic: true,
+          status: 'published'
+        },
+        include: [
+          {
+            model: User,
+            as: 'author',
+            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
+          }
+        ],
+        order: [['createdAt', 'DESC']],
+        limit,
+        offset
+      });
+
+      console.log('Posts found:', count);
+      console.log('Posts rows:', rows.length);
+
+      // Transformar los posts para el frontend
+      const transformedPosts = this.transformPostsForFrontend(rows);
+
+      console.log('Transformed posts:', transformedPosts.length);
+
+      return {
+        posts: transformedPosts,
+        total: count
+      };
+    } catch (error) {
+      console.error('Error in getFollowingPosts:', error);
       throw error;
     }
   }

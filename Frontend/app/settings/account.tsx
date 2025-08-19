@@ -238,6 +238,19 @@ export default function AccountSettingsScreen() {
               thumbColor={darkModeEnabled ? '#ffffff' : 'rgba(255,255,255,0.5)'}
             />
           </View>
+
+          <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/settings/saved')}>
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: '#4CAF50' }]}>
+                <Ionicons name="bookmark-outline" size={20} color="#ffffff" />
+              </View>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Publicaciones Guardadas</Text>
+                <Text style={styles.settingSubtitle}>Accede a tus posts favoritos</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.5)" />
+          </TouchableOpacity>
         </View>
 
         {/* Sección de Privacidad */}

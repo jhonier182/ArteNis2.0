@@ -31,6 +31,18 @@ router.post('/track-views',
   }
 );
 
+// GET /api/posts/user/me - Obtener publicaciones del usuario autenticado
+router.get('/user/me',
+  verifyToken,
+  PostController.getMyPosts
+);
+
+// GET /api/posts/following - Obtener posts de usuarios seguidos
+router.get('/following',
+  verifyToken,
+  PostController.getFollowingPosts
+);
+
 // GET /api/posts/:id - Obtener publicación por ID
 router.get('/:id',
   optionalAuth,
@@ -42,12 +54,6 @@ router.get('/:id',
 router.get('/user/:userId',
   optionalAuth,
   PostController.getUserPosts
-);
-
-// GET /api/posts/user/me - Obtener publicaciones del usuario autenticado
-router.get('/user/me',
-  verifyToken,
-  PostController.getMyPosts
 );
 
 // Rutas protegidas (requieren autenticación)

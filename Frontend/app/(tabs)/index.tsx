@@ -7,7 +7,9 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
-  StatusBar
+  StatusBar,
+  FlatList,
+  ActivityIndicator
 } from 'react-native';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,27 +42,25 @@ export default function HomeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [pendingPosts, setPendingPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [pendingPosts, setPendingPosts] = useState<any[]>([]); // Posts en espera
   const { user } = useUser();
 
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
-  const fetchPosts = async () => {
+  // Función para obtener posts de usuarios seguidos
+  const fetchPosts = async (pageNum = 1) => {
     try {
       setLoading(true);
-      setError(null);
-      
       const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        setError('No hay sesión activa');
-        return;
-      }
+      if (!token) return;
 
-      const response = await fetch(`${API_BASE_URL}/api/posts`, {
+      const response = await fetch(`${API_BASE_URL}/api/posts/following?page=${pageNum}&limit=10`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -69,69 +69,40 @@ export default function HomeScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        const newPosts = data.data.posts || [];
+        const newPosts = data.data?.posts || [];
         
-        setPosts(newPosts);
-        setLoading(false);
-        
-        // Trackear visualizaciones del feed
-        if (newPosts.length > 0) {
-          const postIds = newPosts.map((post: any) => post.id);
-          trackFeedViews(postIds);
+        if (pageNum === 1) {
+          setPosts(newPosts);
+        } else {
+          setPosts(prevPosts => [...prevPosts, ...newPosts]);
         }
         
-        // Verificar si hay posts temporales que se pueden limpiar
-        // (cuando se complete la publicación, el post real aparecerá en newPosts)
-        if (pendingPosts.length > 0 && newPosts.length > 0) {
-          // Buscar posts que coincidan con los temporales por descripción
-          pendingPosts.forEach(pendingPost => {
-            const matchingRealPost = newPosts.find((realPost: any) => {
-              // Comparar descripción, autor y tipo
-              const basicMatch = realPost.description === pendingPost.description &&
-                               realPost.author.id === pendingPost.author.id &&
-                               realPost.type === pendingPost.type;
-              
-              // También verificar que el post real sea reciente (últimos 5 minutos)
-              if (basicMatch) {
-                const realPostTime = new Date(realPost.createdAt).getTime();
-                const pendingPostTime = new Date(pendingPost.createdAt).getTime();
-                const timeDiff = Math.abs(realPostTime - pendingPostTime);
-                const isRecent = timeDiff < 5 * 60 * 1000; // 5 minutos
-                
-                return isRecent;
-              }
-              
-              return false;
-            });
-            
-            if (matchingRealPost) {
-              // Solo eliminar el post temporal, no agregar al feed (ya se agregó automáticamente)
-              removePendingPost(pendingPost.id);
-            }
-          });
-        }
+        setHasMore(data.data?.pagination?.currentPage < data.data?.pagination?.totalPages);
+        setPage(pageNum);
       } else {
-        throw new Error('Error al cargar publicaciones');
+        const errorText = await response.text();
+        console.error('Error fetching posts:', response.status, errorText);
+        setError(`Error ${response.status}: ${errorText}`);
       }
     } catch (error) {
-      console.error('Error al cargar posts:', error);
+      console.error('Error fetching posts:', error);
       setError('Error de conexión');
     } finally {
       setLoading(false);
     }
   };
 
+  // Función para cargar más posts
+  const loadMorePosts = () => {
+    if (hasMore && !loading) {
+      fetchPosts(page + 1);
+    }
+  };
+
+  // Función para refrescar el feed
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchPosts();
-    
-    // Verificar manualmente posts temporales después del refresh
-    if (pendingPosts.length > 0) {
-      setTimeout(() => {
-        checkPendingPostsStatus();
-      }, 1000);
-    }
-    
+    await fetchPosts(1);
     setRefreshing(false);
   };
 
@@ -553,7 +524,7 @@ export default function HomeScreen() {
         <Ionicons name="warning" size={64} color="#ff6b6b" />
         <Text style={styles.errorTitle}>Error al cargar</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchPosts}>
+        <TouchableOpacity style={styles.retryButton} onPress={() => fetchPosts(1)}>
           <Text style={styles.retryButtonText}>Reintentar</Text>
         </TouchableOpacity>
       </View>
@@ -564,12 +535,10 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
       
-      {/* Header */}
+      {/* Header del feed */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Popular</Text>
-        <TouchableOpacity style={styles.searchButton}>
-          <Ionicons name="search" size={24} color="#ffffff" />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Feed de Seguidos</Text>
+        <Text style={styles.headerSubtitle}>Publicaciones de usuarios que sigues</Text>
       </View>
 
       {/* Filtro de categorías */}
@@ -580,53 +549,62 @@ export default function HomeScreen() {
       />
 
       {/* Feed de publicaciones */}
-      <ScrollView 
-        style={styles.content}
+      <FlatList
+        data={[...pendingPosts, ...posts]}
+        renderItem={({ item }) => (
+          item.status === 'pending' ? (
+            <PendingPostCard
+              key={item.id}
+              post={item}
+              progress={item.progress || 0}
+            />
+          ) : (
+            <ElegantPostCard
+              key={item.id}
+              post={item}
+              onLike={handleLike}
+              onComment={handleComment}
+              onEditPost={handleEditPost}
+              onDeletePost={handleDeletePost}
+              onFollowUser={handleFollowUser}
+            />
+          )
+        )}
+        keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#ff6b9d"
-            colors={["#ff6b9d"]}
+            tintColor="#FF9800"
+            colors={["#FF9800"]}
           />
         }
-      >
-        {posts.length > 0 ? (
-          <>
-            {/* Mostrar posts en espera primero */}
-            {pendingPosts.map((post) => (
-              <PendingPostCard 
-                key={post.id} 
-                post={post}
-                progress={post.progress || 0}
-              />
-            ))}
-            
-            {/* Mostrar posts normales */}
-            {posts.map((post) => (
-              <ElegantPostCard
-                key={post.id}
-                post={post}
-                onLike={handleLike}
-                onComment={handleComment}
-                onEditPost={handleEditPost}
-                onDeletePost={handleDeletePost}
-                onFollowUser={handleFollowUser}
-              />
-            ))}
-          </>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="images-outline" size={64} color="rgba(255,255,255,0.3)" />
-            <Text style={styles.emptyTitle}>No hay publicaciones</Text>
-            <Text style={styles.emptyText}>
-              Sé el primero en compartir tu trabajo de tatuaje
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+        onEndReached={loadMorePosts}
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={
+          loading && hasMore ? (
+            <View style={styles.loadingFooter}>
+              <ActivityIndicator size="large" color="#FF9800" />
+              <Text style={styles.loadingText}>Cargando más publicaciones...</Text>
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
+          !loading && posts.length === 0 && pendingPosts.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="people-outline" size={64} color="rgba(255,255,255,0.3)" />
+              <Text style={styles.emptyTitle}>No hay publicaciones para mostrar</Text>
+              <Text style={styles.emptySubtitle}>
+                Sigue a algunos usuarios para ver sus publicaciones aquí
+              </Text>
+              <TouchableOpacity style={styles.exploreButton} onPress={() => router.push('/(tabs)/boards')}>
+                <Text style={styles.exploreButtonText}>Explorar Publicaciones</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null
+        }
+      />
     </View>
   );
 }
@@ -679,9 +657,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    flexDirection: 'row',
+    flexDirection: 'column', // Changed to column for subtitle
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
@@ -693,6 +671,12 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  headerSubtitle: { // Added style for subtitle
+    color: '#999',
+    fontSize: 14,
+    marginTop: 5,
+    textAlign: 'center',
   },
   searchButton: {
     width: 44,
@@ -727,5 +711,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     paddingHorizontal: 40,
+  },
+  loadingFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  exploreButton: {
+    backgroundColor: '#FF9800',
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 25,
+    marginTop: 20,
+  },
+  exploreButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptySubtitle: {
+    color: '#999',
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+    marginBottom: 20,
   },
 });

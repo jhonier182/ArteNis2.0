@@ -310,6 +310,33 @@ class PostController {
       next(error);
     }
   }
+
+  // Obtener posts de usuarios seguidos
+  static async getFollowingPosts(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const offset = (page - 1) * limit;
+
+      const result = await PostService.getFollowingPosts(userId, page, limit, offset);
+      
+      res.json({
+        success: true,
+        data: {
+          posts: result.posts,
+          pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(result.total / limit),
+            totalPosts: result.total,
+            hasMore: page < Math.ceil(result.total / limit)
+          }
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = PostController;

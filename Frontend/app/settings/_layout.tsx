@@ -67,6 +67,16 @@ export default function SettingsLayout() {
           headerBackVisible: false,
         }}
       />
+      <Stack.Screen
+        name="saved"
+        options={{
+          title: '',
+          headerShown: false,
+          headerTitle: '',
+          headerBackTitle: '',
+          headerBackVisible: false,
+        }}
+      />
     </Stack>
   );
 }
