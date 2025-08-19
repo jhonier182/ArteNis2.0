@@ -542,34 +542,30 @@ export default function HomeScreen() {
       
       {/* Header del feed */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <View style={styles.headerTop}>
           <Text style={styles.headerTitle}>
-            {showSavedPosts ? 'Publicaciones Guardadas' : 'Feed de Seguidos'}
+            {showSavedPosts ? 'Guardadas' : 'Feed'}
           </Text>
-          <Text style={styles.headerSubtitle}>
-            {showSavedPosts ? 'Tus publicaciones favoritas' : 'Publicaciones de usuarios que sigues'}
-          </Text>
+          <TouchableOpacity 
+            style={[
+              styles.savedPostsButton,
+              showSavedPosts && styles.savedPostsButtonActive
+            ]}
+            onPress={() => setShowSavedPosts(!showSavedPosts)}
+          >
+            <Ionicons 
+              name={showSavedPosts ? "bookmark" : "bookmark-outline"} 
+              size={18} 
+              color={showSavedPosts ? "#ffffff" : "#FF9800"} 
+            />
+            <Text style={[
+              styles.savedPostsText,
+              showSavedPosts && styles.savedPostsTextActive
+            ]}>
+              {showSavedPosts ? 'inicio' : 'Publicaciones Guardadas'}
+            </Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-          style={[
-            styles.savedPostsButton,
-            showSavedPosts && styles.savedPostsButtonActive
-          ]}
-          onPress={() => setShowSavedPosts(!showSavedPosts)}
-        >
-          <Ionicons 
-            name={showSavedPosts ? "bookmark" : "bookmark-outline"} 
-            size={20} 
-            color={showSavedPosts ? "#ffffff" : "#FF9800"} 
-          />
-          <Text style={[
-            styles.savedPostsText,
-            showSavedPosts && styles.savedPostsTextActive
-          ]}>
-            {showSavedPosts ? 'Todas' : 'Guardadas'}
-          </Text>
-        </TouchableOpacity>
-
       </View>
 
       {/* Filtro de categorías */}
@@ -702,9 +698,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    flexDirection: 'row', // Changed to row for headerLeft and savedBoardsButton
-    justifyContent: 'space-between', // Distribute space between left and right
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
@@ -712,29 +705,67 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#333',
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   headerLeft: {
     flex: 1, // Allow left side to take available space
   },
+  headerIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    borderRadius: 15,
+    alignSelf: 'flex-start',
+  },
+  indicatorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#666',
+    marginRight: 8,
+  },
+  indicatorDotActive: {
+    backgroundColor: '#FF9800',
+  },
+  indicatorText: {
+    color: '#999',
+    fontSize: 12,
+    fontWeight: '500',
+  },
   headerTitle: {
     color: '#ffffff',
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.5,
   },
-  headerSubtitle: { // Added style for subtitle
-    color: '#999',
-    fontSize: 14,
-    marginTop: 5,
-    textAlign: 'center',
+  headerSubtitle: {
+    color: '#bbb',
+    fontSize: 15,
+    fontWeight: '400',
+    lineHeight: 20,
   },
   savedPostsButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#333',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 1.5,
     borderColor: '#FF9800',
+    shadowColor: '#FF9800',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   savedPostsText: {
     color: '#FF9800',
@@ -745,6 +776,8 @@ const styles = StyleSheet.create({
   savedPostsButtonActive: {
     backgroundColor: '#FF9800',
     borderColor: '#FF9800',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
   },
   savedPostsTextActive: {
     color: '#ffffff',
