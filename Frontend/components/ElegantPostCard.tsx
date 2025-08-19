@@ -154,6 +154,50 @@ export default function ElegantPostCard({
     return num.toString();
   };
 
+  const renderFollowButton = () => {
+    console.log('Renderizando botón de seguimiento para:', post.author.username);
+    console.log('Estado isFollowing:', post.author.isFollowing);
+    console.log('Usuario actual:', user?.id);
+    console.log('Autor del post:', post.author.id);
+    
+    if (post.author.id === user?.id) {
+      return (
+        <TouchableOpacity 
+          style={styles.moreButton}
+          onPress={showPostOptions}
+        >
+          <Ionicons name="ellipsis-horizontal" size={20} color="#ffffff" />
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+      <TouchableOpacity 
+        onPress={handleFollowUser}
+        style={styles.followButtonContainer}
+      >
+        {!post.author.isFollowing ? (
+          <LinearGradient
+            colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.followButton}
+          >
+            <Text style={styles.followText}>
+              Seguir
+            </Text>
+          </LinearGradient>
+        ) : (
+          <View style={styles.followingButton}>
+            <Text style={styles.followingText}>
+              Siguiendo
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
       {/* Header del post */}
@@ -173,40 +217,7 @@ export default function ElegantPostCard({
         </TouchableOpacity>
         
         {/* Menú de tres puntos para posts propios o botón de follow para posts de otros */}
-        {post.author.id === user?.id ? (
-          // Es el usuario propio - mostrar menú de tres puntos
-          <TouchableOpacity 
-            style={styles.moreButton}
-            onPress={showPostOptions}
-          >
-            <Ionicons name="ellipsis-horizontal" size={20} color="#ffffff" />
-          </TouchableOpacity>
-        ) : (
-          // Es otro usuario - mostrar botón de follow
-          <TouchableOpacity 
-            onPress={handleFollowUser}
-            style={styles.followButtonContainer}
-          >
-            {!post.author.isFollowing ? (
-              <LinearGradient
-                colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.followButton}
-              >
-                <Text style={styles.followText}>
-                  Seguir
-                </Text>
-              </LinearGradient>
-            ) : (
-              <View style={styles.followingButton}>
-                <Text style={styles.followingText}>
-                  Siguiendo
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
+        {renderFollowButton()}
       </View>
 
       {/* Imagen del post */}

@@ -233,6 +233,10 @@ export default function HomeScreen() {
         // Actualizar el estado local del post
         setPosts(prevPosts => prevPosts.map(post => {
           if (post.author.id === userId) {
+            console.log('Actualizando estado de seguimiento para:', post.author.username);
+            console.log('Estado anterior isFollowing:', (post.author as any).isFollowing);
+            console.log('Nuevo estado isFollowing:', !isFollowing);
+            
             return {
               ...post,
               author: {

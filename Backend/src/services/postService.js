@@ -613,6 +613,11 @@ class PostService {
 
         const transformedPosts = this.transformPostsForFrontend(rows);
         
+        // Marcar todos los posts como no seguidos ya que no sigue a nadie
+        transformedPosts.forEach(post => {
+          post.author.isFollowing = false;
+        });
+        
         return {
           posts: transformedPosts,
           total: count
@@ -647,6 +652,11 @@ class PostService {
 
       // Transformar los posts para el frontend
       const transformedPosts = this.transformPostsForFrontend(rows);
+      
+      // Marcar todos los posts como seguidos ya que son de usuarios que sigue
+      transformedPosts.forEach(post => {
+        post.author.isFollowing = true;
+      });
 
       console.log('Transformed posts:', transformedPosts.length);
 
