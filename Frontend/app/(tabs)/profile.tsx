@@ -363,6 +363,7 @@ export default function ProfileScreen() {
               // Aquí puedes navegar a la vista detallada del post
             }}
             isEmbedded={true}
+            isOwnProfile={true}
           />
         </View>
       </ScrollView>

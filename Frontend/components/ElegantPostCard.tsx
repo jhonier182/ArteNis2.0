@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useUser } from '../context/UserContext';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -29,37 +31,33 @@ interface Post {
     fullName: string;
     avatar?: string;
     isVerified?: boolean;
+    isFollowing?: boolean;
+    followersCount?: number;
   };
   isLiked?: boolean;
-  isFollowed?: boolean;
 }
 
 interface ElegantPostCardProps {
   post: Post;
-  currentUserId: string; // Agregar el ID del usuario actual
   onLike: (postId: string) => void;
   onComment: (postId: string) => void;
-  onShare: (postId: string) => void;
-  onFollow: (userId: string) => void;
-  onUserPress: (userId: string) => void;
-  onEditPost?: (post: Post) => void; // Función para editar post
-  onDeletePost?: (post: Post) => void; // Función para eliminar post
+  onEditPost?: (post: Post) => void;
+  onDeletePost?: (post: Post) => void;
+  onFollowUser: (userId: string, isFollowing: boolean) => void;
 }
 
 export default function ElegantPostCard({
   post,
-  currentUserId,
   onLike,
   onComment,
-  onShare,
-  onFollow,
-  onUserPress,
   onEditPost,
   onDeletePost,
+  onFollowUser,
 }: ElegantPostCardProps) {
   const [isLiked, setIsLiked] = useState(post.isLiked || false);
-  const [isFollowed, setIsFollowed] = useState(post.isFollowed || false);
   const [likesCount, setLikesCount] = useState(post.likesCount || 0);
+  const { user } = useUser();
+  const router = useRouter();
 
   const handleLike = () => {
     setIsLiked(!isLiked);
@@ -67,9 +65,9 @@ export default function ElegantPostCard({
     onLike(post.id);
   };
 
-  const handleFollow = () => {
-    setIsFollowed(!isFollowed);
-    onFollow(post.author.id);
+  const handleFollowUser = () => {
+    const isFollowing = post.author.isFollowing || false;
+    onFollowUser(post.author.id, isFollowing);
   };
 
   const handleEditPost = () => {
@@ -119,6 +117,16 @@ export default function ElegantPostCard({
     );
   };
 
+  const handleUserPress = () => {
+    if (post.author.id === user?.id) {
+      // Si es el usuario actual, ir a su perfil
+      router.push('/(tabs)/profile');
+    } else {
+      // Si es otro usuario, mostrar alerta temporal
+      Alert.alert('Perfil de Usuario', `Perfil de ${post.author.username}`);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -152,7 +160,7 @@ export default function ElegantPostCard({
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.userInfo} 
-          onPress={() => onUserPress(post.author.id)}
+          onPress={handleUserPress}
         >
           <Image 
             source={{ uri: post.author.avatar }}
@@ -165,7 +173,7 @@ export default function ElegantPostCard({
         </TouchableOpacity>
         
         {/* Menú de tres puntos para posts propios o botón de follow para posts de otros */}
-        {post.author.id === currentUserId ? (
+        {post.author.id === user?.id ? (
           // Es el usuario propio - mostrar menú de tres puntos
           <TouchableOpacity 
             style={styles.moreButton}
@@ -175,31 +183,29 @@ export default function ElegantPostCard({
           </TouchableOpacity>
         ) : (
           // Es otro usuario - mostrar botón de follow
-          currentUserId !== 'guest' && (
-            <TouchableOpacity 
-              onPress={handleFollow}
-              style={styles.followButtonContainer}
-            >
-              {!isFollowed ? (
-                <LinearGradient
-                  colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.followButton}
-                >
-                  <Text style={styles.followText}>
-                    Follow
-                  </Text>
-                </LinearGradient>
-              ) : (
-                <View style={styles.followingButton}>
-                  <Text style={styles.followingText}>
-                    Following
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          )
+          <TouchableOpacity 
+            onPress={handleFollowUser}
+            style={styles.followButtonContainer}
+          >
+            {!post.author.isFollowing ? (
+              <LinearGradient
+                colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.followButton}
+              >
+                <Text style={styles.followText}>
+                  Seguir
+                </Text>
+              </LinearGradient>
+            ) : (
+              <View style={styles.followingButton}>
+                <Text style={styles.followingText}>
+                  Siguiendo
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
         )}
       </View>
 
@@ -243,11 +249,6 @@ export default function ElegantPostCard({
         <TouchableOpacity style={styles.metricItem} onPress={() => onComment(post.id)}>
           <Ionicons name="chatbubble-outline" size={20} color="#666" />
           <Text style={styles.metricText}>{formatNumber(post.commentsCount || 0)}</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.metricItem} onPress={() => onShare(post.id)}>
-          <Ionicons name="share-outline" size={20} color="#666" />
-          <Text style={styles.metricText}>{formatNumber(post.sharesCount || 0)}</Text>
         </TouchableOpacity>
       </View>
     </View>

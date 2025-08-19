@@ -233,6 +233,62 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, [pendingPosts.length]);
 
+  // Función para seguir/dejar de seguir un usuario
+  const handleFollowUser = async (userId: string, isFollowing: boolean) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', 'Debes iniciar sesión para seguir usuarios');
+        return;
+      }
+
+      const url = isFollowing 
+        ? `${API_BASE_URL}/api/users/${userId}/follow`
+        : `${API_BASE_URL}/api/users/follow`;
+      
+      const method = isFollowing ? 'DELETE' : 'POST';
+      const body = isFollowing ? undefined : JSON.stringify({ userId });
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body
+      });
+
+      if (response.ok) {
+        // Actualizar el estado local del post
+        setPosts(prevPosts => prevPosts.map(post => {
+          if (post.author.id === userId) {
+            return {
+              ...post,
+              author: {
+                ...post.author,
+                isFollowing: !isFollowing,
+                followersCount: isFollowing 
+                  ? Math.max(0, ((post.author as any).followersCount || 0) - 1)
+                  : ((post.author as any).followersCount || 0) + 1
+              }
+            };
+          }
+          return post;
+        }));
+
+        // Mostrar mensaje de éxito
+        const message = isFollowing ? 'Has dejado de seguir al usuario' : 'Ahora sigues al usuario';
+        // Puedes agregar un toast o notificación aquí si quieres
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        Alert.alert('Error', errorData.message || 'No se pudo completar la acción');
+      }
+    } catch (error) {
+      console.error('Error al seguir/dejar de seguir usuario:', error);
+      Alert.alert('Error', 'No se pudo completar la acción');
+    }
+  };
+
   // Función para agregar un post directamente al feed
   const addPostToFeed = (newPost: any) => {
     setPosts(prevPosts => {
@@ -553,14 +609,11 @@ export default function HomeScreen() {
               <ElegantPostCard
                 key={post.id}
                 post={post}
-                currentUserId={user?.id || 'guest'}
                 onLike={handleLike}
                 onComment={handleComment}
-                onShare={handleShare}
-                onFollow={handleFollow}
-                onUserPress={handleUserPress}
                 onEditPost={handleEditPost}
                 onDeletePost={handleDeletePost}
+                onFollowUser={handleFollowUser}
               />
             ))}
           </>

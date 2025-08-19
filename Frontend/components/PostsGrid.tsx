@@ -31,9 +31,17 @@ interface PostsGridProps {
   userId: string;
   onPostPress?: (post: Post) => void;
   isEmbedded?: boolean;
+  isOwnProfile?: boolean;
+  onFollowUser?: (userId: string, isFollowing: boolean) => void;
 }
 
-export default function PostsGrid({ userId, onPostPress, isEmbedded = false }: PostsGridProps) {
+export default function PostsGrid({ 
+  userId, 
+  onPostPress, 
+  isEmbedded = false,
+  isOwnProfile = false,
+  onFollowUser
+}: PostsGridProps) {
   const shimmerAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -148,6 +156,19 @@ export default function PostsGrid({ userId, onPostPress, isEmbedded = false }: P
           <Ionicons name="chatbubble" size={10} color="#4ecdc4" />
           <Text style={styles.commentsCount}>{post.commentsCount}</Text>
         </View>
+      )}
+      
+      {/* Botón de seguimiento (solo si no es el perfil propio) */}
+      {!isOwnProfile && onFollowUser && (
+        <TouchableOpacity 
+          style={styles.followButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            // TODO: Implementar lógica de seguimiento
+          }}
+        >
+          <Ionicons name="add" size={16} color="#ffffff" />
+        </TouchableOpacity>
       )}
     </TouchableOpacity>
   );
@@ -480,6 +501,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
     marginTop: 10,
+  },
+  followButton: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
   },
 
 });
