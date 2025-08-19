@@ -232,60 +232,127 @@ class PostService {
 
   // Dar like a una publicación
   static async likePost(userId, postId, type = 'like') {
-    try {
-      // Verificar si la publicación existe
-      const post = await Post.findByPk(postId);
-      if (!post) {
-        throw new Error('Publicación no encontrada');
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+      try {
+        // Verificar si la publicación existe
+        const post = await Post.findByPk(postId);
+        if (!post) {
+          throw new Error('Publicación no encontrada');
+        }
+
+        // Verificar si ya ha dado like
+        const existingLike = await Like.exists(userId, postId);
+        
+        if (existingLike) {
+          // Si ya existe, actualizar el tipo de like
+          existingLike.type = type;
+          await existingLike.save();
+          return { message: 'Like actualizado' };
+        } else {
+          // Crear nuevo like con transacción optimizada
+          const result = await sequelize.transaction(async (t) => {
+            // Usar lock optimista para evitar deadlocks
+            const lockedPost = await Post.findByPk(postId, { 
+              lock: true, 
+              transaction: t 
+            });
+            
+            if (!lockedPost) {
+              throw new Error('Publicación no encontrada');
+            }
+
+            // Crear el like
+            const newLike = await Like.create({
+              userId,
+              postId,
+              type
+            }, { transaction: t });
+
+            // Incrementar contador de likes
+            await lockedPost.increment('likesCount', { transaction: t });
+
+            return { message: 'Like agregado' };
+          }, {
+            timeout: 10000 // 10 segundos de timeout para transacciones
+          });
+
+          return result;
+        }
+      } catch (error) {
+        attempt++;
+        
+        // Si es un deadlock y no hemos agotado los reintentos, esperar y reintentar
+        if (error.message.includes('Deadlock') && attempt < maxRetries) {
+          console.log(`⚠️ Deadlock detectado en likePost, reintentando... (${attempt}/${maxRetries})`);
+          // Esperar un tiempo aleatorio antes de reintentar (backoff exponencial)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+          continue;
+        }
+        
+        // Si no es deadlock o agotamos reintentos, lanzar el error
+        throw error;
       }
-
-      // Verificar si ya ha dado like
-      const existingLike = await Like.exists(userId, postId);
-      
-      if (existingLike) {
-        // Si ya existe, actualizar el tipo de like
-        existingLike.type = type;
-        await existingLike.save();
-        return { message: 'Like actualizado' };
-      } else {
-        // Crear nuevo like
-        await sequelize.transaction(async (t) => {
-          await Like.create({
-            userId,
-            postId,
-            type
-          }, { transaction: t });
-
-          await post.incrementLikes();
-        });
-
-        return { message: 'Like agregado' };
-      }
-    } catch (error) {
-      throw error;
     }
+    
+    throw new Error('No se pudo procesar el like después de múltiples intentos');
   }
 
   // Quitar like de una publicación
   static async unlikePost(userId, postId) {
-    try {
-      const like = await Like.exists(userId, postId);
-      
-      if (!like) {
-        throw new Error('No has dado like a esta publicación');
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+      try {
+        const like = await Like.exists(userId, postId);
+        
+        if (!like) {
+          throw new Error('No has dado like a esta publicación');
+        }
+
+        const result = await sequelize.transaction(async (t) => {
+          // Usar lock optimista para evitar deadlocks
+          const lockedPost = await Post.findByPk(postId, { 
+            lock: true, 
+            transaction: t 
+          });
+          
+          if (!lockedPost) {
+            throw new Error('Publicación no encontrada');
+          }
+
+          // Eliminar el like
+          await like.destroy({ transaction: t });
+
+          // Decrementar contador de likes
+          await lockedPost.decrement('likesCount', { transaction: t });
+
+          return { message: 'Like removido' };
+        }, {
+          timeout: 10000 // 10 segundos de timeout para transacciones
+        });
+
+        return result;
+      } catch (error) {
+        attempt++;
+        
+        // Si es un deadlock y no hemos agotado los reintentos, esperar y reintentar
+        if (error.message.includes('Deadlock') && attempt < maxRetries) {
+          console.log(`⚠️ Deadlock detectado en unlikePost, reintentando... (${attempt}/${maxRetries})`);
+          // Esperar un tiempo aleatorio antes de reintentar (backoff exponencial)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+          continue;
+        }
+        
+        // Si no es deadlock o agotamos reintentos, lanzar el error
+        throw error;
       }
-
-      await sequelize.transaction(async (t) => {
-        await like.destroy({ transaction: t });
-
-        const post = await Post.findByPk(postId);
-        await post.decrementLikes();
-      });
-
-      return { message: 'Like removido' };
-    } catch (error) {
-      throw error;
     }
+    
+    throw new Error('No se pudo procesar el unlike después de múltiples intentos');
   }
 
   // Obtener comentarios de una publicación

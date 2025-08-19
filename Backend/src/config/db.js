@@ -80,12 +80,23 @@ const connectDB = async () => {
     console.log('✅ Conexión a MySQL establecida correctamente');
     
     // Sincronizar modelos
-    if (process.env.NODE_ENV === 'development') {
-      // Usar force: false para evitar recrear índices
-      await sequelize.sync({ force: false, alter: false });
+    if (process.env.NODE_ENV === 'development') { // Usar force: false para evitar recrear índices
+      await sequelize.sync({ force: false, alter: false }); 
       console.log('✅ Modelos sincronizados');
+      
+      // Crear índices adicionales para mejorar rendimiento y evitar deadlocks
+      try {
+        await sequelize.query(`
+          CREATE INDEX IF NOT EXISTS idx_likes_user_post_type 
+          ON likes (user_id, post_id, type);
+        `);
+        console.log('✅ Índices adicionales creados/verificados');
+      } catch (indexError) {
+        // Los índices ya existen o hay un error menor
+        console.log('ℹ️ Índices ya existen o no se pudieron crear');
+      }
     } else {
-      await sequelize.sync();
+      await sequelize.sync(); 
       console.log('✅ Modelos sincronizados');
     }
     

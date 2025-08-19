@@ -137,6 +137,24 @@ class PostController {
         data: result
       });
     } catch (error) {
+      // Manejo específico para deadlocks
+      if (error.message.includes('Deadlock')) {
+        console.log(`🚨 Deadlock en likePost para usuario ${req.user.id}, post ${req.params.id}`);
+        return res.status(409).json({
+          success: false,
+          message: 'Error temporal al procesar el like. Por favor, inténtalo de nuevo.',
+          error: 'DEADLOCK_DETECTED'
+        });
+      }
+      
+      // Otros errores
+      if (error.message.includes('Publicación no encontrada')) {
+        return res.status(404).json({
+          success: false,
+          message: 'La publicación no existe'
+        });
+      }
+      
       next(error);
     }
   }
@@ -154,6 +172,31 @@ class PostController {
         data: result
       });
     } catch (error) {
+      // Manejo específico para deadlocks
+      if (error.message.includes('Deadlock')) {
+        console.log(`🚨 Deadlock en unlikePost para usuario ${req.user.id}, post ${req.params.id}`);
+        return res.status(409).json({
+          success: false,
+          message: 'Error temporal al procesar el unlike. Por favor, inténtalo de nuevo.',
+          error: 'DEADLOCK_DETECTED'
+        });
+      }
+      
+      // Otros errores
+      if (error.message.includes('No has dado like')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
+      
+      if (error.message.includes('Publicación no encontrada')) {
+        return res.status(404).json({
+          success: false,
+          message: 'La publicación no existe'
+        });
+      }
+      
       next(error);
     }
   }

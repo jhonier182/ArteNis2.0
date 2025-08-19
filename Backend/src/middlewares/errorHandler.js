@@ -41,6 +41,25 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Error de deadlock de MySQL
+  if (err.message && err.message.includes('Deadlock')) {
+    statusCode = 409;
+    message = 'Error temporal debido a alta concurrencia. Por favor, inténtalo de nuevo.';
+    
+    console.log(`🚨 Deadlock detectado en ${req.method} ${req.url} para usuario ${req.user?.id || 'No autenticado'}`);
+    
+    return res.status(statusCode).json({
+      success: false,
+      message,
+      error: 'DEADLOCK_DETECTED',
+      retryAfter: 1, // Sugerir reintento después de 1 segundo
+      ...(process.env.NODE_ENV === 'development' && { 
+        stack: err.stack,
+        originalError: err.message 
+      })
+    });
+  }
+
   // Error de JWT
   if (err.name === 'JsonWebTokenError') {
     statusCode = 401;

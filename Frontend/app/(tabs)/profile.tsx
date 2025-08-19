@@ -9,7 +9,8 @@ import {
   StatusBar,
   Alert,
   ScrollView,
-  RefreshControl
+  RefreshControl,
+  Platform
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -180,17 +181,31 @@ export default function ProfileScreen() {
           }
 
           const imageFormData = new FormData();
-          imageFormData.append('avatar', {
-            uri: selectedImage,
-            type: 'image/jpeg',
-            name: 'avatar.jpg'
-          } as any);
+
+          if (Platform.OS === 'web') {
+            const blobResponse = await fetch(selectedImage);
+            const blob = await blobResponse.blob();
+            const contentType = blob.type || 'image/jpeg';
+            const extension = contentType.split('/')[1] || 'jpg';
+            const fileName = `avatar.${extension}`;
+            const file = new File([blob], fileName, { type: contentType });
+            imageFormData.append('avatar', file);
+          } else {
+            imageFormData.append('avatar', {
+              uri: selectedImage,
+              type: 'image/jpeg',
+              name: 'avatar.jpg'
+            } as any);
+          }
+
+          const headers: any = { 'Authorization': `Bearer ${token}` };
+          if (Platform.OS !== 'web') {
+            headers['Content-Type'] = 'multipart/form-data';
+          }
 
           const imageResponse = await fetch(`${API_BASE_URL}/api/users/me/avatar`, {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            },
+            headers,
             body: imageFormData
           });
 
@@ -198,9 +213,10 @@ export default function ProfileScreen() {
             const imageResult = await imageResponse.json();//resultado de la imagen 
             // Actualizar el estado local del usuario
             if (user) {
+              const newAvatar = imageResult?.data?.avatarUrl || imageResult?.data?.user?.avatar || user.avatar;
               setUser({
                 ...user,
-                avatar: imageResult.data.avatar
+                avatar: newAvatar
               });
             }
             
