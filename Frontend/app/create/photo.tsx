@@ -76,60 +76,6 @@ export default function CreatePhotoScreen() {
     }
   };
 
-  const handlePublish = async () => {
-    if (!selectedImage && !isEditMode) { // Only require image if not in edit mode
-      Alert.alert('Error', 'Debes seleccionar una imagen');
-      return;
-    }
-    if (!description.trim()) {
-      Alert.alert('Error', 'Debes agregar una descripción');
-      return;
-    }
-
-    try {
-      setUploading(true);
-      setUploadProgress(10); // 10% - Iniciando
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        router.replace('/auth/login');
-        return;
-      }
-
-      if (isEditMode) {
-        setUploadProgress(50); // 50% - Guardando cambios
-        await handleUpdatePost(token);
-      } else {
-        setUploadProgress(10); // 10% - Iniciando publicación
-        await handleCreatePost(token);
-      }
-
-    } catch (error) {
-      console.error('Error al procesar:', error);
-      
-      let errorMessage = 'Error desconocido';
-      if (error instanceof Error) {
-        if (error.message.includes('Tiempo de espera agotado')) {
-          errorMessage = 'La operación tardó demasiado. Verifica tu conexión a internet.';
-        } else if (error.message.includes('Network request failed')) {
-          errorMessage = 'Error de conexión. Verifica tu internet.';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      Alert.alert(
-        '❌ Error', 
-        isEditMode ? `No se pudo actualizar la publicación: ${errorMessage}` : `No se pudo publicar la imagen: ${errorMessage}`,
-        [
-          { text: 'Reintentar', onPress: () => handlePublish() },
-          { text: 'Cancelar', style: 'cancel' }
-        ]
-      );
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleCreatePost = async (token: string) => {
     if (!selectedImage) {
       throw new Error('No hay imagen seleccionada');
@@ -199,53 +145,61 @@ export default function CreatePhotoScreen() {
     });
 
     // Continuar con la publicación en segundo plano
+    // Subir imagen a Cloudinary
+    const imageFormData = new FormData();
+    
+    // Crear el archivo de imagen de manera compatible con web y mobile
+    if (Platform.OS === 'web') {
+      // Para web: convertir URI a Blob
+      try {
+        const response = await fetch(selectedImage);
+        const blob = await response.blob();
+        const file = new File([blob], `post.${fileExtension}`, { type: mimeType });
+        imageFormData.append('image', file);
+      } catch (error) {
+        console.error('Error convirtiendo imagen a Blob:', error);
+        // Fallback: usar la URI directamente como string
+        imageFormData.append('image', selectedImage);
+      }
+    } else {
+      // Para mobile: usar el formato nativo
+      const imageFile = {
+        uri: selectedImage,
+        type: mimeType,
+        name: `post.${fileExtension}`,
+        mimeType: mimeType
+      } as any;
+      imageFormData.append('image', imageFile);
+    }
+    
+    setUploadProgress(25); // 25% - Subiendo imagen
+    
+    // Headers compatibles con web y mobile
+    const headers: any = {
+      'Authorization': `Bearer ${token}`
+    };
+    
+    // NO incluir Content-Type en web para que el navegador lo establezca automáticamente
+    if (Platform.OS !== 'web') {
+      headers['Content-Type'] = 'multipart/form-data';
+    }
+    
+    // Crear un AbortController con timeout manual
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos
+
     try {
-      // Subir imagen a Cloudinary
-      const imageFormData = new FormData();
-      
-      // Crear el archivo de imagen de manera compatible con web y mobile
-      if (Platform.OS === 'web') {
-        // Para web: convertir URI a Blob
-        try {
-          const response = await fetch(selectedImage);
-          const blob = await response.blob();
-          const file = new File([blob], `post.${fileExtension}`, { type: mimeType });
-          imageFormData.append('image', file);
-        } catch (error) {
-          console.error('Error convirtiendo imagen a Blob:', error);
-          // Fallback: usar la URI directamente como string
-          imageFormData.append('image', selectedImage);
-        }
-      } else {
-        // Para mobile: usar el formato nativo
-        const imageFile = {
-          uri: selectedImage,
-          type: mimeType,
-          name: `post.${fileExtension}`,
-          mimeType: mimeType
-        } as any;
-        imageFormData.append('image', imageFile);
-      }
-      
-      setUploadProgress(25); // 25% - Subiendo imagen
-      
-      // Headers compatibles con web y mobile
-      const headers: any = {
-        'Authorization': `Bearer ${token}`
-      };
-      
-      // NO incluir Content-Type en web para que el navegador lo establezca automáticamente
-      if (Platform.OS !== 'web') {
-        headers['Content-Type'] = 'multipart/form-data';
-      }
-      
       const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
         method: 'POST',
-        headers,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          ...(Platform.OS !== 'web' && { 'Content-Type': 'multipart/form-data' })
+        },
         body: imageFormData,
-        // Timeout más largo para subida de archivos
-        signal: AbortSignal.timeout(60000) // 60 segundos
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId); // Limpiar el timeout si la respuesta llega
 
       if (!imageResponse.ok) {
         const errorData = await imageResponse.json().catch(() => ({}));
@@ -348,6 +302,60 @@ export default function CreatePhotoScreen() {
     
     // Navegar de vuelta al feed sin mostrar alerta
     router.back();
+  };
+
+  const handlePublish = async () => {
+    if (!selectedImage && !isEditMode) { // Only require image if not in edit mode
+      Alert.alert('Error', 'Debes seleccionar una imagen');
+      return;
+    }
+    if (!description.trim()) {
+      Alert.alert('Error', 'Debes agregar una descripción');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadProgress(10); // 10% - Iniciando
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        router.replace('/auth/login');
+        return;
+      }
+
+      if (isEditMode) {
+        setUploadProgress(50); // 50% - Guardando cambios
+        await handleUpdatePost(token);
+      } else {
+        setUploadProgress(10); // 10% - Iniciando publicación
+        await handleCreatePost(token);
+      }
+
+    } catch (error) {
+      console.error('Error al procesar:', error);
+      
+      let errorMessage = 'Error desconocido';
+      if (error instanceof Error) {
+        if (error.message.includes('Tiempo de espera agotado')) {
+          errorMessage = 'La operación tardó demasiado. Verifica tu conexión a internet.';
+        } else if (error.message.includes('Network request failed')) {
+          errorMessage = 'Error de conexión. Verifica tu internet.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      Alert.alert(
+        '❌ Error', 
+        isEditMode ? `No se pudo actualizar la publicación: ${errorMessage}` : `No se pudo publicar la imagen: ${errorMessage}`,
+        [
+          { text: 'Reintentar', onPress: () => handlePublish() },
+          { text: 'Cancelar', style: 'cancel' }
+        ]
+      );
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
