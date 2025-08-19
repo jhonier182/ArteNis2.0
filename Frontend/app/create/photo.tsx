@@ -199,8 +199,6 @@ export default function CreatePhotoScreen() {
 
     // Continuar con la publicación en segundo plano
     try {
-      console.log('🚀 Iniciando publicación en segundo plano...');
-      
       // Subir imagen a Cloudinary
       const imageFormData = new FormData();
       const imageFile = {
@@ -212,7 +210,6 @@ export default function CreatePhotoScreen() {
       
       imageFormData.append('image', imageFile);
       
-      console.log('📤 Subiendo imagen a Cloudinary...');
       setUploadProgress(25); // 25% - Subiendo imagen
       const imageResponse = await fetch(`${API_BASE_URL}/api/posts/upload`, {
         method: 'POST',
@@ -231,7 +228,6 @@ export default function CreatePhotoScreen() {
       const imageResult = await imageResponse.json();
       const imageUrl = imageResult.data.url;
       const cloudinaryPublicId = imageResult.data.publicId;
-      console.log('✅ Imagen subida exitosamente a Cloudinary');
 
       // Crear el post real
       const postData = {
@@ -242,7 +238,6 @@ export default function CreatePhotoScreen() {
         type: 'image'
       };
 
-      console.log('📝 Creando post en la base de datos...');
       const postResponse = await fetch(`${API_BASE_URL}/api/posts`, {
         method: 'POST',
         headers: {
@@ -257,19 +252,8 @@ export default function CreatePhotoScreen() {
         throw new Error(`Error al crear el post: ${postResponse.status} - ${errorData.message || 'Error desconocido'}`);
       }
 
-      console.log('✅ Post creado exitosamente en la base de datos');
-      
       // Refrescar los datos del usuario
       await refreshUser();
-      console.log('🔄 Datos del usuario actualizados');
-      
-      // Notificar al feed que la publicación se completó
-      console.log('📢 Notificando al feed que la publicación se completó');
-      console.log('📝 Datos del post creado:', {
-        description: description.trim(),
-        type: 'image',
-        timestamp: new Date().toISOString()
-      });
       
       // Crear el objeto del post completado para enviar al feed
       const completedPost = {
@@ -304,7 +288,7 @@ export default function CreatePhotoScreen() {
       setUploadProgress(100);
       
     } catch (error) {
-      console.error('❌ Error en publicación en segundo plano:', error);
+      console.error('Error en publicación en segundo plano:', error);
       // El error se manejará en el feed mostrando el post como fallido
     }
   };

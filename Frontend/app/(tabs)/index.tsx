@@ -83,10 +83,6 @@ export default function HomeScreen() {
         // Verificar si hay posts temporales que se pueden limpiar
         // (cuando se complete la publicación, el post real aparecerá en newPosts)
         if (pendingPosts.length > 0 && newPosts.length > 0) {
-          console.log('🔍 Verificando posts temporales en fetchPosts...');
-          console.log(`⏳ Posts temporales: ${pendingPosts.length}`);
-          console.log(`📊 Posts nuevos: ${newPosts.length}`);
-          
           // Buscar posts que coincidan con los temporales por descripción
           pendingPosts.forEach(pendingPost => {
             const matchingRealPost = newPosts.find((realPost: any) => {
@@ -102,7 +98,6 @@ export default function HomeScreen() {
                 const timeDiff = Math.abs(realPostTime - pendingPostTime);
                 const isRecent = timeDiff < 5 * 60 * 1000; // 5 minutos
                 
-                console.log(`⏰ Comparación de tiempo en fetchPosts: ${timeDiff}ms, Reciente: ${isRecent}`);
                 return isRecent;
               }
               
@@ -110,12 +105,7 @@ export default function HomeScreen() {
             });
             
             if (matchingRealPost) {
-              // Remover el post temporal ya que se completó la publicación
-              console.log('🎉 Post temporal completado en fetchPosts:', pendingPost.id);
-              console.log('📝 Descripción:', pendingPost.description);
-              
               // Solo eliminar el post temporal, no agregar al feed (ya se agregó automáticamente)
-              console.log('📱 Post temporal removido, el real ya está en el feed');
               removePendingPost(pendingPost.id);
             }
           });
@@ -137,7 +127,6 @@ export default function HomeScreen() {
     
     // Verificar manualmente posts temporales después del refresh
     if (pendingPosts.length > 0) {
-      console.log('🔄 Verificación manual de posts temporales después del refresh...');
       setTimeout(() => {
         checkPendingPostsStatus();
       }, 1000);
@@ -152,7 +141,6 @@ export default function HomeScreen() {
       
       // Verificar posts temporales al enfocar la pantalla
       if (pendingPosts.length > 0) {
-        console.log('🔍 Verificación inicial de posts temporales al enfocar...');
         setTimeout(() => {
           checkPendingPostsStatus();
         }, 1000); // Esperar 1 segundo para que se carguen los posts
@@ -165,7 +153,6 @@ export default function HomeScreen() {
     if (params?.publicationCompleted === 'true' && params?.completedPost) {
       try {
         const completedPost = JSON.parse(params.completedPost as string);
-        console.log('🎉 Publicación completada detectada:', completedPost.id);
         
         // Agregar el post completado al feed
         addPostToFeed(completedPost);
@@ -183,7 +170,7 @@ export default function HomeScreen() {
         });
         
       } catch (error) {
-        console.error('❌ Error procesando post completado:', error);
+        console.error('Error procesando post completado:', error);
       }
     }
   }, [params?.publicationCompleted, params?.completedPost]);
@@ -204,11 +191,9 @@ export default function HomeScreen() {
           );
           
           if (isDuplicate) {
-            console.log('Post temporal duplicado detectado, no se agrega');
             return prev;
           }
           
-          console.log('Post temporal agregado:', tempPost.id);
           return [tempPost, ...prev];
         });
         
@@ -250,9 +235,6 @@ export default function HomeScreen() {
 
   // Función para agregar un post directamente al feed
   const addPostToFeed = (newPost: any) => {
-    console.log('📱 Agregando post directamente al feed:', newPost.id);
-    console.log('📝 Descripción:', newPost.description);
-    
     setPosts(prevPosts => {
       // Verificar que el post no esté ya en el feed por ID
       const alreadyExistsById = prevPosts.some(post => post.id === newPost.id);
@@ -263,17 +245,10 @@ export default function HomeScreen() {
         post.author.id === newPost.author.id
       );
       
-      if (alreadyExistsById) {
-        console.log('⚠️ Post ya existe en el feed por ID, no se duplica');
+      if (alreadyExistsById || alreadyExistsByContent) {
         return prevPosts;
       }
       
-      if (alreadyExistsByContent) {
-        console.log('⚠️ Post ya existe en el feed por contenido, no se duplica');
-        return prevPosts;
-      }
-      
-      console.log('✅ Post agregado exitosamente al feed');
       return [newPost, ...prevPosts];
     });
   };
@@ -300,8 +275,6 @@ export default function HomeScreen() {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
-      console.log('🔍 Verificando estado de posts temporales...');
-      
       // Usar la API principal de posts y buscar por el usuario actual
       const response = await fetch(`${API_BASE_URL}/api/posts`, {
         headers: {
@@ -319,19 +292,6 @@ export default function HomeScreen() {
           post.author && post.author.id === user?.id
         );
         
-        console.log(`📊 Posts totales: ${allPosts.length}`);
-        console.log(`👤 Posts del usuario: ${userPosts.length}`);
-        console.log(`⏳ Posts temporales pendientes: ${pendingPosts.length}`);
-        
-        // Debug: Mostrar información de los posts
-        if (allPosts.length > 0) {
-          console.log('🔍 Primer post:', {
-            id: allPosts[0].id,
-            author: allPosts[0].author,
-            description: allPosts[0].description?.substring(0, 30)
-          });
-        }
-        
         // Verificar cada post temporal
         pendingPosts.forEach(pendingPost => {
           // Primero buscar en posts del usuario
@@ -347,7 +307,6 @@ export default function HomeScreen() {
               const timeDiff = Math.abs(realPostTime - pendingPostTime);
               const isRecent = timeDiff < 5 * 60 * 1000; // 5 minutos
               
-              console.log(`⏰ Comparación de tiempo: ${timeDiff}ms, Reciente: ${isRecent}`);
               return isRecent;
             }
             
@@ -368,10 +327,6 @@ export default function HomeScreen() {
                 const timeDiff = Math.abs(realPostTime - pendingPostTime);
                 const isRecent = timeDiff < 10 * 60 * 1000; // 10 minutos
                 
-                console.log(`🔍 Post encontrado en todos los posts:`, realPost.id);
-                console.log(`📝 Descripción real:`, realPost.description);
-                console.log(`📝 Descripción temporal:`, pendingPost.description);
-                console.log(`⏰ Comparación de tiempo: ${timeDiff}ms, Reciente: ${isRecent}`);
                 return isRecent;
               }
               
@@ -380,11 +335,7 @@ export default function HomeScreen() {
           }
           
           if (matchingRealPost) {
-            console.log('🎉 Post temporal completado:', pendingPost.id);
-            console.log('📝 Descripción:', pendingPost.description);
-            
             // Solo eliminar el post temporal, no agregar al feed (ya se agregó automáticamente)
-            console.log('📱 Post temporal removido, el real ya está en el feed');
             removePendingPost(pendingPost.id);
           } else {
             // Verificar si el post temporal ha estado demasiado tiempo (más de 2 minutos)
@@ -394,17 +345,13 @@ export default function HomeScreen() {
             const maxWaitTime = 2 * 60 * 1000; // 2 minutos
             
             if (timeElapsed > maxWaitTime) {
-              console.log('⏰ Post temporal expirado (más de 2 minutos):', pendingPost.id);
-              console.log('🔄 Forzando limpieza del post temporal');
               removePendingPost(pendingPost.id);
             }
           }
         });
-      } else {
-        console.log('❌ Error en API de posts:', response.status);
       }
     } catch (error) {
-      console.error('❌ Error verificando estado de posts temporales:', error);
+      console.error('Error verificando estado de posts temporales:', error);
     }
   };
 
