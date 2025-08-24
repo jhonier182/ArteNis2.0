@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useUser } from '../context/UserContext';
 import { useRouter } from 'expo-router';
+import { createShadow, shadows } from '../utils/shadowHelper';
 
 const { width } = Dimensions.get('window');
 
@@ -325,14 +326,7 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     marginHorizontal: 0,
     marginBottom:4, // Aumentar el espacio entre publicaciones
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    ...shadows.large,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
   },

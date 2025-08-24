@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { createShadow, shadows } from '../../utils/shadowHelper';
 
 export default function MessagesScreen() {
   const conversations = [
@@ -161,14 +162,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF9800',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    ...shadows.small,
   },
   conversationsList: {
     flex: 1,
@@ -297,13 +291,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF9800',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
+    ...createShadow('#000', { width: 0, height: 4 }, 0.3, 4.65, 8),
   },
 });

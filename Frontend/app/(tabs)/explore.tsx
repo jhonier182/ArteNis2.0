@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../../context/UserContext';
+import { createShadow, shadows } from '../../utils/shadowHelper';
 import ElegantPostCard from '../../components/ElegantPostCard';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -410,14 +411,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 25,
     marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    ...shadows.small,
   },
   retryButtonText: {
     color: '#000000',

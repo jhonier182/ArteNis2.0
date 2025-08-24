@@ -19,6 +19,7 @@ import CategoryFilter from '../../components/CategoryFilter';
 import PendingPostCard from '../../components/PendingPostCard';
 import { useUser } from '../../context/UserContext';
 import { router } from 'expo-router';
+import { createShadow, shadows } from '../../utils/shadowHelper';
 
 interface Post {
   id: string;
@@ -757,14 +758,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     borderWidth: 1.5,
     borderColor: '#FF9800',
-    shadowColor: '#FF9800',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    ...createShadow('#FF9800', { width: 0, height: 2 }, 0.2, 4, 3),
   },
   savedPostsText: {
     color: '#FF9800',
@@ -775,8 +769,7 @@ const styles = StyleSheet.create({
   savedPostsButtonActive: {
     backgroundColor: '#FF9800',
     borderColor: '#FF9800',
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
+    ...createShadow('#FF9800', { width: 0, height: 2 }, 0.4, 6, 3),
   },
   savedPostsTextActive: {
     color: '#ffffff',

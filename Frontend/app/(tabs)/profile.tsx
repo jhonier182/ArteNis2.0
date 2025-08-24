@@ -20,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../../context/UserContext';
 import * as ImagePicker from 'expo-image-picker';
 import PostsGrid from '../../components/PostsGrid';
+import { createShadow, shadows } from '../../utils/shadowHelper';
 
 const { width } = Dimensions.get('window');
 
@@ -508,14 +509,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 25,
     marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    ...shadows.small,
   },
   retryButtonText: {
     color: '#000000',
@@ -530,14 +524,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 20,
     backgroundColor: '#000000',
-    shadowColor: '#FF9800',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    ...createShadow('#FF9800', { width: 0, height: 2 }, 0.1, 8, 8),
     zIndex: 1000,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,152,0,0.05)',
@@ -618,14 +605,7 @@ const styles = StyleSheet.create({
     borderRadius: 65,
     backgroundColor: 'rgba(255,152,0,0.2)',
     zIndex: -1,
-    shadowColor: '#FF9800',
-    shadowOffset: {
-      width: 0,
-      height: 0,
-    },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 15,
+    ...shadows.orangeExtraLarge,
   },
   cameraOverlay: {
     position: 'absolute',
@@ -684,14 +664,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
-    shadowColor: '#FF9800',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    ...createShadow('#FF9800', { width: 0, height: 4 }, 0.2, 8, 6),
   },
   buttonGradient: {
     flex: 1,

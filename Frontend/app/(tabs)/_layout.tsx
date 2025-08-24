@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { createShadow, shadows } from '../../utils/shadowHelper';
 import { UserProvider } from '../../context/UserContext';
 
 export default function TabLayout() {
@@ -102,14 +103,7 @@ export default function TabLayout() {
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginBottom: 20,
-                shadowColor: '#000',
-                shadowOffset: {
-                  width: 0,
-                  height: 4,
-                },
-                shadowOpacity: 0.3,
-                shadowRadius: 4.65,
-                elevation: 8,
+                ...createShadow('#000', { width: 0, height: 4 }, 0.3, 4.65, 8),
                 overflow: 'hidden',
               }}>
                 <LinearGradient
