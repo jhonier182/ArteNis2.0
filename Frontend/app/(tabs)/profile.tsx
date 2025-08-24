@@ -27,12 +27,12 @@ interface User {
   id: string;
   username: string;
   fullName: string;
-  bio: string;
+  bio?: string;
   avatar?: string;
-  followersCount: number;
-  followingCount: number;
-  postsCount: number;
-  isVerified: boolean;
+  followersCount?: number;
+  followingCount?: number;
+  postsCount?: number;
+  isVerified?: boolean;
   studioName?: string;
   city?: string;
   specialties?: string[];
@@ -48,15 +48,18 @@ interface User {
 }
 
 export default function ProfileScreen() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [localUser, setLocalUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
-  const { refreshUser } = useUser();
+  const { user: contextUser, refreshUser } = useUser();
 
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
+  // Usar datos del contexto si están disponibles
+  const user = localUser || contextUser;
 
   const fetchProfile = async () => {
     try {
@@ -120,9 +123,9 @@ export default function ProfileScreen() {
 
       const data = await response.json(); //datos recibidos del perfil
       if (data.user) {
-        setUser(data.user);
+        setLocalUser(data.user);
       } else if (data.data && data.data.user) {
-        setUser(data.data.user);
+        setLocalUser(data.data.user);
       } else {
         setError('Formato de datos inesperado');//estructura de datos inesperada
       }
@@ -135,8 +138,14 @@ export default function ProfileScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      fetchProfile();
-    }, [])
+      // Solo cargar si no tenemos datos del contexto
+      if (!contextUser) {
+        fetchProfile();
+      } else {
+        // Usar datos del contexto para evitar parpadeo
+        setLocalUser(contextUser);
+      }
+    }, [contextUser])
   );
 
   const handleEditProfile = () => {
@@ -214,7 +223,7 @@ export default function ProfileScreen() {
             // Actualizar el estado local del usuario
             if (user) {
               const newAvatar = imageResult?.data?.avatarUrl || imageResult?.data?.user?.avatar || user.avatar;
-              setUser({
+              setLocalUser({
                 ...user,
                 avatar: newAvatar
               });
@@ -249,11 +258,39 @@ export default function ProfileScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchProfile();
-    setRefreshing(false);
+    try {
+      // Usar refreshUser del contexto para mantener consistencia
+      await refreshUser();
+      // Actualizar localUser con los nuevos datos del contexto
+      if (contextUser) {
+        // Mapear UserProfile a User
+        const mappedUser: User = {
+          id: contextUser.id,
+          username: contextUser.username,
+          fullName: contextUser.fullName,
+          bio: contextUser.bio,
+          avatar: contextUser.avatar,
+          followersCount: contextUser.followersCount || 0,
+          followingCount: contextUser.followingCount || 0,
+          postsCount: contextUser.postsCount || 0,
+          isVerified: contextUser.isVerified || false,
+          studioName: contextUser.studioName,
+          city: contextUser.city,
+          specialties: contextUser.specialties,
+          rating: contextUser.rating,
+          posts: contextUser.posts
+        };
+        setLocalUser(mappedUser);
+      }
+    } catch (error) {
+      console.log('Error en refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  if (loading) {
+  // Solo mostrar loading si no tenemos datos del usuario
+  if (loading && !user) {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.loadingSpinner}>
@@ -291,7 +328,13 @@ export default function ProfileScreen() {
       
       {/* Header con icono de configuración a la derecha */}
       <View style={styles.header}>
-        <View style={styles.headerLeft} />
+        <View style={styles.headerLeft}>
+          {loading && (
+            <View style={styles.headerLoadingIndicator}>
+              <Ionicons name="sync" size={16} color="#FF9800" />
+            </View>
+          )}
+        </View>
         <TouchableOpacity style={styles.settingsButton} onPress={handleSettings}>
           <Ionicons name="settings-outline" size={24} color="#ffffff" />
         </TouchableOpacity>
@@ -501,6 +544,14 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     width: 44, // Espacio para balancear el header
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerLoadingIndicator: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   settingsButton: {
     width: 44,
