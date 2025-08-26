@@ -711,8 +711,6 @@ class PostService {
   // Obtener posts de usuarios seguidos
   static async getFollowingPosts(userId, page, limit, offset) {
     try {
-      console.log(`🔍 Buscando posts para usuario ${userId}, página ${page}, límite ${limit}`);
-      
       // Obtener IDs de usuarios seguidos
       const followingUsers = await Follow.findAll({
         where: { followerId: userId },
@@ -720,15 +718,8 @@ class PostService {
       });
 
       const followingIds = followingUsers.map(follow => follow.followingId);
-      console.log(`👥 Usuarios seguidos encontrados:`, followingIds);
-      console.log(`👥 Detalle de registros de seguimiento:`, followingUsers.map(follow => ({
-        id: follow.id,
-        followerId: follow.followerId,
-        followingId: follow.followingId
-      })));
 
       if (followingIds.length === 0) {
-        console.log(`⚠️ Usuario ${userId} no sigue a nadie, devolviendo array vacío`);
         // Si no sigue a nadie, devolver array vacío
         return {
           posts: [],
@@ -736,8 +727,6 @@ class PostService {
         };
       }
 
-      console.log(`🔍 Buscando posts de usuarios seguidos: ${followingIds.join(', ')}`);
-      
       // Obtener posts de usuarios seguidos
       const queryOptions = {
         where: {
@@ -759,18 +748,7 @@ class PostService {
         offset
       };
       
-      console.log(`🔍 Opciones de consulta:`, JSON.stringify(queryOptions, null, 2));
-      
       const { count, rows } = await Post.findAndCountAll(queryOptions);
-
-      console.log(`📝 Posts de usuarios seguidos encontrados: ${count}`);
-      console.log(`📝 Detalle de posts encontrados:`, rows.map(post => ({
-        id: post.id,
-        userId: post.userId,
-        authorId: post.author?.id,
-        username: post.author?.username,
-        description: post.description?.substring(0, 50)
-      })));
 
       // Agregar campo isLiked para el usuario actual
       for (const post of rows) {
@@ -782,9 +760,6 @@ class PostService {
       const transformedPosts = await Promise.all(
         rows.map(post => this.transformPostForFrontend(post, userId))
       );
-      
-      // Verificar que los posts transformados tengan isLiked
-      // Logs removidos para evitar spam
 
       // Marcar todos los posts como seguidos ya que son de usuarios que sigue
       transformedPosts.forEach(post => {
@@ -802,8 +777,6 @@ class PostService {
       if (filteredPosts.length !== transformedPosts.length) {
         console.warn(`⚠️ Se filtraron ${transformedPosts.length - filteredPosts.length} posts que no eran de usuarios seguidos`);
       }
-
-      console.log(`✅ Posts transformados y listos: ${filteredPosts.length}`);
 
       return {
         posts: filteredPosts,
