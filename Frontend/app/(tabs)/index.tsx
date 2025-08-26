@@ -73,6 +73,16 @@ export default function HomeScreen() {
         const data = await response.json();
         const newPosts = data.data?.posts || [];
         
+        console.log('📱 Frontend recibió posts:', {
+          totalPosts: newPosts.length,
+          posts: newPosts.map((post: Post) => ({
+            id: post.id,
+            authorId: post.author?.id,
+            username: post.author?.username,
+            fullName: post.author?.fullName
+          }))
+        });
+        
         if (pageNum === 1) {
           setPosts(newPosts);
         } else {

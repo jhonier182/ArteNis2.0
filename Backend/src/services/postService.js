@@ -711,6 +711,8 @@ class PostService {
   // Obtener posts de usuarios seguidos
   static async getFollowingPosts(userId, page, limit, offset) {
     try {
+      console.log(`🔍 Buscando posts para usuario ${userId}, página ${page}, límite ${limit}`);
+      
       // Obtener IDs de usuarios seguidos
       const followingUsers = await Follow.findAll({
         where: { followerId: userId },
@@ -718,53 +720,26 @@ class PostService {
       });
 
       const followingIds = followingUsers.map(follow => follow.followingId);
+      console.log(`👥 Usuarios seguidos encontrados:`, followingIds);
+      console.log(`👥 Detalle de registros de seguimiento:`, followingUsers.map(follow => ({
+        id: follow.id,
+        followerId: follow.followerId,
+        followingId: follow.followingId
+      })));
 
       if (followingIds.length === 0) {
-        // Si no sigue a nadie, devolver posts recientes
-        const { count, rows } = await Post.findAndCountAll({
-          where: {
-            isPublic: true,
-            status: 'published'
-          },
-          include: [
-            {
-              model: User,
-              as: 'author',
-              attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
-            }
-          ],
-          order: [['createdAt', 'DESC']],
-          limit,
-          offset
-        });
-
-        // Agregar campo isLiked para el usuario actual
-        for (const post of rows) {
-          const hasLiked = await Like.exists(userId, post.id);
-          post.isLiked = !!hasLiked;
-        }
-
-        // Transformar posts usando transformPostForFrontend
-        const transformedPosts = await Promise.all(
-          rows.map(post => this.transformPostForFrontend(post, userId))
-        );
-        
-        // Verificar que los posts transformados tengan isLiked
-        // Logs removidos para evitar spam
-        
-        // Marcar todos los posts como no seguidos ya que no sigue a nadie
-        transformedPosts.forEach(post => {
-          post.author.isFollowing = false;
-        });
-        
+        console.log(`⚠️ Usuario ${userId} no sigue a nadie, devolviendo array vacío`);
+        // Si no sigue a nadie, devolver array vacío
         return {
-          posts: transformedPosts,
-          total: count
+          posts: [],
+          total: 0
         };
       }
 
+      console.log(`🔍 Buscando posts de usuarios seguidos: ${followingIds.join(', ')}`);
+      
       // Obtener posts de usuarios seguidos
-      const { count, rows } = await Post.findAndCountAll({
+      const queryOptions = {
         where: {
           userId: {
             [Op.in]: followingIds
@@ -782,7 +757,20 @@ class PostService {
         order: [['createdAt', 'DESC']],
         limit,
         offset
-      });
+      };
+      
+      console.log(`🔍 Opciones de consulta:`, JSON.stringify(queryOptions, null, 2));
+      
+      const { count, rows } = await Post.findAndCountAll(queryOptions);
+
+      console.log(`📝 Posts de usuarios seguidos encontrados: ${count}`);
+      console.log(`📝 Detalle de posts encontrados:`, rows.map(post => ({
+        id: post.id,
+        userId: post.userId,
+        authorId: post.author?.id,
+        username: post.author?.username,
+        description: post.description?.substring(0, 50)
+      })));
 
       // Agregar campo isLiked para el usuario actual
       for (const post of rows) {
@@ -801,10 +789,24 @@ class PostService {
       // Marcar todos los posts como seguidos ya que son de usuarios que sigue
       transformedPosts.forEach(post => {
         post.author.isFollowing = true;
+        
+        // Verificación adicional: asegurar que el post sea realmente de un usuario seguido
+        if (!followingIds.includes(post.author.id)) {
+          console.error(`❌ ERROR: Post ${post.id} del usuario ${post.author.username} (${post.author.id}) no está en la lista de usuarios seguidos:`, followingIds);
+        }
       });
 
+      // Filtrar solo posts de usuarios seguidos como medida de seguridad
+      const filteredPosts = transformedPosts.filter(post => followingIds.includes(post.author.id));
+      
+      if (filteredPosts.length !== transformedPosts.length) {
+        console.warn(`⚠️ Se filtraron ${transformedPosts.length - filteredPosts.length} posts que no eran de usuarios seguidos`);
+      }
+
+      console.log(`✅ Posts transformados y listos: ${filteredPosts.length}`);
+
       return {
-        posts: transformedPosts,
+        posts: filteredPosts,
         total: count
       };
     } catch (error) {
