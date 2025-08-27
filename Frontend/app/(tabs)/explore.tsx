@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  RefreshControl,
   ActivityIndicator,
   StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import { useUser } from '../../context/UserContext';
 import { createShadow, shadows } from '../../utils/shadowHelper';
 import InstagramGrid from '../../components/InstagramGrid';
@@ -47,7 +47,7 @@ export default function ExploreScreen() {
   const [page, setPage] = useState(1);
   const [followingUsers, setFollowingUsers] = useState<string[]>([]);
   const { user } = useUser();
-
+  
   // Obtener lista de usuarios que sigue
   const fetchFollowingUsers = async () => {
     try {
@@ -90,42 +90,43 @@ export default function ExploreScreen() {
         }
       });
 
-                     if (response.ok) {
-          const data = await response.json();
-          let newPosts = data.data?.posts || [];
+      if (response.ok) {
+        const data = await response.json();
+        let newPosts = data.data?.posts || [];
+        
+        // Filtrar: solo posts de usuarios que NO sigues
+        newPosts = newPosts.filter((post: Post) => {
+          // Excluir posts propios
+          if (post.author.id === user?.id) {
+            return false;
+          }
           
-          // Filtrar: solo posts de usuarios que NO sigues
-          newPosts = newPosts.filter((post: Post) => {
-            // Excluir posts propios
-            if (post.author.id === user?.id) {
-              return false;
-            }
-            
-            // Excluir posts de usuarios que ya sigues
-            // Primero intentar usar la lista de followingUsers (más confiable)
-            if (followingUsers.length > 0 && followingUsers.includes(post.author.id)) {
-              return false;
-            }
-            
-            // Si no tenemos la lista, usar isFollowing como respaldo
-            if (followingUsers.length === 0 && post.author.isFollowing === true) {
-              return false;
-            }
-            
-            // Solo incluir posts de usuarios que NO sigues
-            return true;
-          });
-         
-         if (pageNum === 1) {
-           setPosts(newPosts);
-         } else {
-           setPosts(prevPosts => [...prevPosts, ...newPosts]);
-         }
-         
-         const apiHasMore = data.data?.pagination?.currentPage < data.data?.pagination?.totalPages;
-         const filteredHasMore = (pageNum > 1 && newPosts.length === 0) ? false : apiHasMore;
-         setHasMore(filteredHasMore);
-         setPage(pageNum);
+          // Excluir posts de usuarios que ya sigues
+          // Primero intentar usar la lista de followingUsers (más confiable)
+          if (followingUsers.length > 0 && followingUsers.includes(post.author.id)) {
+            return false;
+          }
+          
+          // Si no tenemos la lista, usar isFollowing como respaldo
+          if (followingUsers.length === 0 && post.author.isFollowing === true) {
+            return false;
+          }
+          
+          // Solo incluir posts de usuarios que NO sigues
+          return true;
+        });
+        
+        if (pageNum === 1) {
+          // Actualización silenciosa en segundo plano
+          setPosts(newPosts);
+        } else {
+          setPosts(prevPosts => [...prevPosts, ...newPosts]);
+        }
+        
+        const apiHasMore = data.data?.pagination?.currentPage < data.data?.pagination?.totalPages;
+        const filteredHasMore = (pageNum > 1 && newPosts.length === 0) ? false : apiHasMore;
+        setHasMore(filteredHasMore);
+        setPage(pageNum);
       } else {
         const errorText = await response.text();
         console.error('Error fetching posts:', response.status, errorText);
@@ -155,6 +156,37 @@ export default function ExploreScreen() {
     await fetchAllPosts(1);
     setRefreshing(false);
   };
+
+  // Refrescar posts cuando se enfoca la pantalla
+  const refreshOnFocus = async () => {
+    try {
+      console.log('🔄 Refrescando publicaciones en segundo plano...');
+      
+      // Refrescar usuarios seguidos primero
+      await fetchFollowingUsers();
+      
+      // Luego refrescar posts silenciosamente
+      await fetchAllPosts(1);
+      
+      console.log('✅ Publicaciones refrescadas silenciosamente');
+      
+    } catch (error) {
+      console.error('❌ Error al refrescar en focus:', error);
+    }
+  };
+
+  // Hook para detectar cuando la pantalla se enfoca
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🎯 Pantalla Explorar enfocada - refrescando publicaciones...');
+      // Delay más largo para evitar refrescar inmediatamente al cambiar de pestaña
+      const timer = setTimeout(() => {
+        refreshOnFocus();
+      }, 800);
+      
+      return () => clearTimeout(timer);
+    }, [])
+  );
 
   // Manejar like
   const handleLike = async (postId: string): Promise<void> => {
@@ -228,33 +260,33 @@ export default function ExploreScreen() {
         body
       });
 
-             if (response.ok) {
-         // Actualizar el estado local del post
-         setPosts(prevPosts => prevPosts.map(post => {
-           if (post.author.id === userId) {
-             return {
-               ...post,
-               author: {
-                 ...post.author,
-                 isFollowing: !isFollowing,
-                 followersCount: isFollowing 
-                   ? Math.max(0, ((post.author as any).followersCount || 0) - 1)
-                   : ((post.author as any).followersCount || 0) + 1
-               }
-             };
-           }
-           return post;
-         }));
-
-                   // Actualizar la lista de usuarios seguidos localmente
-          if (isFollowing) {
-            // Dejó de seguir al usuario
-            setFollowingUsers(prev => prev.filter(id => id !== userId));
-          } else {
-            // Empezó a seguir al usuario
-            setFollowingUsers(prev => [...prev, userId]);
+      if (response.ok) {
+        // Actualizar el estado local del post
+        setPosts(prevPosts => prevPosts.map(post => {
+          if (post.author.id === userId) {
+            return {
+              ...post,
+              author: {
+                ...post.author,
+                isFollowing: !isFollowing,
+                followersCount: isFollowing 
+                  ? Math.max(0, ((post.author as any).followersCount || 0) - 1)
+                  : ((post.author as any).followersCount || 0) + 1
+              }
+            };
           }
-       } else {
+          return post;
+        }));
+
+        // Actualizar la lista de usuarios seguidos localmente
+        if (isFollowing) {
+          // Dejó de seguir al usuario
+          setFollowingUsers(prev => prev.filter(id => id !== userId));
+        } else {
+          // Empezó a seguir al usuario
+          setFollowingUsers(prev => [...prev, userId]);
+        }
+      } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('Error al seguir/dejar de seguir:', errorData.message);
       }
@@ -314,6 +346,7 @@ export default function ExploreScreen() {
           <Text style={styles.headerSubtitle}>Descubre publicaciones de artistas que no sigues</Text>
         </View>
       </View>
+
 
       {/* Lista de publicaciones */}
       {posts.length > 0 ? (
