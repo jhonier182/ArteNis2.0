@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { useUser } from '../context/UserContext';
 import { useRouter } from 'expo-router';
 import { createShadow, shadows } from '../utils/shadowHelper';
@@ -67,6 +68,27 @@ export default function ElegantPostCard({
   const [showPostModal, setShowPostModal] = useState(false);
   const { user } = useUser();
   const router = useRouter();
+
+  // Gestos para cerrar el modal deslizando hacia la derecha
+  const onGestureEvent = (event: any) => {
+    const { translationX } = event.nativeEvent;
+    
+    // Si se desliza hacia la derecha más de 100px, cerrar el modal
+    if (translationX > 100) {
+      setShowPostModal(false);
+    }
+  };
+
+  const onHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.state === State.END) {
+      const { translationX } = event.nativeEvent;
+      
+      // Si se desliza hacia la derecha más de 100px, cerrar el modal
+      if (translationX > 100) {
+        setShowPostModal(false);
+      }
+    }
+  };
 
   // Sincronizar estado local con props cuando cambien
   useEffect(() => {
@@ -290,89 +312,90 @@ export default function ElegantPostCard({
       <Modal
         visible={showPostModal}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowPostModal(false)}
       >
         <View style={styles.modalContainer}>
-          {/* Header del modal */}
-          <View style={styles.modalHeader}>
-            <TouchableOpacity 
-              style={styles.closeButton}
-              onPress={() => setShowPostModal(false)}
-            >
-              <Ionicons name="close" size={24} color={TextColors.inverse} />
-            </TouchableOpacity>
-          </View>
-
           {/* Contenido del modal */}
-          <View style={styles.modalContent}>
-            {/* Header del post */}
-            <View style={styles.postHeader}>
-              <TouchableOpacity 
-                style={styles.userInfo} 
-                onPress={handleUserPress}
-              >
-                <Image 
-                  source={{ uri: post.author.avatar }}
-                  style={styles.avatar}
-                />
-                <View style={styles.userDetails}>
-                  <Text style={styles.username}>{post.author.username}</Text>
-                  <Text style={styles.timeAgo}>{formatDate(post.createdAt)}</Text>
-                </View>
-              </TouchableOpacity>
+          <PanGestureHandler
+            onGestureEvent={onGestureEvent}
+            onHandlerStateChange={onHandlerStateChange}
+          >
+            <View style={styles.modalContent}>
+              {/* Indicador de deslizar hacia la derecha */}
+              <View style={styles.swipeIndicator}>
+                <View style={styles.swipeBar} />
+                <Text style={styles.swipeText}>Desliza → para cerrar</Text>
+              </View>
               
-              {renderFollowButton()}
-            </View>
+              {/* Header del post */}
+              <View style={styles.postHeader}>
+                <TouchableOpacity 
+                  style={styles.userInfo} 
+                  onPress={handleUserPress}
+                >
+                  <Image 
+                    source={{ uri: post.author.avatar }}
+                    style={styles.avatar}
+                  />
+                  <View style={styles.userDetails}>
+                    <Text style={styles.username}>{post.author.username}</Text>
+                    <Text style={styles.timeAgo}>{formatDate(post.createdAt)}</Text>
+                  </View>
+                </TouchableOpacity>
+                
+                {renderFollowButton()}
+              </View>
 
-            {/* Imagen del post */}
-            <View style={styles.modalImageContainer}>
-              <Image 
-                source={{ uri: post.imageUrl }} 
-                style={styles.modalPostImage}
-                resizeMode="cover"
-              />
-            </View>
+              {/* Imagen del post */}
+              <View style={styles.modalImageContainer}>
+                <Image 
+                  source={{ uri: post.imageUrl }} 
+                  style={styles.modalPostImage}
+                  resizeMode="cover"
+                />
+              </View>
 
-            {/* Descripción del post */}
-            {post.description && (
-              <View style={styles.descriptionContainer}>
-                <View style={styles.descriptionRow}>
-                  <Text style={styles.description}>
-                    {post.description}
-                  </Text>
-                  <View style={styles.viewsIconContainer}>
-                    <Ionicons name="eye-outline" size={16} color={TextColors.inverse} />
-                    <Text style={styles.viewsText}>{formatNumber(post.viewsCount || 0)}</Text>
+              {/* Descripción del post */}
+              {post.description && (
+                <View style={styles.descriptionContainer}>
+                  <View style={styles.descriptionRow}>
+                    <Text style={styles.description}>
+                      {post.description}
+                    </Text>
+                    <View style={styles.viewsIconContainer}>
+                      <Ionicons name="eye-outline" size={16} color={TextColors.inverse} />
+                      <Text style={styles.viewsText}>{formatNumber(post.viewsCount || 0)}</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            )}
+              )}
 
-            {/* Métricas de engagement */}
-            <View style={styles.metricsContainer}>
-              <TouchableOpacity style={styles.metricItem} onPress={handleLike} disabled={isLiking}>
-                <Ionicons 
-                  name={isLiked ? "heart" : "heart-outline"} 
-                  size={24} 
-                  color={isLiked ? BrandColors.error : TextColors.inverse} 
-                />
-                <Text style={[styles.metricText, isLiked && styles.likedText]}>
-                  {formatNumber(likesCount)}
-                </Text>
-                {isLiking && (
-                  <Animated.View style={[styles.loadingIndicator, { transform: [{ rotate: spin }] }]}>
-                    <Ionicons name="sync" size={12} color={TextColors.inverse} />
-                  </Animated.View>
-                )}
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.metricItem} onPress={() => onComment(post.id)}>
-                <Ionicons name="chatbubble-outline" size={24} color={TextColors.inverse} />
-                <Text style={styles.metricText}>{formatNumber(post.commentsCount || 0)}</Text>
-              </TouchableOpacity>
+              {/* Métricas de engagement */}
+              <View style={styles.metricsContainer}>
+                <TouchableOpacity style={styles.metricItem} onPress={handleLike} disabled={isLiking}>
+                  <Ionicons 
+                    name={isLiked ? "heart" : "heart-outline"} 
+                    size={24} 
+                    color={isLiked ? BrandColors.error : TextColors.inverse} 
+                  />
+                  <Text style={[styles.metricText, isLiked && styles.likedText]}>
+                    {formatNumber(likesCount)}
+                  </Text>
+                  {isLiking && (
+                    <Animated.View style={[styles.loadingIndicator, { transform: [{ rotate: spin }] }]}>
+                      <Ionicons name="sync" size={12} color={TextColors.inverse} />
+                    </Animated.View>
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.metricItem} onPress={() => onComment(post.id)}>
+                  <Ionicons name="chatbubble-outline" size={24} color={TextColors.inverse} />
+                  <Text style={styles.metricText}>{formatNumber(post.commentsCount || 0)}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </PanGestureHandler>
         </View>
       </Modal>
     </>
@@ -429,23 +452,27 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: NeutralColors.black,
-    paddingTop: height * 0.1, // Espacio para el header
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal:2,
-    paddingBottom: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: NeutralColors.gray800,
-  },
-  closeButton: {
-    padding: 10,
+    paddingTop: 0, // Sin header, empezamos desde arriba
   },
   modalContent: {
     paddingHorizontal: 0,
     paddingVertical: 10,
+  },
+  swipeIndicator: {
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+  },
+  swipeBar: {
+    width: 60,
+    height: 4,
+    backgroundColor: NeutralColors.gray700,
+    borderRadius: 2,
+    marginBottom: 5,
+  },
+  swipeText: {
+    color: TextColors.inverse,
+    fontSize: 14,
   },
   postHeader: {
     flexDirection: 'row',
