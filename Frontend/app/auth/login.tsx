@@ -60,80 +60,96 @@ export default function Login() {
 
   return (
     <ImageBackground source={background} resizeMode="cover" style={styles.bg}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.center}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Login</Text>
-          <Text style={styles.subtitle}>Welcome back please login to your account</Text>
+      <View style={styles.overlay}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.center}>
+          <View style={styles.card}>
+            <Text style={styles.title}>Login</Text>
+            <Text style={styles.subtitle}>Welcome back please login to your account</Text>
 
-          <View style={styles.inputWrapper}>
-            <TextInput
-              placeholder="User Name"
-              placeholderTextColor="#dcdde1"
-              style={styles.input}
-              autoCapitalize="none"
-              value={identifier}
-              onChangeText={setIdentifier}
-            />
-          </View>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                placeholder="User Name"
+                placeholderTextColor="#dcdde1"
+                style={styles.input}
+                autoCapitalize="none"
+                value={identifier}
+                onChangeText={setIdentifier}
+              />
+            </View>
 
-          <View style={styles.inputWrapper}>
-            <TextInput
-              placeholder="Password"
-              placeholderTextColor="#dcdde1"
-              style={styles.input}
-              secureTextEntry={secure}
-              value={password}
-              onChangeText={setPassword}
-            />
-            <TouchableOpacity onPress={() => setSecure(s => !s)} style={styles.eye}>
-              <Text style={{ color: '#eee' }}>{secure ? '🙈' : '👀'}</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                placeholder="Password"
+                placeholderTextColor="#dcdde1"
+                style={styles.input}
+                secureTextEntry={secure}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity onPress={() => setSecure(s => !s)} style={styles.eye}>
+                <Text style={{ color: '#eee' }}>{secure ? '🙈' : '👀'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.rememberRow}>
+              <Checkbox value={remember} onValueChange={setRemember} color={remember ? '#2ecc71' : undefined} />
+              <Text style={styles.rememberText}>Remember me</Text>
+            </View>
+
+            <TouchableOpacity activeOpacity={0.9} onPress={onLogin} disabled={loading}>
+              <LinearGradient colors={["#A4E34A", "#22C55E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.button}>
+                <Text style={styles.buttonText}>{loading ? 'Loading...' : 'Login'}</Text>
+              </LinearGradient>
             </TouchableOpacity>
+
+            <Text style={styles.footerText}>Don't have an account? <Link href="/auth/signup" style={styles.link}>Signup</Link></Text>
+
+            <Text style={styles.credit}>Created by anggialwiputra</Text>
           </View>
-
-          <View style={styles.rememberRow}>
-            <Checkbox value={remember} onValueChange={setRemember} color={remember ? '#2ecc71' : undefined} />
-            <Text style={styles.rememberText}>Remember me</Text>
-          </View>
-
-          <TouchableOpacity activeOpacity={0.9} onPress={onLogin} disabled={loading}>
-            <LinearGradient colors={["#A4E34A", "#22C55E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.button}>
-              <Text style={styles.buttonText}>{loading ? 'Loading...' : 'Login'}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <Text style={styles.footerText}>Don't have an account? <Link href="/auth/signup" style={styles.link}>Signup</Link></Text>
-
-          <Text style={styles.credit}>Created by anggialwiputra</Text>
-        </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   bg: { flex: 1 },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
   card: {
-    width: '90%', maxWidth: 360, borderRadius: 14, padding: 24,
+    width: '95%', 
+    maxWidth: 420, 
+    borderRadius: 16, 
+    padding: 32,
     backgroundColor: 'rgba(255,255,255,0.12)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)',
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.35)',
     backdropFilter: 'blur(10px)' as any,
   },
-  title: { color: '#fff', fontSize: 28, fontWeight: '700', marginBottom: 6 },
-  subtitle: { color: '#eaeaea', fontSize: 12, marginBottom: 16 },
+  title: { color: '#fff', fontSize: 32, fontWeight: '700', marginBottom: 8 },
+  subtitle: { color: '#eaeaea', fontSize: 14, marginBottom: 20 },
   inputWrapper: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)',
-    borderRadius: 10, paddingHorizontal: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)'
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 12, 
+    paddingHorizontal: 16, 
+    marginBottom: 16, 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.2)'
   },
-  input: { flex: 1, height: 44, color: '#fff' },
-  eye: { paddingHorizontal: 6 },
-  rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-  rememberText: { color: '#eaeaea' },
-  button: { height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  footerText: { color: '#eaeaea', textAlign: 'center', marginTop: 12 },
+  input: { flex: 1, height: 50, color: '#fff', fontSize: 16 },
+  eye: { paddingHorizontal: 8 },
+  rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
+  rememberText: { color: '#eaeaea', fontSize: 14 },
+  button: { height: 54, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  footerText: { color: '#eaeaea', textAlign: 'center', marginTop: 16, fontSize: 14 },
   link: { color: '#a7f3d0', fontWeight: '700' },
-  credit: { color: '#eaeaea', fontSize: 10, textAlign: 'center', marginTop: 16, opacity: 0.8 }
+  credit: { color: '#eaeaea', fontSize: 11, textAlign: 'center', marginTop: 20, opacity: 0.8 }
 });
 
 
