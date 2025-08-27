@@ -1,6 +1,21 @@
 const SearchService = require('../services/searchService');
 
 class SearchController {
+  // Buscar usuarios (método que se usa en las rutas)
+  static async searchUsers(req, res, next) {
+    try {
+      const result = await SearchService.searchUsers(req.query);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Búsqueda realizada exitosamente',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // Búsqueda global
   static async globalSearch(req, res, next) {
     try {

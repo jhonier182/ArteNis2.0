@@ -614,6 +614,97 @@ class SearchService {
       ]
     };
   }
+
+  // Buscar usuarios
+  static async searchUsers(searchParams) {
+    try {
+      const {
+        q = '',
+        type = 'all',
+        location,
+        verified,
+        premium,
+        sortBy = 'followers',
+        order = 'desc',
+        page = 1,
+        limit = 20
+      } = searchParams;
+
+      const offset = (page - 1) * limit;
+      const where = {};
+
+      // Filtro por texto de búsqueda
+      if (q) {
+        where[Op.or] = [
+          { username: { [Op.like]: `%${q}%` } },
+          { fullName: { [Op.like]: `%${q}%` } },
+          { bio: { [Op.like]: `%${q}%` } }
+        ];
+      }
+
+      // Filtro por tipo de usuario
+      if (type !== 'all') {
+        where.userType = type;
+      }
+
+      // Filtro por ubicación
+      if (location) {
+        where.location = { [Op.like]: `%${location}%` };
+      }
+
+      // Filtro por verificación
+      if (verified !== undefined) {
+        where.isVerified = verified;
+      }
+
+      // Filtro por premium
+      if (premium !== undefined) {
+        where.isPremium = premium;
+      }
+
+      // Solo usuarios activos
+      where.isActive = true;
+
+      // Ordenamiento
+      const orderBy = [];
+      switch (sortBy) {
+        case 'followers':
+          orderBy.push(['followersCount', order.toUpperCase()]);
+          break;
+        case 'posts':
+          orderBy.push(['postsCount', order.toUpperCase()]);
+          break;
+        case 'created':
+          orderBy.push(['createdAt', order.toUpperCase()]);
+          break;
+        case 'username':
+          orderBy.push(['username', order.toUpperCase()]);
+          break;
+        default:
+          orderBy.push(['followersCount', 'DESC']);
+      }
+
+      const users = await User.findAndCountAll({
+        where,
+        attributes: { exclude: ['password'] },
+        order: orderBy,
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+
+      return {
+        users: users.rows,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(users.count / limit),
+          totalItems: users.count,
+          itemsPerPage: parseInt(limit)
+        }
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = SearchService;

@@ -98,4 +98,10 @@ router.post('/advanced',
   SearchController.advancedSearch
 );
 
+// GET /api/search/users - Buscar usuarios
+router.get('/users',
+  optionalAuth,
+  SearchController.searchUsers
+);
+
 module.exports = router;

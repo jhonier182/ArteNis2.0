@@ -1,5 +1,8 @@
 const express = require('express');
-const UserController = require('../controllers/userController');
+const AuthController = require('../controllers/authController');
+const ProfileController = require('../controllers/profileController');
+const SearchController = require('../controllers/searchController');
+const FollowController = require('../controllers/followController');
 const { verifyToken, optionalAuth } = require('../middlewares/auth');
 const { upload, handleMulterError } = require('../middlewares/upload');
 const { 
@@ -16,39 +19,37 @@ const router = express.Router();
 router.post('/register', 
   validateRegister,
   handleValidationErrors,
-  UserController.register
+  AuthController.register
 );
 
 // POST /api/users/login - Iniciar sesión
 router.post('/login',
   validateLogin,
   handleValidationErrors,
-  UserController.login
+  AuthController.login
 );
 
 // POST /api/users/refresh - Refrescar tokens
-router.post('/refresh', UserController.refresh);
+router.post('/refresh', AuthController.refresh);
 
 // GET /api/users/search - Buscar usuarios
 router.get('/search',
   optionalAuth,
-  UserController.searchUsers
+  SearchController.searchUsers
 );
-
-// (Movido más abajo para no capturar /following como :id)
 
 // Rutas protegidas (requieren autenticación)
 
 // GET /api/users/me/profile - Obtener perfil del usuario autenticado
 router.get('/me/profile',
   verifyToken,
-  UserController.getProfile
+  ProfileController.getProfile
 );
 
 // PUT /api/users/me/profile - Actualizar perfil del usuario
 router.put('/me/profile',
   verifyToken,
-  UserController.updateProfile
+  ProfileController.updateProfile
 );
 
 // POST /api/users/me/avatar - Subir avatar del usuario
@@ -56,37 +57,37 @@ router.post('/me/avatar',
   verifyToken,
   upload.single('avatar'),
   handleMulterError,
-  UserController.uploadAvatar
+  ProfileController.uploadAvatar
 );
 
 // POST /api/users/follow - Seguir usuario
 router.post('/follow',
   verifyToken,
-  UserController.followUser
+  FollowController.followUser
 );
 
 // DELETE /api/users/:userId/follow - Dejar de seguir usuario
 router.delete('/:userId/follow',
   verifyToken,
-  UserController.unfollowUser
+  FollowController.unfollowUser
 );
 
 // GET /api/users/following - Obtener usuarios que sigues
 router.get('/following',
   verifyToken,
-  UserController.getFollowingUsers
+  FollowController.getFollowingUsers
 );
 
 // GET /api/users/:id - Obtener usuario por ID
 router.get('/:id',
   optionalAuth,
-  UserController.getUserById
+  ProfileController.getUserById
 );
 
 // POST /api/users/logout - Cerrar sesión
 router.post('/logout',
   verifyToken,
-  UserController.logout
+  AuthController.logout
 );
 
 module.exports = router;
