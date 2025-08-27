@@ -326,7 +326,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={NeutralColors.white} />
+      <StatusBar barStyle="light-content" backgroundColor={NeutralColors.black} />
       
       {/* Header con icono de configuración a la derecha */}
       <View style={styles.header}>
@@ -339,7 +339,7 @@ export default function ProfileScreen() {
             )}
           </View>
           <TouchableOpacity style={styles.settingsButton} onPress={handleSettings}>
-            <Ionicons name="settings-outline" size={24} color={TextColors.primary} />
+            <Ionicons name="settings-outline" size={24} color={TextColors.inverse} />
           </TouchableOpacity>
         </View>
       </View>
@@ -460,11 +460,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -474,19 +474,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   loadingText: {
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     fontSize: 16,
     fontWeight: '500',
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
   },
   errorTitle: {
-    color: TextColors.primary,
+    color: TextColors.inverse,
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 20,
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   errorText: {
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 30,
@@ -518,11 +518,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     paddingTop: 50,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: NeutralColors.gray200,
+    borderBottomColor: NeutralColors.gray800,
     shadowColor: NeutralColors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -549,11 +549,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: TextColors.primary,
+    color: TextColors.inverse,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     marginTop: 2,
   },
   headerRight: {
@@ -564,40 +564,40 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: NeutralColors.gray100,
+    backgroundColor: NeutralColors.gray800,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: NeutralColors.gray200,
+    borderColor: NeutralColors.gray700,
   },
   settingsButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: NeutralColors.gray100,
+    backgroundColor: NeutralColors.gray800,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: NeutralColors.gray200,
+    borderColor: NeutralColors.gray700,
   },
   scrollView: {
     flex: 1,
   },
   profileSection: {
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     paddingHorizontal: 20,
     paddingVertical: 30,
     alignItems: 'center',
   },
   usernameAboveAvatar: {
-    color: BrandColors.primary,
+    color: BrandColors.secondary,
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 20,
     textAlign: 'center',
   },
   fullNameBelowAvatar: {
-    color: TextColors.primary,
+    color: TextColors.inverse,
     fontSize: 22,
     fontWeight: 'bold',
     marginTop: 20,
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 4,
-    borderColor: BrandColors.primary,
+    borderColor: BrandColors.secondary,
   },
   avatarGlow: {
     position: 'absolute',
@@ -622,9 +622,9 @@ const styles = StyleSheet.create({
     right: -5,
     bottom: -5,
     borderRadius: 65,
-    backgroundColor: 'rgba(30, 58, 138, 0.2)',
+    backgroundColor: 'rgba(217, 119, 6, 0.2)',
     zIndex: -1,
-    shadowColor: BrandColors.primary,
+    shadowColor: BrandColors.secondary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: BrandColors.primary,
+    borderColor: BrandColors.secondary,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -656,12 +656,12 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: TextColors.primary,
+    color: TextColors.inverse,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 14,
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     textTransform: 'lowercase',
   },
   userInfo: {
@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
   },
   bio: {
     fontSize: 16,
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: NeutralColors.gray200,
+    borderColor: NeutralColors.gray700,
     shadowColor: BrandColors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -708,10 +708,10 @@ const styles = StyleSheet.create({
   postsSection: {
     paddingHorizontal: 0,
     paddingBottom: 30,
-    backgroundColor: NeutralColors.gray50,
+    backgroundColor: NeutralColors.gray900,
   },
   postsSectionTitle: {
-    color: TextColors.primary,
+    color: TextColors.inverse,
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,

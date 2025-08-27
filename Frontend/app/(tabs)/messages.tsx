@@ -138,15 +138,15 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
   },
   header: {
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: NeutralColors.gray200,
+    borderBottomColor: NeutralColors.gray800,
     shadowColor: NeutralColors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -156,22 +156,26 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: TextColors.primary,
+    color: TextColors.inverse,
     marginBottom: 5,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     lineHeight: 20,
   },
   newMessageButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF9800',
+    backgroundColor: BrandColors.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    ...shadows.small,
+    shadowColor: BrandColors.secondary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   conversationsList: {
     flex: 1,
@@ -181,9 +185,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     borderBottomWidth: 1,
-    borderBottomColor: NeutralColors.gray100,
+    borderBottomColor: NeutralColors.gray800,
   },
   avatarContainer: {
     position: 'relative',
@@ -194,7 +198,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     borderWidth: 2,
-    borderColor: NeutralColors.gray200,
+    borderColor: NeutralColors.gray700,
   },
   onlineIndicator: {
     position: 'absolute',
@@ -205,13 +209,13 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: BrandColors.success,
     borderWidth: 2,
-    borderColor: NeutralColors.white,
+    borderColor: NeutralColors.black,
   },
   verifiedBadge: {
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: BrandColors.primary,
@@ -228,11 +232,11 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: TextColors.primary,
+    color: TextColors.inverse,
   },
   timestamp: {
     fontSize: 12,
-    color: TextColors.tertiary,
+    color: TextColors.inverse,
   },
   messageContainer: {
     flexDirection: 'row',
@@ -242,12 +246,12 @@ const styles = StyleSheet.create({
   lastMessage: {
     flex: 1,
     fontSize: 14,
-    color: TextColors.tertiary,
+    color: TextColors.inverse,
     marginRight: 8,
   },
   unreadMessage: {
     fontWeight: '600',
-    color: TextColors.primary,
+    color: TextColors.inverse,
   },
   typingIndicator: {
     flexDirection: 'row',
@@ -256,7 +260,7 @@ const styles = StyleSheet.create({
   },
   typingText: {
     fontSize: 14,
-    color: TextColors.tertiary,
+    color: TextColors.inverse,
     fontStyle: 'italic',
     marginRight: 8,
   },

@@ -306,13 +306,13 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="light-content" backgroundColor={NeutralColors.black} />
       
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>Explorar</Text>
-                     <Text style={styles.headerSubtitle}>Descubre publicaciones de artistas que no sigues</Text>
+          <Text style={styles.headerSubtitle}>Descubre publicaciones de artistas que no sigues</Text>
         </View>
       </View>
 
@@ -336,8 +336,8 @@ export default function ExploreScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#FF9800"
-            colors={["#FF9800"]}
+            tintColor={BrandColors.secondary}
+            colors={[BrandColors.secondary]}
           />
         }
         onEndReached={loadMorePosts}
@@ -345,7 +345,7 @@ export default function ExploreScreen() {
         ListFooterComponent={
           loading && hasMore ? (
             <View style={styles.loadingFooter}>
-              <ActivityIndicator size="large" color="#FF9800" />
+              <ActivityIndicator size="large" color={BrandColors.secondary} />
               <Text style={styles.loadingText}>Cargando más publicaciones...</Text>
             </View>
           ) : null
@@ -353,11 +353,11 @@ export default function ExploreScreen() {
         ListEmptyComponent={
           !loading && posts.length === 0 ? (
             <View style={styles.emptyContainer}>
-                             <Ionicons name="people-outline" size={64} color="rgba(255,255,255,0.3)" />
-                             <Text style={styles.emptyTitle}>No hay publicaciones para explorar</Text>
-               <Text style={styles.emptySubtitle}>
-                 Ya sigues a todos los artistas disponibles. Intenta refrescar más tarde.
-               </Text>
+              <Ionicons name="people-outline" size={64} color={TextColors.inverse} />
+              <Text style={styles.emptyTitle}>No hay publicaciones para explorar</Text>
+              <Text style={styles.emptySubtitle}>
+                Ya sigues a todos los artistas disponibles. Intenta refrescar más tarde.
+              </Text>
             </View>
           ) : null
         }
@@ -369,28 +369,28 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     fontSize: 16,
     marginTop: 20,
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
   },
   errorTitle: {
-    color: TextColors.primary,
+    color: TextColors.inverse,
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 20,
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   errorText: {
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 30,
@@ -429,8 +429,8 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: NeutralColors.gray200,
-    backgroundColor: NeutralColors.white,
+    borderBottomColor: NeutralColors.gray800,
+    backgroundColor: NeutralColors.black,
     shadowColor: NeutralColors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -441,13 +441,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    color: TextColors.primary,
+    color: TextColors.inverse,
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   headerSubtitle: {
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     fontSize: 14,
     lineHeight: 18,
   },
@@ -463,10 +463,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 60,
     paddingHorizontal: 40,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
   },
   emptyTitle: {
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     fontSize: 18,
     fontWeight: '600',
     marginTop: 16,
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptySubtitle: {
-    color: TextColors.tertiary,
+    color: TextColors.inverse,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,

@@ -539,7 +539,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="light-content" backgroundColor={NeutralColors.black} />
       
       {/* Header del feed */}
       <View style={styles.header}>
@@ -557,7 +557,7 @@ export default function HomeScreen() {
             <Ionicons 
               name={showSavedPosts ? "bookmark" : "bookmark-outline"} 
               size={18} 
-              color={showSavedPosts ? "#ffffff" : "#FF9800"} 
+              color={showSavedPosts ? TextColors.inverse : BrandColors.secondary} 
             />
             <Text style={[
               styles.savedPostsText,
@@ -607,8 +607,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#FF9800"
-            colors={["#FF9800"]}
+            tintColor={BrandColors.secondary}
+            colors={[BrandColors.secondary]}
           />
         }
         onEndReached={loadMorePosts}
@@ -616,7 +616,7 @@ export default function HomeScreen() {
         ListFooterComponent={
           loading && hasMore ? (
             <View style={styles.loadingFooter}>
-              <ActivityIndicator size="large" color="#FF9800" />
+              <ActivityIndicator size="large" color={BrandColors.secondary} />
               <Text style={styles.loadingText}>Cargando más publicaciones...</Text>
             </View>
           ) : null
@@ -627,7 +627,7 @@ export default function HomeScreen() {
               <Ionicons 
                 name={showSavedPosts ? "bookmark-outline" : "people-outline"} 
                 size={64} 
-                color="rgba(255,255,255,0.3)" 
+                color={TextColors.inverse} 
               />
               <Text style={styles.emptyTitle}>
                 {showSavedPosts ? 'No hay publicaciones guardadas' : 'No hay publicaciones para mostrar'}
@@ -654,47 +654,47 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.black,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.black,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#333',
+    color: TextColors.inverse,
     fontSize: 16,
     marginTop: 16,
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.black,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
   },
   errorTitle: {
-    color: '#333',
+    color: TextColors.inverse,
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 20,
     marginBottom: 10,
   },
   errorText: {
-    color: '#666',
+    color: TextColors.inverse,
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 30,
   },
   retryButton: {
-    backgroundColor: '#ff6b9d',
+    backgroundColor: BrandColors.secondary,
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
   },
   retryButtonText: {
-    color: '#ffffff',
+    color: TextColors.inverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -702,9 +702,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     borderBottomWidth: 1,
-    borderBottomColor: NeutralColors.gray200,
+    borderBottomColor: NeutralColors.gray800,
     shadowColor: NeutralColors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerLeft: {
-    flex: 1, // Allow left side to take available space
+    flex: 1,
   },
   headerIndicator: {
     flexDirection: 'row',
@@ -734,25 +734,25 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: NeutralColors.gray400,
+    backgroundColor: NeutralColors.gray600,
     marginRight: 8,
   },
   indicatorDotActive: {
     backgroundColor: BrandColors.secondary,
   },
   indicatorText: {
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     fontSize: 12,
     fontWeight: '500',
   },
   headerTitle: {
-    color: TextColors.primary,
+    color: TextColors.inverse,
     fontSize: 28,
     fontWeight: '700',
     letterSpacing: -0.5,
   },
   headerSubtitle: {
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     fontSize: 15,
     fontWeight: '400',
     lineHeight: 20,
@@ -787,15 +787,15 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: NeutralColors.gray200,
+    backgroundColor: NeutralColors.gray800,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: NeutralColors.gray300,
+    borderColor: NeutralColors.gray700,
   },
   content: {
     flex: 1,
-    backgroundColor: NeutralColors.gray50,
+    backgroundColor: NeutralColors.gray900,
   },
   scrollContent: {
     paddingBottom: 100,   
@@ -805,17 +805,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 100,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
   },
   emptyTitle: {
-    color: TextColors.primary,
+    color: TextColors.inverse,
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 20,
     marginBottom: 10,
   },
   emptyText: {
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     fontSize: 16,
     textAlign: 'center',
     paddingHorizontal: 40,
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emptySubtitle: {
-    color: TextColors.secondary,
+    color: TextColors.inverse,
     fontSize: 16,
     textAlign: 'center',
     paddingHorizontal: 40,

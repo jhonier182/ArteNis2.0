@@ -120,15 +120,15 @@ export default function AddScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 30,
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     borderBottomWidth: 1,
-    borderBottomColor: NeutralColors.gray200,
+    borderBottomColor: NeutralColors.gray800,
     shadowColor: NeutralColors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -138,17 +138,17 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: TextColors.primary,
+    color: TextColors.inverse,
     marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: TextColors.secondary,
+    color: TextColors.inverse,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    backgroundColor: NeutralColors.gray50,
+    backgroundColor: NeutralColors.gray900,
   },
   optionsGrid: {
     paddingTop: 20,
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     borderWidth: 1,
-    borderColor: NeutralColors.gray200,
+    borderColor: NeutralColors.gray700,
   },
   optionGradient: {
     width: 60,
@@ -182,12 +182,12 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: TextColors.primary,
+    color: TextColors.inverse,
     marginBottom: 4,
   },
   optionSubtitle: {
     fontSize: 14,
-    color: TextColors.secondary,
+    color: TextColors.inverse,
   },
   quickTools: {
     marginTop: 20,
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: TextColors.primary,
+    color: TextColors.inverse,
     marginBottom: 16,
   },
   quickToolsRow: {
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
   quickTool: {
     width: '48%',
-    backgroundColor: NeutralColors.white,
+    backgroundColor: NeutralColors.black,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
@@ -216,13 +216,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
     borderWidth: 1,
-    borderColor: NeutralColors.gray200,
+    borderColor: NeutralColors.gray700,
   },
   quickToolText: {
     marginTop: 8,
     fontSize: 14,
     fontWeight: '600',
-    color: TextColors.primary,
+    color: TextColors.inverse,
     textAlign: 'center',
   },
 });
