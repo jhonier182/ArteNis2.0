@@ -15,7 +15,7 @@ export default function Logout() {
         if (refreshToken) {
           try {
             const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-            await fetch(`${apiUrl}/api/users/logout`, {
+            await fetch(`${apiUrl}/api/auth/logout`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ refreshToken })

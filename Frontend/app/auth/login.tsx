@@ -23,7 +23,7 @@ export default function Login() {
     if (!identifier || !password) return;
     try {
       setLoading(true);
-      const res = await axios.post(`${apiUrl}/api/users/login`, { identifier, password });
+      const res = await axios.post(`${apiUrl}/api/auth/login`, { identifier, password });
       const data = res.data;
       let token =
         data?.data?.token ||

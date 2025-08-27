@@ -101,7 +101,7 @@ export default function EditProfileScreen() {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/users/me/profile`, {
+      const response = await fetch(`${API_BASE_URL}/api/profile/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -170,7 +170,7 @@ export default function EditProfileScreen() {
       };
 
       // Actualizar perfil
-      const response = await fetch(`${API_BASE_URL}/api/users/me/profile`, {
+      const response = await fetch(`${API_BASE_URL}/api/profile/me`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

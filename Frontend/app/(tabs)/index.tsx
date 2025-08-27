@@ -216,8 +216,8 @@ export default function HomeScreen() {
       }
 
       const url = isFollowing 
-        ? `${API_BASE_URL}/api/users/${userId}/follow`
-        : `${API_BASE_URL}/api/users/follow`;
+        ? `${API_BASE_URL}/api/follow/${userId}`
+        : `${API_BASE_URL}/api/follow`;
       
       const method = isFollowing ? 'DELETE' : 'POST';
       const body = isFollowing ? undefined : JSON.stringify({ userId });

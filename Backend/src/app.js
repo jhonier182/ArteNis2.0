@@ -83,11 +83,10 @@ if (process.env.NODE_ENV === 'production') {
   });
   app.use(prodLimiter);
 } else {
- 
   // Rate limiting estricto solo para autenticación
-  app.use('/api/users/login', strictRateLimit);
-  app.use('/api/users/register', strictRateLimit);
-  app.use('/api/users/refresh', strictRateLimit);
+  app.use('/api/auth/login', strictRateLimit);
+  app.use('/api/auth/register', strictRateLimit);
+  app.use('/api/auth/refresh', strictRateLimit);
   
   // Rate limiting permisivo para el resto de rutas
   app.use('/api', devRateLimit);
@@ -162,42 +161,6 @@ app.use('/api/follow', require('./routes/followRoutes'));
 app.use('/api/posts', postRoutes);
 app.use('/api/boards', boardRoutes);
 
-// Rutas de compatibilidad (mantienen los endpoints originales)
-app.use('/api/users', (req, res, next) => {
-  // Redirigir rutas de autenticación
-  if (req.path === '/register' || req.path === '/login' || req.path === '/refresh' || req.path === '/logout') {
-    req.url = req.path.replace('/', '');
-    return require('./routes/authRoutes')(req, res, next);
-  }
-  
-  // Redirigir rutas de perfil
-  if (req.path === '/me/profile' || req.path === '/me/avatar' || req.path.match(/^\/\d+$/)) {
-    req.url = req.path;
-    return require('./routes/profileRoutes')(req, res, next);
-  }
-  
-  // Redirigir rutas de búsqueda
-  if (req.path === '/search') {
-    req.url = '/users';
-    return require('./routes/searchRoutes')(req, res, next);
-  }
-  
-  // Redirigir rutas de seguimiento
-  if (req.path === '/follow' || req.path === '/following' || req.path.match(/^\/\d+\/follow$/)) {
-    if (req.path === '/follow') {
-      req.url = '/';
-    } else if (req.path === '/following') {
-      req.url = '/following';
-    } else {
-      req.url = req.path.replace(/^\/\d+\/follow$/, '/$1');
-    }
-    return require('./routes/followRoutes')(req, res, next);
-  }
-  
-  // Si no coincide con ninguna ruta, continuar
-  next();
-});
-
 // Ruta raíz
 app.get('/', (req, res) => {
   res.status(200).json({
@@ -209,7 +172,6 @@ app.get('/', (req, res) => {
       profile: '/api/profile',
       search: '/api/search',
       follow: '/api/follow',
-      users: '/api/users (compatibilidad)',
       posts: '/api/posts',
       boards: '/api/boards',
       health: '/health'

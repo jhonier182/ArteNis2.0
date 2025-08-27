@@ -56,9 +56,7 @@ export default function ExploreScreen() {
         return;
       }
 
-      // Intentar obtener la lista de usuarios seguidos
-      // Si el endpoint /api/users/following falla, usaremos una alternativa
-      const response = await fetch(`${API_BASE_URL}/api/users/following`, {
+      const response = await fetch(`${API_BASE_URL}/api/follow/following`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -215,8 +213,8 @@ export default function ExploreScreen() {
       }
 
       const url = isFollowing 
-        ? `${API_BASE_URL}/api/users/${userId}/follow`
-        : `${API_BASE_URL}/api/users/follow`;
+        ? `${API_BASE_URL}/api/follow/${userId}`
+        : `${API_BASE_URL}/api/follow`;
       
       const method = isFollowing ? 'DELETE' : 'POST';
       const body = isFollowing ? undefined : JSON.stringify({ userId });

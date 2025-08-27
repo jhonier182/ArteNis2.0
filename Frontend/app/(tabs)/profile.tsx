@@ -73,7 +73,7 @@ export default function ProfileScreen() {
         return;
       }
  
-      const response = await fetch(`${API_BASE_URL}/api/users/me/profile`, {
+      const response = await fetch(`${API_BASE_URL}/api/profile/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -85,7 +85,7 @@ export default function ProfileScreen() {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         if (refreshToken) {
           try {
-            const refreshResponse = await fetch(`${API_BASE_URL}/api/users/refresh`, {
+            const refreshResponse = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ refreshToken })
@@ -213,7 +213,7 @@ export default function ProfileScreen() {
             headers['Content-Type'] = 'multipart/form-data';
           }
 
-          const imageResponse = await fetch(`${API_BASE_URL}/api/users/me/avatar`, {
+          const imageResponse = await fetch(`${API_BASE_URL}/api/profile/me/avatar`, {
             method: 'POST',
             headers,
             body: imageFormData

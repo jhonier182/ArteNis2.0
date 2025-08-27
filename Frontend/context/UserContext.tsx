@@ -32,7 +32,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!token) return;
       
       // Obtener perfil del usuario
-      const profileRes = await axios.get(`${apiUrl}/api/users/me/profile`, {
+      const profileRes = await axios.get(`${apiUrl}/api/profile/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       

@@ -27,7 +27,7 @@ export default function Signup() {
     }
     try {
       setLoading(true);
-      const { data } = await axios.post(`${apiUrl}/api/users/register`, {
+      const { data } = await axios.post(`${apiUrl}/api/auth/register`, {
         username, email, password, fullName: username
       }, { timeout: 15000 });
       // Guardar refresh si viene (el backend devuelve en register)
