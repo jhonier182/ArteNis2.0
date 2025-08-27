@@ -325,7 +325,6 @@ export default function ElegantPostCard({
               {/* Indicador de deslizar hacia la derecha */}
               <View style={styles.swipeIndicator}>
                 <View style={styles.swipeBar} />
-                <Text style={styles.swipeText}>Desliza → para cerrar</Text>
               </View>
               
               {/* Header del post */}
@@ -468,11 +467,6 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: NeutralColors.gray700,
     borderRadius: 2,
-    marginBottom: 5,
-  },
-  swipeText: {
-    color: TextColors.inverse,
-    fontSize: 14,
   },
   postHeader: {
     flexDirection: 'row',
