@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useUser } from '../context/UserContext';
 import { useRouter } from 'expo-router';
 import { createShadow, shadows } from '../utils/shadowHelper';
+import { NeutralColors, BrandColors, TextColors } from '../constants/Colors';
 
 const { width } = Dimensions.get('window');
 
@@ -299,7 +300,7 @@ export default function ElegantPostCard({
           <Ionicons 
             name={isLiked ? "heart" : "heart-outline"} 
             size={20} 
-            color={isLiked ? "#ff6b6b" : "#666"} 
+            color={isLiked ? BrandColors.error : "#666"} 
           />
           <Text style={[styles.metricText, isLiked && styles.likedText]}>
             {formatNumber(likesCount)}
@@ -322,13 +323,17 @@ export default function ElegantPostCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 0,
-    marginHorizontal: 0,
-    marginBottom:4, // Aumentar el espacio entre publicaciones
-    ...shadows.large,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    backgroundColor: NeutralColors.black,
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    shadowColor: NeutralColors.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: NeutralColors.gray800,
   },
   header: {
     flexDirection: 'row',
@@ -336,6 +341,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
+    backgroundColor: NeutralColors.gray900,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   userInfo: {
     flexDirection: 'row',
@@ -345,20 +353,27 @@ const styles = StyleSheet.create({
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 22,
     marginRight: 12,
+    borderWidth: 2,
+    borderColor: BrandColors.primary,
   },
   userDetails: {
     flex: 1,
   },
   username: {
-    color: '#ffffff',
+    color: TextColors.inverse,
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 2,
   },
+  fullName: {
+    color: TextColors.inverse,
+    fontSize: 14,
+    marginBottom: 2,
+  },
   timeAgo: {
-    color: '#999',
+    color: TextColors.inverse,
     fontSize: 14,
   },
   followButtonContainer: {
@@ -371,18 +386,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   followingButton: {
-    backgroundColor: '#333',
+    backgroundColor: NeutralColors.gray700,
     paddingHorizontal: 24,
     paddingVertical: 8,
     borderRadius: 20,
   },
   followText: {
-    color: '#ffffff',
+    color: TextColors.inverse,
     fontSize: 14,
     fontWeight: '600',
   },
   followingText: {
-    color: '#999',
+    color: TextColors.inverse,
   },
   imageContainer: {
     width: '100%',
@@ -396,7 +411,8 @@ const styles = StyleSheet.create({
   },
   descriptionContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 20, // Aumentar el padding vertical
+    paddingVertical: 20,
+    backgroundColor: NeutralColors.black,
   },
   descriptionRow: {
     flexDirection: 'row',
@@ -404,7 +420,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   description: {
-    color: '#ffffff',
+    color: TextColors.inverse,
     fontSize: 16,
     lineHeight: 22,
     flex: 1,
@@ -420,7 +436,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   viewsText: {
-    color: '#666',
+    color: TextColors.inverse,
     fontSize: 12,
     fontWeight: '500',
   },
@@ -428,9 +444,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingHorizontal: 20,
-    paddingVertical: 24, // Aumentar el padding vertical para más espacio
+    paddingVertical: 24,
     borderTopWidth: 1,
-    borderTopColor: '#333',
+    borderTopColor: NeutralColors.gray800,
+    backgroundColor: NeutralColors.gray900,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   metricItem: {
     flexDirection: 'row',
@@ -438,12 +457,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metricText: {
-    color: '#999',
+    color: TextColors.inverse,
     fontSize: 14,
     fontWeight: '500',
   },
   likedText: {
-    color: '#ff6b6b',
+    color: BrandColors.error,
   },
   moreButton: {
     padding: 8,

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { createShadow, shadows } from '../utils/shadowHelper';
+import { NeutralColors, BrandColors, TextColors } from '../constants/Colors';
 
 const { width } = Dimensions.get('window');
 
@@ -29,7 +29,7 @@ export default function PendingPostCard({ post, progress = 0 }: PendingPostCardP
         
         {/* Indicador de estado */}
         <View style={styles.statusIndicator}>
-          <Ionicons name="time-outline" size={20} color="#ffd700" />
+          <Ionicons name="time-outline" size={20} color={BrandColors.warning} />
         </View>
       </View>
 
@@ -53,7 +53,7 @@ export default function PendingPostCard({ post, progress = 0 }: PendingPostCardP
           ]}
         >
           <LinearGradient
-            colors={['#ff6b35', '#f7931e', '#ff4757']}
+            colors={[BrandColors.secondary, BrandColors.accent, BrandColors.error]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.progressGradient}
@@ -66,13 +66,17 @@ export default function PendingPostCard({ post, progress = 0 }: PendingPostCardP
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 0,
-    marginHorizontal: 0,
-    marginBottom: 4,
-    ...shadows.large,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    backgroundColor: NeutralColors.black,
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    shadowColor: NeutralColors.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: NeutralColors.gray800,
     opacity: 0.8, // Hacer el post semi-transparente
   },
   header: {
@@ -81,6 +85,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
+    backgroundColor: NeutralColors.gray900,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   userInfo: {
     flexDirection: 'row',
@@ -92,18 +99,20 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 12,
+    borderWidth: 2,
+    borderColor: BrandColors.primary,
   },
   userDetails: {
     flex: 1,
   },
   username: {
-    color: '#ffffff',
+    color: TextColors.inverse,
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 2,
   },
   timeAgo: {
-    color: '#ffd700',
+    color: BrandColors.warning,
     fontSize: 14,
     fontStyle: 'italic',
   },
@@ -125,6 +134,8 @@ const styles = StyleSheet.create({
     height: 3,
     backgroundColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   progressBar: {
     height: '100%',

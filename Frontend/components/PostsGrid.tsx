@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import { NeutralColors, BrandColors, TextColors } from '../constants/Colors';
 
 const { width } = Dimensions.get('window');
 const POSTS_PER_PAGE = 12; // 3 columnas x 4 filas por página
@@ -301,8 +302,7 @@ export default function PostsGrid({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 100,
+    backgroundColor: NeutralColors.black,
   },
   embeddedContainer: {
     paddingHorizontal: 0,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   endText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TextColors.inverse,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyTitle: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TextColors.inverse,
     fontSize: 18,
     fontWeight: '600',
     marginTop: 16,
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptySubtitle: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TextColors.inverse,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
@@ -451,20 +451,20 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   errorText: {
-    color: '#ff6b6b',
+    color: BrandColors.error,
     fontSize: 16,
     textAlign: 'center',
     marginTop: 16,
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#FF9800',
+    backgroundColor: BrandColors.secondary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 20,
   },
   retryButtonText: {
-    color: '#000000',
+    color: TextColors.inverse,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
   },
   embeddedEmptyText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TextColors.inverse,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
