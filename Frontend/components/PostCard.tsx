@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BrandColors, TextColors, NeutralColors, StateColors } from '../constants/Colors';
 
 const { width } = Dimensions.get('window');
 
@@ -163,7 +164,7 @@ export default function PostCard({
             source={{ uri: post.author.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face' }} 
             style={styles.avatar}
           />
-          <View style={styles.userDetails}>
+          <View style={styles.userTextContainer}>
             <View style={styles.usernameRow}>
               <Text style={styles.username}>{post.author.username}</Text>
               {post.author.isVerified && (
@@ -269,8 +270,15 @@ export default function PostCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#000000',
-    marginBottom: 20,
+    backgroundColor: NeutralColors.white,
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: NeutralColors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   header: {
     flexDirection: 'row',
@@ -278,33 +286,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: NeutralColors.gray50,
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    gap: 12,
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    marginRight: 12,
+    borderWidth: 2,
+    borderColor: BrandColors.primary,
   },
-  userDetails: {
+  userTextContainer: {
     flex: 1,
   },
-  usernameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
   username: {
-    color: '#ffffff',
+    color: TextColors.primary,
     fontSize: 16,
     fontWeight: '600',
   },
   fullName: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TextColors.secondary,
     fontSize: 14,
   },
   moreButton: {
@@ -313,17 +318,24 @@ const styles = StyleSheet.create({
   followButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#00d4ff',
+    backgroundColor: BrandColors.primary,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
     gap: 8,
+    shadowColor: BrandColors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   followingButton: {
-    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+    backgroundColor: NeutralColors.gray200,
+    borderWidth: 1,
+    borderColor: BrandColors.primary,
   },
   followButtonText: {
-    color: '#ffffff',
+    color: TextColors.inverse,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -341,6 +353,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: NeutralColors.white,
   },
   leftActions: {
     flexDirection: 'row',
@@ -356,26 +369,30 @@ const styles = StyleSheet.create({
   likesSection: {
     paddingHorizontal: 16,
     paddingBottom: 8,
+    backgroundColor: NeutralColors.white,
   },
   likesText: {
-    color: '#ffffff',
+    color: TextColors.primary,
     fontSize: 16,
     fontWeight: '600',
   },
   likesCount: {
     fontWeight: 'bold',
+    color: BrandColors.primary,
   },
   descriptionSection: {
     paddingHorizontal: 16,
     paddingBottom: 8,
+    backgroundColor: NeutralColors.white,
   },
   description: {
-    color: '#ffffff',
+    color: TextColors.primary,
     fontSize: 16,
     lineHeight: 22,
   },
   usernameInDescription: {
     fontWeight: '600',
+    color: BrandColors.primary,
   },
   hashtagsContainer: {
     flexDirection: 'row',
@@ -383,26 +400,29 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   hashtag: {
-    color: '#00d4ff',
+    color: BrandColors.accent,
     fontSize: 16,
     marginRight: 8,
+    fontWeight: '500',
   },
   commentsSection: {
     paddingHorizontal: 16,
     paddingBottom: 8,
+    backgroundColor: NeutralColors.white,
   },
   commentsText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TextColors.secondary,
     fontSize: 14,
   },
   dateText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TextColors.tertiary,
     fontSize: 12,
     paddingHorizontal: 16,
     paddingBottom: 16,
+    backgroundColor: NeutralColors.white,
   },
   errorText: {
-    color: '#ff6b6b',
+    color: StateColors.error,
     fontSize: 16,
     textAlign: 'center',
     padding: 20,

@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createShadow, shadows } from '../../utils/shadowHelper';
 import { UserProvider } from '../../context/UserContext';
+import { BrandColors, TextColors, NeutralColors, Gradients } from '../../constants/Colors';
 
 export default function TabLayout() {
   useEffect(() => {
@@ -31,7 +32,9 @@ export default function TabLayout() {
         height: 80,
         paddingBottom: 20,
         paddingTop: 10,
-        backgroundColor: '#000000',
+        backgroundColor: NeutralColors.black,
+        borderTopWidth: 1,
+        borderTopColor: NeutralColors.gray800,
       }}
     />
   );
@@ -54,8 +57,8 @@ export default function TabLayout() {
             elevation: 0,
             shadowOpacity: 0,
           },
-          tabBarActiveTintColor: '#ffffff',
-          tabBarInactiveTintColor: 'rgba(255,255,255,0.6)',
+          tabBarActiveTintColor: BrandColors.primary,
+          tabBarInactiveTintColor: NeutralColors.gray400,
           tabBarLabelStyle: {
             fontSize: 12,
             fontWeight: '600',
@@ -71,7 +74,7 @@ export default function TabLayout() {
               <Ionicons 
                 name={focused ? "home" : "home-outline"} 
                 size={24} 
-                color={focused ? "#ff3b30" : color} 
+                color={focused ? BrandColors.primary : color} 
               />
             ),
           }}
@@ -85,7 +88,7 @@ export default function TabLayout() {
               <Ionicons 
                 name={focused ? "compass" : "compass-outline"} 
                 size={24} 
-                color={focused ? "#ff3b30" : color} 
+                color={focused ? BrandColors.primary : color} 
               />
             ),
           }}
@@ -103,11 +106,11 @@ export default function TabLayout() {
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginBottom: 20,
-                ...createShadow('#000', { width: 0, height: 4 }, 0.3, 4.65, 8),
+                ...createShadow(BrandColors.secondary, { width: 0, height: 6 }, 0.4, 8, 12),
                 overflow: 'hidden',
               }}>
                 <LinearGradient
-                  colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
+                  colors={Gradients.primary}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={{
@@ -121,7 +124,7 @@ export default function TabLayout() {
                   <Ionicons 
                     name="add" 
                     size={32} 
-                    color="#ffffff" 
+                    color={TextColors.inverse} 
                   />
                 </LinearGradient>
               </View>
@@ -137,7 +140,7 @@ export default function TabLayout() {
               <Ionicons 
                 name={focused ? "chatbubble" : "chatbubble-outline"} 
                 size={24} 
-                color={focused ? "#ff3b30" : color} 
+                color={focused ? BrandColors.primary : color} 
               />
             ),
           }}
@@ -151,7 +154,7 @@ export default function TabLayout() {
               <Ionicons 
                 name={focused ? "person" : "person-outline"} 
                 size={24} 
-                color={focused ? "#ff3b30" : color} 
+                color={focused ? BrandColors.primary : color} 
               />
             ),
           }}

@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../../context/UserContext';
 import { createShadow, shadows } from '../../utils/shadowHelper';
 import ElegantPostCard from '../../components/ElegantPostCard';
+import { BrandColors, TextColors, NeutralColors, StateColors } from '../../constants/Colors';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -368,28 +369,28 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.white,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#ffffff',
+    color: TextColors.secondary,
     fontSize: 16,
     marginTop: 20,
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.white,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
   },
   errorTitle: {
-    color: '#ffffff',
+    color: TextColors.primary,
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 20,
@@ -397,22 +398,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   errorText: {
-    color: '#ffffff',
+    color: TextColors.secondary,
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 30,
     lineHeight: 22,
   },
   retryButton: {
-    backgroundColor: '#FF9800',
+    backgroundColor: BrandColors.secondary,
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
     marginBottom: 15,
-    ...shadows.small,
+    shadowColor: BrandColors.secondary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   retryButtonText: {
-    color: '#000000',
+    color: TextColors.inverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -424,19 +429,25 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: NeutralColors.gray200,
+    backgroundColor: NeutralColors.white,
+    shadowColor: NeutralColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerLeft: {
     flex: 1,
   },
   headerTitle: {
-    color: '#ffffff',
+    color: TextColors.primary,
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   headerSubtitle: {
-    color: '#999',
+    color: TextColors.secondary,
     fontSize: 14,
     lineHeight: 18,
   },
@@ -452,9 +463,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 60,
     paddingHorizontal: 40,
+    backgroundColor: NeutralColors.white,
   },
   emptyTitle: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TextColors.secondary,
     fontSize: 18,
     fontWeight: '600',
     marginTop: 16,
@@ -462,7 +474,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptySubtitle: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TextColors.tertiary,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,

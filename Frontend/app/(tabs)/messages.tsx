@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createShadow, shadows } from '../../utils/shadowHelper';
+import { BrandColors, TextColors, NeutralColors, StateColors } from '../../constants/Colors';
 
 export default function MessagesScreen() {
   const conversations = [
@@ -137,23 +138,31 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.white,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
+    backgroundColor: NeutralColors.white,
+    paddingTop: 50,
     paddingBottom: 20,
-    backgroundColor: '#1a1a1a',
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: NeutralColors.gray200,
+    shadowColor: NeutralColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: TextColors.primary,
+    marginBottom: 5,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: TextColors.secondary,
+    lineHeight: 20,
   },
   newMessageButton: {
     width: 40,
@@ -172,36 +181,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: NeutralColors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: NeutralColors.gray100,
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: 16,
+    marginRight: 15,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: NeutralColors.gray200,
   },
   onlineIndicator: {
     position: 'absolute',
     bottom: 2,
     right: 2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#4CAF50',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: BrandColors.success,
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: NeutralColors.white,
   },
   verifiedBadge: {
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: NeutralColors.white,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BrandColors.primary,
   },
   conversationContent: {
     flex: 1,
@@ -215,11 +228,11 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
+    color: TextColors.primary,
   },
   timestamp: {
     fontSize: 12,
-    color: '#999',
+    color: TextColors.tertiary,
   },
   messageContainer: {
     flexDirection: 'row',
@@ -229,12 +242,12 @@ const styles = StyleSheet.create({
   lastMessage: {
     flex: 1,
     fontSize: 14,
-    color: '#999',
+    color: TextColors.tertiary,
     marginRight: 8,
   },
   unreadMessage: {
     fontWeight: '600',
-    color: '#ffffff',
+    color: TextColors.primary,
   },
   typingIndicator: {
     flexDirection: 'row',
@@ -243,7 +256,7 @@ const styles = StyleSheet.create({
   },
   typingText: {
     fontSize: 14,
-    color: '#999',
+    color: TextColors.tertiary,
     fontStyle: 'italic',
     marginRight: 8,
   },
@@ -255,7 +268,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#999',
+    backgroundColor: BrandColors.primary,
     marginHorizontal: 1,
   },
   dot1: {
@@ -268,16 +281,21 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   unreadBadge: {
-    backgroundColor: '#FF9800',
+    backgroundColor: BrandColors.secondary,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 6,
+    shadowColor: BrandColors.secondary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   unreadCount: {
-    color: 'white',
+    color: TextColors.inverse,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -288,9 +306,13 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FF9800',
+    backgroundColor: BrandColors.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    ...createShadow('#000', { width: 0, height: 4 }, 0.3, 4.65, 8),
+    shadowColor: BrandColors.secondary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });

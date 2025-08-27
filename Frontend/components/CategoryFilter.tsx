@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { BrandColors, TextColors, NeutralColors, StateColors } from '../constants/Colors';
 
 interface Category {
   id: string;
@@ -71,10 +72,15 @@ export default function CategoryFilter({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1a1a1a',
-    paddingVertical: 8,
+    backgroundColor: NeutralColors.white,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: NeutralColors.gray200,
+    shadowColor: NeutralColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -84,19 +90,30 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginRight: 12,
     borderRadius: 20,
-    backgroundColor: '#333',
+    backgroundColor: NeutralColors.gray100,
+    borderWidth: 1,
+    borderColor: NeutralColors.gray200,
     position: 'relative',
+    shadowColor: NeutralColors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   selectedCategory: {
-    backgroundColor: '#ff6b9d',
+    backgroundColor: BrandColors.primary,
+    borderColor: BrandColors.primary,
+    shadowColor: BrandColors.primary,
+    shadowOpacity: 0.3,
+    elevation: 3,
   },
   categoryText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#999',
+    color: TextColors.secondary,
   },
   selectedCategoryText: {
-    color: '#ffffff',
+    color: TextColors.inverse,
     fontWeight: '600',
   },
   selectedIndicator: {
@@ -107,6 +124,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ff6b9d',
+    backgroundColor: BrandColors.primary,
+    shadowColor: BrandColors.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });

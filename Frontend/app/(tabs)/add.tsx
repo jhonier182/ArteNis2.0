@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { createShadow, shadows } from '../../utils/shadowHelper';
+import { BrandColors, TextColors, NeutralColors, StateColors } from '../../constants/Colors';
 
 export default function AddScreen() {
   const router = useRouter();
@@ -119,29 +120,35 @@ export default function AddScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.white,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 30,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: NeutralColors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: NeutralColors.gray200,
+    shadowColor: NeutralColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: TextColors.primary,
     marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#999',
+    color: TextColors.secondary,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
+    backgroundColor: NeutralColors.gray50,
   },
   optionsGrid: {
     paddingTop: 20,
@@ -149,13 +156,17 @@ const styles = StyleSheet.create({
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: NeutralColors.white,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    ...shadows.medium,
+    shadowColor: NeutralColors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: NeutralColors.gray200,
   },
   optionGradient: {
     width: 60,
@@ -171,12 +182,12 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: TextColors.primary,
     marginBottom: 4,
   },
   optionSubtitle: {
     fontSize: 14,
-    color: '#999',
+    color: TextColors.secondary,
   },
   quickTools: {
     marginTop: 20,
@@ -185,7 +196,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: TextColors.primary,
     marginBottom: 16,
   },
   quickToolsRow: {
@@ -195,19 +206,23 @@ const styles = StyleSheet.create({
   },
   quickTool: {
     width: '48%',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: NeutralColors.white,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
-    ...shadows.small,
+    shadowColor: NeutralColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: NeutralColors.gray200,
   },
   quickToolText: {
     marginTop: 8,
     fontSize: 14,
     fontWeight: '600',
-    color: '#ffffff',
+    color: TextColors.primary,
     textAlign: 'center',
   },
 });

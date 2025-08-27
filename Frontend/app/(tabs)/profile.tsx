@@ -21,6 +21,7 @@ import { useUser } from '../../context/UserContext';
 import * as ImagePicker from 'expo-image-picker';
 import PostsGrid from '../../components/PostsGrid';
 import { createShadow, shadows } from '../../utils/shadowHelper';
+import { BrandColors, TextColors, NeutralColors, StateColors } from '../../constants/Colors';
 
 const { width } = Dimensions.get('window');
 
@@ -457,23 +458,17 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.white,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingSpinner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,152,0,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,152,0,0.3)',
+    width: 40,
+    height: 40,
     marginBottom: 20,
   },
   loadingText: {
@@ -517,22 +512,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    backgroundColor: NeutralColors.white,
     paddingTop: 50,
     paddingBottom: 20,
-    backgroundColor: '#000000',
-    ...createShadow('#FF9800', { width: 0, height: 2 }, 0.1, 8, 8),
-    zIndex: 1000,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,152,0,0.05)',
+    borderBottomColor: NeutralColors.gray200,
+    shadowColor: NeutralColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  headerLeft: {
-    width: 44, // Espacio para balancear el header
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
   },
   headerLoadingIndicator: {
     width: 20,
@@ -540,37 +540,58 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: TextColors.primary,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: TextColors.secondary,
+    marginTop: 2,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: NeutralColors.gray100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: NeutralColors.gray200,
+  },
   settingsButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: NeutralColors.gray100,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: NeutralColors.gray200,
   },
   scrollView: {
     flex: 1,
   },
   profileSection: {
-    alignItems: 'center',
+    backgroundColor: NeutralColors.white,
     paddingHorizontal: 20,
-    paddingBottom: 30,
-    paddingTop: 20,
-    backgroundColor: '#000000',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,152,0,0.1)',
+    paddingVertical: 30,
+    alignItems: 'center',
   },
   usernameAboveAvatar: {
-    color: '#FF9800',
+    color: BrandColors.primary,
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 20,
     textAlign: 'center',
   },
   fullNameBelowAvatar: {
-    color: '#ffffff',
+    color: TextColors.primary,
     fontSize: 22,
     fontWeight: 'bold',
     marginTop: 20,
@@ -580,21 +601,13 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: 'relative',
     marginBottom: 20,
-    shadowColor: '#FF9800',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
   },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    borderWidth: 3,
-    borderColor: 'rgba(255,152,0,0.5)',
+    borderWidth: 4,
+    borderColor: BrandColors.primary,
   },
   avatarGlow: {
     position: 'absolute',
@@ -603,9 +616,13 @@ const styles = StyleSheet.create({
     right: -5,
     bottom: -5,
     borderRadius: 65,
-    backgroundColor: 'rgba(255,152,0,0.2)',
+    backgroundColor: 'rgba(30, 58, 138, 0.2)',
     zIndex: -1,
-    ...shadows.orangeExtraLarge,
+    shadowColor: BrandColors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   cameraOverlay: {
     position: 'absolute',
@@ -614,11 +631,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: NeutralColors.black,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FF9800',
+    borderColor: BrandColors.primary,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -633,12 +650,12 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: TextColors.primary,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+    color: TextColors.secondary,
     textTransform: 'lowercase',
   },
   userInfo: {
@@ -647,7 +664,7 @@ const styles = StyleSheet.create({
   },
   bio: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
+    color: TextColors.secondary,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -663,8 +680,12 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    ...createShadow('#FF9800', { width: 0, height: 4 }, 0.2, 8, 6),
+    borderColor: NeutralColors.gray200,
+    shadowColor: BrandColors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   buttonGradient: {
     flex: 1,
@@ -676,22 +697,21 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
+    color: TextColors.inverse,
   },
   postsSection: {
-    paddingHorizontal: 0, // Sin padding horizontal para que las imágenes ocupen todo el ancho
+    paddingHorizontal: 0,
     paddingBottom: 30,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.gray50,
   },
   postsSectionTitle: {
-    color: '#ffffff',
+    color: TextColors.primary,
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
     textAlign: 'center',
-    paddingHorizontal: 20, // Padding solo para el título
+    paddingHorizontal: 20,
   },
-
   imageModal: {
     position: 'absolute',
     top: 0,
@@ -721,5 +741,4 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
   },
-
 });
