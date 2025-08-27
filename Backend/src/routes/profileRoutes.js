@@ -5,19 +5,19 @@ const { upload, handleMulterError } = require('../middlewares/upload');
 
 const router = express.Router();
 
-// GET /api/profile/me/profile - Obtener perfil del usuario autenticado (ruta original)
-router.get('/me/profile',
+// GET /api/profile/me - Obtener perfil del usuario autenticado
+router.get('/me',
   verifyToken,
   ProfileController.getProfile
 );
 
-// PUT /api/profile/me/profile - Actualizar perfil del usuario (ruta original)
-router.put('/me/profile',
+// PUT /api/profile/me - Actualizar perfil del usuario
+router.put('/me',
   verifyToken,
   ProfileController.updateProfile
 );
 
-// POST /api/profile/me/avatar - Subir avatar del usuario (ruta original)
+// POST /api/profile/me/avatar - Subir avatar del usuario
 router.post('/me/avatar',
   verifyToken,
   upload.single('avatar'),
@@ -25,7 +25,7 @@ router.post('/me/avatar',
   ProfileController.uploadAvatar
 );
 
-// GET /api/profile/:id - Obtener usuario por ID (ruta original)
+// GET /api/profile/:id - Obtener usuario por ID
 router.get('/:id',
   optionalAuth,
   ProfileController.getUserById

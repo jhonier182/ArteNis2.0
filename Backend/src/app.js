@@ -11,7 +11,6 @@ const logger = require('./utils/logger');
 const { sequelize } = require('./config/db');
 
 // Importar rutas
-const userRoutes = require('./routes/userRoutes');
 const postRoutes = require('./routes/postRoutes');
 const boardRoutes = require('./routes/boardRoutes');
 const searchRoutes = require('./routes/searchRoutes');
@@ -156,10 +155,48 @@ app.get('/health', async (req, res) => {
 });
 
 // Rutas de la API
-app.use('/api/users', userRoutes);
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/profile', require('./routes/profileRoutes'));
+app.use('/api/search', require('./routes/searchRoutes'));
+app.use('/api/follow', require('./routes/followRoutes'));
 app.use('/api/posts', postRoutes);
 app.use('/api/boards', boardRoutes);
-app.use('/api/search', searchRoutes);
+
+// Rutas de compatibilidad (mantienen los endpoints originales)
+app.use('/api/users', (req, res, next) => {
+  // Redirigir rutas de autenticación
+  if (req.path === '/register' || req.path === '/login' || req.path === '/refresh' || req.path === '/logout') {
+    req.url = req.path.replace('/', '');
+    return require('./routes/authRoutes')(req, res, next);
+  }
+  
+  // Redirigir rutas de perfil
+  if (req.path === '/me/profile' || req.path === '/me/avatar' || req.path.match(/^\/\d+$/)) {
+    req.url = req.path;
+    return require('./routes/profileRoutes')(req, res, next);
+  }
+  
+  // Redirigir rutas de búsqueda
+  if (req.path === '/search') {
+    req.url = '/users';
+    return require('./routes/searchRoutes')(req, res, next);
+  }
+  
+  // Redirigir rutas de seguimiento
+  if (req.path === '/follow' || req.path === '/following' || req.path.match(/^\/\d+\/follow$/)) {
+    if (req.path === '/follow') {
+      req.url = '/';
+    } else if (req.path === '/following') {
+      req.url = '/following';
+    } else {
+      req.url = req.path.replace(/^\/\d+\/follow$/, '/$1');
+    }
+    return require('./routes/followRoutes')(req, res, next);
+  }
+  
+  // Si no coincide con ninguna ruta, continuar
+  next();
+});
 
 // Ruta raíz
 app.get('/', (req, res) => {
@@ -168,10 +205,13 @@ app.get('/', (req, res) => {
     message: 'Bienvenido a ArteNis API',
     version: '1.0.0',
     endpoints: {
-      users: '/api/users',
+      auth: '/api/auth',
+      profile: '/api/profile',
+      search: '/api/search',
+      follow: '/api/follow',
+      users: '/api/users (compatibilidad)',
       posts: '/api/posts',
       boards: '/api/boards',
-      search: '/api/search',
       health: '/health'
     }
   });

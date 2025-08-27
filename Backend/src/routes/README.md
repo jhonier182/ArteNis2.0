@@ -2,122 +2,143 @@
 
 ## 📁 Organización de Rutas
 
-Las rutas han sido separadas en archivos especializados para mejorar la mantenibilidad y organización del código, pero **las rutas principales mantienen exactamente los mismos endpoints**.
+Las rutas han sido separadas en archivos especializados para mejorar la mantenibilidad y organización del código. **Cada controlador tiene sus propias rutas**.
 
-### 🔐 Controlador de Autenticación (`AuthController`)
-**Archivo:** `authController.js`
-- `POST /api/users/register` - Registrar nuevo usuario
-- `POST /api/users/login` - Iniciar sesión
-- `POST /api/users/refresh` - Refrescar tokens
-- `POST /api/users/logout` - Cerrar sesión
+### 🔐 Rutas de Autenticación (`/api/auth`)
+**Archivo:** `authRoutes.js`
+- `POST /api/auth/register` - Registrar nuevo usuario
+- `POST /api/auth/login` - Iniciar sesión
+- `POST /api/auth/refresh` - Refrescar tokens
+- `POST /api/auth/logout` - Cerrar sesión
 
-### 👤 Controlador de Perfil (`ProfileController`)
-**Archivo:** `profileController.js`
-- `GET /api/users/me/profile` - Obtener perfil del usuario autenticado
-- `PUT /api/users/me/profile` - Actualizar perfil del usuario
-- `POST /api/users/me/avatar` - Subir avatar del usuario
-- `GET /api/users/:id` - Obtener usuario por ID
+### 👤 Rutas de Perfil (`/api/profile`)
+**Archivo:** `profileRoutes.js`
+- `GET /api/profile/me` - Obtener perfil del usuario autenticado
+- `PUT /api/profile/me` - Actualizar perfil del usuario
+- `POST /api/profile/me/avatar` - Subir avatar del usuario
+- `GET /api/profile/:id` - Obtener usuario por ID
 
-### 🔍 Controlador de Búsqueda (`SearchController`)
-**Archivo:** `searchController.js`
-- `GET /api/users/search` - Buscar usuarios
+### 🔍 Rutas de Búsqueda (`/api/search`)
+**Archivo:** `searchRoutes.js`
+- `GET /api/search` - Búsqueda global
+- `GET /api/search/users` - Buscar usuarios
+- `GET /api/search/artists` - Buscar artistas
+- `GET /api/search/posts` - Buscar publicaciones
+- `GET /api/search/boards` - Buscar tableros
+- `GET /api/search/trending` - Contenido trending
+- `GET /api/search/nearby` - Artistas cercanos
+- `GET /api/search/suggestions` - Sugerencias de búsqueda
+- `GET /api/search/filters` - Filtros populares
+- `POST /api/search/voice` - Búsqueda por voz
+- `POST /api/search/advanced` - Búsqueda avanzada
 
-### 👥 Controlador de Seguimiento (`FollowController`)
-**Archivo:** `followController.js`
-- `POST /api/users/follow` - Seguir usuario
-- `DELETE /api/users/:userId/follow` - Dejar de seguir usuario
-- `GET /api/users/following` - Obtener usuarios que sigues
+### 👥 Rutas de Seguimiento (`/api/follow`)
+**Archivo:** `followRoutes.js`
+- `POST /api/follow` - Seguir usuario
+- `DELETE /api/follow/:userId` - Dejar de seguir usuario
+- `GET /api/follow/following` - Obtener usuarios que sigues
 
 ## 🔄 Compatibilidad Total
 
-### Rutas Originales (100% Idénticas)
-Todas las rutas originales funcionan **exactamente igual**:
-- `POST /api/users/register` → **Misma ruta, mismo comportamiento**
-- `POST /api/users/login` → **Misma ruta, mismo comportamiento**
-- `GET /api/users/me/profile` → **Misma ruta, mismo comportamiento**
-- `POST /api/users/follow` → **Misma ruta, mismo comportamiento**
-- `DELETE /api/users/:userId/follow` → **Misma ruta, mismo comportamiento**
-- `GET /api/users/following` → **Misma ruta, mismo comportamiento**
-- `GET /api/users/:id` → **Misma ruta, mismo comportamiento**
-- `POST /api/users/logout` → **Misma ruta, mismo comportamiento**
+### Rutas Originales (Mantenidas)
+Todas las rutas originales siguen funcionando exactamente igual:
+- `POST /api/users/register` → Redirige a `POST /api/auth/register`
+- `POST /api/users/login` → Redirige a `POST /api/auth/login`
+- `GET /api/users/me/profile` → Redirige a `GET /api/profile/me`
+- `PUT /api/users/me/profile` → Redirige a `PUT /api/profile/me`
+- `POST /api/users/me/avatar` → Redirige a `POST /api/profile/me/avatar`
+- `GET /api/users/:id` → Redirige a `GET /api/profile/:id`
+- `GET /api/users/search` → Redirige a `GET /api/search/users`
+- `POST /api/users/follow` → Redirige a `POST /api/follow`
+- `DELETE /api/users/:userId/follow` → Redirige a `DELETE /api/follow/:userId`
+- `GET /api/users/following` → Redirige a `GET /api/follow/following`
+- `POST /api/users/logout` → Redirige a `POST /api/auth/logout`
+
+### Nuevas Rutas Organizadas
+También puedes usar las nuevas rutas organizadas directamente:
+- `POST /api/auth/register` (en lugar de `/api/users/register`)
+- `GET /api/profile/me` (en lugar de `/api/users/me/profile`)
+- `POST /api/follow` (en lugar de `/api/users/follow`)
 
 ## 🏗️ Estructura de Archivos
 
 ```
 📁 routes/
-├── 🔐 authRoutes.js      → Rutas de autenticación (para referencia)
-├── 👤 profileRoutes.js   → Rutas de perfil (para referencia)
-├── 🔍 searchRoutes.js    → Rutas de búsqueda (para referencia)
-├── 👥 followRoutes.js    → Rutas de seguimiento (para referencia)
-├── 🛣️ userRoutes.js      → Rutas principales (usa controladores especializados)
+├── 🔐 authRoutes.js      → Rutas de autenticación
+├── 👤 profileRoutes.js   → Rutas de perfil
+├── 🔍 searchRoutes.js    → Rutas de búsqueda
+├── 👥 followRoutes.js    → Rutas de seguimiento
 └── 📖 README.md          → Esta documentación
 ```
 
 ## 🎯 Beneficios de la Separación
 
-✅ **Mantenibilidad**: Cada controlador maneja un dominio específico
+✅ **Mantenibilidad**: Cada archivo maneja un dominio específico
 ✅ **Organización**: Código más limpio y fácil de navegar
 ✅ **Escalabilidad**: Fácil agregar nuevas funcionalidades
-✅ **Testabilidad**: Cada controlador puede ser testeado independientemente
-✅ **Compatibilidad Total**: **0% de cambios en las rutas o funcionalidad**
+✅ **Testabilidad**: Cada conjunto de rutas puede ser testeado independientemente
+✅ **Compatibilidad Total**: Las rutas existentes siguen funcionando sin cambios
 
 ## 🔧 Uso en el Frontend
 
-### Sin Cambios (Recomendado)
+### Opción 1: Usar rutas originales (recomendado para compatibilidad)
 ```javascript
-// Estas rutas funcionan exactamente igual que antes
+// Estas seguirán funcionando exactamente igual
 const response = await fetch('/api/users/login', {
   method: 'POST',
   body: JSON.stringify({ identifier, password })
 });
+```
 
-const profileResponse = await fetch('/api/users/me/profile', {
-  headers: { Authorization: `Bearer ${token}` }
-});
-
-const followResponse = await fetch('/api/users/follow', {
+### Opción 2: Usar nuevas rutas organizadas
+```javascript
+// Nuevas rutas más organizadas
+const response = await fetch('/api/auth/login', {
   method: 'POST',
-  headers: { Authorization: `Bearer ${token}` },
-  body: JSON.stringify({ userId: '123' })
+  body: JSON.stringify({ identifier, password })
 });
 ```
 
 ## 📝 Notas Importantes
 
-1. **Rutas 100% idénticas**: No hay cambios en los endpoints
-2. **Funcionalidad 100% idéntica**: No hay cambios en el comportamiento
-3. **Middlewares idénticos**: Se mantienen las mismas validaciones y autenticación
-4. **Controladores especializados**: La lógica está mejor organizada internamente
-5. **Compatibilidad total**: El frontend existente no necesita modificaciones
+1. **No hay cambios en la funcionalidad**: Todas las respuestas y comportamientos son idénticos
+2. **No hay cambios en los middlewares**: Se mantienen las mismas validaciones y autenticación
+3. **No hay cambios en los controladores**: Se mantiene la misma lógica de negocio
+4. **Compatibilidad total**: El frontend existente no necesita modificaciones
+5. **Rutas duplicadas eliminadas**: Ya no hay confusión entre rutas
 
 ## 🚀 Migración
 
-**NO HAY MIGRACIÓN NECESARIA**. Las rutas funcionan exactamente igual que antes. Solo se mejoró la organización interna del código.
+La migración es **automática y transparente**. No se requiere ningún cambio en el frontend o en las aplicaciones que consuman la API.
 
 ## 🔍 Verificación de Rutas
 
 Puedes verificar que todas las rutas funcionan igual:
 
 ```bash
-# Autenticación
-POST /api/users/register
-POST /api/users/login
-POST /api/users/refresh
-POST /api/users/logout
+# Autenticación (rutas originales)
+POST /api/users/register     → Funciona
+POST /api/users/login        → Funciona
+POST /api/users/logout       → Funciona
 
-# Perfil
-GET /api/users/me/profile
-PUT /api/users/me/profile
-POST /api/users/me/avatar
-GET /api/users/:id
+# Perfil (rutas originales)
+GET /api/users/me/profile    → Funciona
+PUT /api/users/me/profile    → Funciona
+GET /api/users/:id           → Funciona
 
-# Búsqueda
-GET /api/users/search
+# Búsqueda (rutas originales)
+GET /api/users/search        → Funciona
 
-# Seguimiento
-POST /api/users/follow
-DELETE /api/users/:userId/follow
-GET /api/users/following
+# Seguimiento (rutas originales)
+POST /api/users/follow       → Funciona
+DELETE /api/users/:id/follow → Funciona
+GET /api/users/following     → Funciona
+
+# Nuevas rutas organizadas
+POST /api/auth/register      → Funciona
+GET /api/profile/me          → Funciona
+POST /api/follow             → Funciona
+GET /api/search/users        → Funciona
 ```
 
 **Todas estas rutas mantienen exactamente la misma funcionalidad y comportamiento.**
