@@ -7,7 +7,8 @@ import {
   Image,
   Dimensions,
   Alert,
-  Animated
+  Animated,
+  Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,7 +17,7 @@ import { useRouter } from 'expo-router';
 import { createShadow, shadows } from '../utils/shadowHelper';
 import { NeutralColors, BrandColors, TextColors } from '../constants/Colors';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface Post {
   id: string;
@@ -47,6 +48,7 @@ interface ElegantPostCardProps {
   onEditPost?: (post: Post) => void;
   onDeletePost?: (post: Post) => void;
   onFollowUser: (userId: string, isFollowing: boolean) => void;
+  size?: 'small' | 'medium' | 'large'; // Tamaño de la imagen
 }
 
 export default function ElegantPostCard({
@@ -56,11 +58,13 @@ export default function ElegantPostCard({
   onEditPost,
   onDeletePost,
   onFollowUser,
+  size = 'medium'
 }: ElegantPostCardProps) {
   const [isLiked, setIsLiked] = useState(post.isLiked || false);
   const [likesCount, setLikesCount] = useState(post.likesCount || 0);
   const [isLiking, setIsLiking] = useState(false);
   const [spinValue] = useState(new Animated.Value(0));
+  const [showPostModal, setShowPostModal] = useState(false);
   const { user } = useUser();
   const router = useRouter();
 
@@ -182,6 +186,10 @@ export default function ElegantPostCard({
     }
   };
 
+  const handleImagePress = () => {
+    setShowPostModal(true);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -208,6 +216,21 @@ export default function ElegantPostCard({
     }
     return num.toString();
   };
+
+  // Función para obtener el tamaño de la imagen según el prop size
+  const getImageSize = () => {
+    switch (size) {
+      case 'small':
+        return width * 0.33; // 33% del ancho de pantalla
+      case 'large':
+        return width * 0.66; // 66% del ancho de pantalla
+      case 'medium':
+      default:
+        return width * 0.33; // 33% del ancho de pantalla (tamaño por defecto)
+    }
+  };
+
+  const imageSize = getImageSize();
 
   const renderFollowButton = () => {
     if (post.author.id === user?.id) {
@@ -249,101 +272,187 @@ export default function ElegantPostCard({
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header del post */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.userInfo} 
-          onPress={handleUserPress}
-        >
-          <Image 
-            source={{ uri: post.author.avatar }}
-            style={styles.avatar}
-          />
-          <View style={styles.userDetails}>
-            <Text style={styles.username}>{post.author.username}</Text>
-            <Text style={styles.timeAgo}>{formatDate(post.createdAt)}</Text>
-          </View>
-        </TouchableOpacity>
-        
-        {/* Menú de tres puntos para posts propios o botón de follow para posts de otros */}
-        {renderFollowButton()}
-      </View>
-
-      {/* Imagen del post */}
-      <View style={styles.imageContainer}>
+    <>
+      {/* Solo la imagen - sin información */}
+      <TouchableOpacity 
+        style={[styles.imageOnlyContainer, { width: imageSize, height: imageSize }]} 
+        onPress={handleImagePress}
+        activeOpacity={0.9}
+      >
         <Image 
           source={{ uri: post.imageUrl }} 
-          style={styles.postImage}
+          style={styles.imageOnly}
           resizeMode="cover"
         />
-      </View>
+      </TouchableOpacity>
 
-      {/* Descripción del post con visualizaciones */}
-      <View style={styles.descriptionContainer}>
-        <View style={styles.descriptionRow}>
-          {post.description && (
-            <Text style={styles.description} numberOfLines={3}>
-              {post.description}
-            </Text>
-          )}
-          <View style={styles.viewsContainer}>
-            <Ionicons name="eye-outline" size={16} color="#666" />
-            <Text style={styles.viewsText}>{formatNumber(post.viewsCount || 0)}</Text>
+      {/* Modal completo con toda la información */}
+      <Modal
+        visible={showPostModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowPostModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          {/* Header del modal */}
+          <View style={styles.modalHeader}>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setShowPostModal(false)}
+            >
+              <Ionicons name="close" size={24} color={TextColors.inverse} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Contenido del modal */}
+          <View style={styles.modalContent}>
+            {/* Header del post */}
+            <View style={styles.postHeader}>
+              <TouchableOpacity 
+                style={styles.userInfo} 
+                onPress={handleUserPress}
+              >
+                <Image 
+                  source={{ uri: post.author.avatar }}
+                  style={styles.avatar}
+                />
+                <View style={styles.userDetails}>
+                  <Text style={styles.username}>{post.author.username}</Text>
+                  <Text style={styles.timeAgo}>{formatDate(post.createdAt)}</Text>
+                </View>
+              </TouchableOpacity>
+              
+              {renderFollowButton()}
+            </View>
+
+            {/* Imagen del post */}
+            <View style={styles.modalImageContainer}>
+              <Image 
+                source={{ uri: post.imageUrl }} 
+                style={styles.modalPostImage}
+                resizeMode="cover"
+              />
+            </View>
+
+            {/* Descripción del post */}
+            {post.description && (
+              <View style={styles.descriptionContainer}>
+                <View style={styles.descriptionRow}>
+                  <Text style={styles.description}>
+                    {post.description}
+                  </Text>
+                  <View style={styles.viewsIconContainer}>
+                    <Ionicons name="eye-outline" size={16} color={TextColors.inverse} />
+                    <Text style={styles.viewsText}>{formatNumber(post.viewsCount || 0)}</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Métricas de engagement */}
+            <View style={styles.metricsContainer}>
+              <TouchableOpacity style={styles.metricItem} onPress={handleLike} disabled={isLiking}>
+                <Ionicons 
+                  name={isLiked ? "heart" : "heart-outline"} 
+                  size={24} 
+                  color={isLiked ? BrandColors.error : TextColors.inverse} 
+                />
+                <Text style={[styles.metricText, isLiked && styles.likedText]}>
+                  {formatNumber(likesCount)}
+                </Text>
+                {isLiking && (
+                  <Animated.View style={[styles.loadingIndicator, { transform: [{ rotate: spin }] }]}>
+                    <Ionicons name="sync" size={12} color={TextColors.inverse} />
+                  </Animated.View>
+                )}
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.metricItem} onPress={() => onComment(post.id)}>
+                <Ionicons name="chatbubble-outline" size={24} color={TextColors.inverse} />
+                <Text style={styles.metricText}>{formatNumber(post.commentsCount || 0)}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-
-      {/* Métricas de engagement */}
-      <View style={styles.metricsContainer}>
-        <TouchableOpacity style={styles.metricItem} onPress={handleLike} disabled={isLiking}>
-          <Ionicons 
-            name={isLiked ? "heart" : "heart-outline"} 
-            size={20} 
-            color={isLiked ? BrandColors.error : "#666"} 
-          />
-          <Text style={[styles.metricText, isLiked && styles.likedText]}>
-            {formatNumber(likesCount)}
-          </Text>
-          {isLiking && (
-            <Animated.View style={[styles.loadingIndicator, { transform: [{ rotate: spin }] }]}>
-              <Ionicons name="sync" size={12} color="#666" />
-            </Animated.View>
-          )}
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.metricItem} onPress={() => onComment(post.id)}>
-          <Ionicons name="chatbubble-outline" size={20} color="#666" />
-          <Text style={styles.metricText}>{formatNumber(post.commentsCount || 0)}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      </Modal>
+    </>
   );
 }
 
+/*
+EJEMPLO DE USO:
+
+// Publicación pequeña (30% del ancho)
+<ElegantPostCard
+  post={post}
+  onLike={handleLike}
+  onComment={handleComment}
+  onFollowUser={handleFollowUser}
+  size="small"
+/>
+
+// Publicación mediana (50% del ancho) - por defecto
+<ElegantPostCard
+  post={post}
+  onLike={handleLike}
+  onComment={handleComment}
+  onFollowUser={handleFollowUser}
+  size="medium"
+/>
+
+// Publicación grande (80% del ancho)
+<ElegantPostCard
+  post={post}
+  onLike={handleLike}
+  onComment={handleComment}
+  onFollowUser={handleFollowUser}
+  size="large"
+/>
+
+CARACTERÍSTICAS:
+- Solo muestra la imagen (sin información)
+- Al hacer click se abre un modal completo con toda la información
+- Diferentes tamaños disponibles: small, medium, large
+- Modal incluye: header del usuario, imagen grande, descripción, métricas
+- Funcionalidades: like, comentarios, seguir usuario, opciones del post
+*/
+
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: NeutralColors.black,
-    borderRadius: 20,
-    marginHorizontal: 16,
-    marginVertical: 12,
-    shadowColor: NeutralColors.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: NeutralColors.gray800,
+  imageOnlyContainer: {
+    overflow: 'hidden',
+    position: 'relative',
   },
-  header: {
+  imageOnly: {
+    width: '100%',
+    height: '100%',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: NeutralColors.black,
+    paddingTop: height * 0.1, // Espacio para el header
+  },
+  modalHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal:2,
+    paddingBottom: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: NeutralColors.gray800,
+  },
+  closeButton: {
+    padding: 10,
+  },
+  modalContent: {
+    paddingHorizontal: 0,
+    paddingVertical: 10,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: NeutralColors.gray900,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
   },
   userInfo: {
     flexDirection: 'row',
@@ -367,14 +476,74 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 2,
   },
-  fullName: {
-    color: TextColors.inverse,
-    fontSize: 14,
-    marginBottom: 2,
-  },
   timeAgo: {
     color: TextColors.inverse,
     fontSize: 14,
+  },
+  modalImageContainer: {
+    width: '100%',
+    height: width * 0.8, // Tamaño fijo para la imagen en el modal
+    overflow: 'hidden',
+    marginBottom: 15,
+  },
+  modalPostImage: {
+    width: '100%',
+    height: '100%',
+  },
+  descriptionContainer: {
+    marginBottom: 15,
+  },
+  descriptionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  description: {
+    color: TextColors.inverse,
+    fontSize: 16,
+    lineHeight: 22,
+    flex: 1,
+  },
+  viewsIconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewsText: {
+    color: TextColors.inverse,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  metricsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: NeutralColors.gray900,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: NeutralColors.gray800,
+  },
+  metricItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metricText: {
+    color: TextColors.inverse,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  likedText: {
+    color: BrandColors.error,
+  },
+  moreButton: {
+    padding: 8,
+  },
+  loadingIndicator: {
+    marginLeft: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   followButtonContainer: {
     borderRadius: 20,
@@ -398,78 +567,5 @@ const styles = StyleSheet.create({
   },
   followingText: {
     color: TextColors.inverse,
-  },
-  imageContainer: {
-    width: '100%',
-    height: width * 0.8,
-  },
-  postImage: {
-    width: '100%',
-    height: '100%',
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  descriptionContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    backgroundColor: NeutralColors.black,
-  },
-  descriptionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  description: {
-    color: TextColors.inverse,
-    fontSize: 16,
-    lineHeight: 22,
-    flex: 1,
-    marginRight: 20,
-  },
-  viewsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  viewsText: {
-    color: TextColors.inverse,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  metricsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    borderTopWidth: 1,
-    borderTopColor: NeutralColors.gray800,
-    backgroundColor: NeutralColors.gray900,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-  },
-  metricItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  metricText: {
-    color: TextColors.inverse,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  likedText: {
-    color: BrandColors.error,
-  },
-  moreButton: {
-    padding: 8,
-  },
-  loadingIndicator: {
-    marginLeft: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

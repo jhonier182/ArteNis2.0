@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -13,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../../context/UserContext';
 import { createShadow, shadows } from '../../utils/shadowHelper';
-import ElegantPostCard from '../../components/ElegantPostCard';
+import InstagramGrid from '../../components/InstagramGrid';
 import { BrandColors, TextColors, NeutralColors, StateColors } from '../../constants/Colors';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -317,51 +316,26 @@ export default function ExploreScreen() {
       </View>
 
       {/* Lista de publicaciones */}
-      <FlatList
-        data={posts}
-        renderItem={({ item }) => (
-          <ElegantPostCard
-            key={item.id}
-            post={item}
-            onLike={handleLike}
-            onComment={handleComment}
-            onEditPost={handleEditPost}
-            onDeletePost={handleDeletePost}
-            onFollowUser={handleFollowUser}
-          />
-        )}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={BrandColors.secondary}
-            colors={[BrandColors.secondary]}
-          />
-        }
-        onEndReached={loadMorePosts}
-        onEndReachedThreshold={0.1}
-        ListFooterComponent={
-          loading && hasMore ? (
-            <View style={styles.loadingFooter}>
-              <ActivityIndicator size="large" color={BrandColors.secondary} />
-              <Text style={styles.loadingText}>Cargando más publicaciones...</Text>
-            </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          !loading && posts.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={64} color={TextColors.inverse} />
-              <Text style={styles.emptyTitle}>No hay publicaciones para explorar</Text>
-              <Text style={styles.emptySubtitle}>
-                Ya sigues a todos los artistas disponibles. Intenta refrescar más tarde.
-              </Text>
-            </View>
-          ) : null
-        }
-      />
+      {posts.length > 0 ? (
+        <InstagramGrid
+          posts={posts}
+          onLike={handleLike}
+          onComment={handleComment}
+          onEditPost={handleEditPost}
+          onDeletePost={handleDeletePost}
+          onFollowUser={handleFollowUser}
+          loading={loading}
+          hasMore={hasMore}
+        />
+      ) : !loading ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="people-outline" size={64} color={TextColors.inverse} />
+          <Text style={styles.emptyTitle}>No hay publicaciones para explorar</Text>
+          <Text style={styles.emptySubtitle}>
+            Ya sigues a todos los artistas disponibles. Intenta refrescar más tarde.
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -451,31 +425,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
   },
-  loadingFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-  },
   emptyContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
+    alignItems: 'center',
+    paddingVertical: 50,
     backgroundColor: NeutralColors.black,
   },
   emptyTitle: {
     color: TextColors.inverse,
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
     textAlign: 'center',
   },
   emptySubtitle: {
     color: TextColors.inverse,
     fontSize: 14,
+    marginTop: 10,
     textAlign: 'center',
     lineHeight: 20,
   },
