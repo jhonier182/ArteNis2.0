@@ -296,7 +296,7 @@ export default function ProfileScreen() {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.loadingSpinner}>
-          <Ionicons name="sparkles" size={32} color="#FF9800" />
+          <Ionicons name="sparkles" size={32} color={BrandColors.secondary} />
         </View>
         <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
@@ -306,7 +306,7 @@ export default function ProfileScreen() {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="warning" size={64} color="#ff6b6b" />
+        <Ionicons name="warning" size={64} color={BrandColors.error} />
         <Text style={styles.errorTitle}>Error al cargar el perfil</Text>
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
@@ -326,20 +326,22 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="dark-content" backgroundColor={NeutralColors.white} />
       
       {/* Header con icono de configuración a la derecha */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          {loading && (
-            <View style={styles.headerLoadingIndicator}>
-              <Ionicons name="sync" size={16} color="#FF9800" />
-            </View>
-          )}
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            {loading && (
+              <View style={styles.headerLoadingIndicator}>
+                <Ionicons name="sync" size={16} color={BrandColors.secondary} />
+              </View>
+            )}
+          </View>
+          <TouchableOpacity style={styles.settingsButton} onPress={handleSettings}>
+            <Ionicons name="settings-outline" size={24} color={TextColors.primary} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.settingsButton} onPress={handleSettings}>
-          <Ionicons name="settings-outline" size={24} color="#ffffff" />
-        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -349,8 +351,8 @@ export default function ProfileScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#FF9800"
-            colors={["#FF9800"]}
+            tintColor={BrandColors.secondary}
+            colors={[BrandColors.secondary]}
           />
         }
       >
@@ -372,7 +374,7 @@ export default function ProfileScreen() {
             />
             <View style={styles.avatarGlow} />
             <View style={styles.cameraOverlay}>
-              <Ionicons name="camera" size={20} color="#ffffff" />
+              <Ionicons name="camera" size={20} color={TextColors.inverse} />
             </View>
           </TouchableOpacity>
           
@@ -403,12 +405,12 @@ export default function ProfileScreen() {
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
               <LinearGradient
-                colors={['#FFCA28', '#FF9800', '#F57C00', '#E65100', '#D84315', '#C62828']}
+                colors={[BrandColors.secondary, BrandColors.accent]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.buttonGradient}
               >
-                <Ionicons name="person" size={20} color="#ffffff" />
+                <Ionicons name="person" size={20} color={TextColors.inverse} />
                 <Text style={styles.buttonText}>Editar Perfil</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -447,7 +449,7 @@ export default function ProfileScreen() {
             style={styles.closeButton}
             onPress={() => setShowImageModal(false)}
           >
-            <Ionicons name="close" size={24} color="#ffffff" />
+            <Ionicons name="close" size={24} color={TextColors.inverse} />
           </TouchableOpacity>
         </TouchableOpacity>
       )}
@@ -472,19 +474,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   loadingText: {
-    color: '#ffffff',
+    color: TextColors.secondary,
     fontSize: 16,
     fontWeight: '500',
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: NeutralColors.white,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
   },
   errorTitle: {
-    color: '#ffffff',
+    color: TextColors.primary,
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 20,
@@ -492,22 +494,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   errorText: {
-    color: '#ffffff',
+    color: TextColors.secondary,
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 30,
     lineHeight: 22,
   },
   retryButton: {
-    backgroundColor: '#FF9800',
+    backgroundColor: BrandColors.secondary,
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
     marginBottom: 15,
-    ...shadows.small,
+    shadowColor: BrandColors.secondary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   retryButtonText: {
-    color: '#000000',
+    color: TextColors.inverse,
     fontSize: 16,
     fontWeight: '600',
   },
