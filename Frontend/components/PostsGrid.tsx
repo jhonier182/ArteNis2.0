@@ -26,6 +26,7 @@ interface Post {
   likesCount: number;
   commentsCount: number;
   createdAt: string;
+  isLiked?: boolean;
 }
 
 interface PostsGridProps {
@@ -34,6 +35,7 @@ interface PostsGridProps {
   isEmbedded?: boolean;
   isOwnProfile?: boolean;
   onFollowUser?: (userId: string, isFollowing: boolean) => void;
+  onLike?: (postId: string) => Promise<void>;
 }
 
 export default function PostsGrid({ 
@@ -41,7 +43,8 @@ export default function PostsGrid({
   onPostPress, 
   isEmbedded = false,
   isOwnProfile = false,
-  onFollowUser
+  onFollowUser,
+  onLike
 }: PostsGridProps) {
   const shimmerAnimation = useRef(new Animated.Value(0)).current;
 
@@ -124,6 +127,50 @@ export default function PostsGrid({
     }
   };
 
+  // Función para manejar likes
+  const handleLike = async (postId: string) => {
+    try {
+      // Si hay una función onLike pasada como prop, usarla
+      if (onLike) {
+        await onLike(postId);
+        return;
+      }
+
+      // Si no, usar la lógica interna
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        throw new Error('No hay token de autenticación');
+      }
+
+      // Buscar el post para determinar si ya tiene like
+      const post = typedPosts.find(p => p.id === postId);
+      const isLiked = post?.isLiked || false;
+      
+      const method = isLiked ? 'DELETE' : 'POST';
+      const url = `${process.env.EXPO_PUBLIC_API_URL}/api/posts/${postId}/like`;
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+      
+      // Actualizar el estado local del post
+      // Nota: Como PostsGrid usa useInfiniteScroll, necesitamos refrescar los datos
+      refresh();
+      
+    } catch (error) {
+      console.error('❌ Error al dar like:', error);
+    }
+  };
+
   const renderPostThumbnail = ({ item: post }: { item: Post }) => (
     <TouchableOpacity 
       style={styles.postThumbnail}
@@ -143,13 +190,21 @@ export default function PostsGrid({
         </View>
       )}
       
-      {/* Indicador de likes */}
-      {post.likesCount > 0 && (
-        <View style={styles.likesIndicator}>
-          <Ionicons name="heart" size={10} color="#ff6b6b" />
-          <Text style={styles.likesCount}>{post.likesCount}</Text>
-        </View>
-      )}
+      {/* Indicador de likes - clickeable */}
+      <TouchableOpacity 
+        style={styles.likesIndicator}
+        onPress={(e) => {
+          e.stopPropagation();
+          handleLike(post.id);
+        }}
+      >
+        <Ionicons 
+          name={post.isLiked ? "heart" : "heart-outline"} 
+          size={10} 
+          color={post.isLiked ? "#ff6b6b" : "#ffffff"} 
+        />
+        <Text style={styles.likesCount}>{post.likesCount}</Text>
+      </TouchableOpacity>
       
       {/* Indicador de comentarios */}
       {post.commentsCount > 0 && (
@@ -355,6 +410,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     gap: 3,
+    minWidth: 30,
+    justifyContent: 'center',
   },
   likesCount: {
     color: '#ffffff',

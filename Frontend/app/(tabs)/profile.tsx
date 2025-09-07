@@ -46,6 +46,7 @@ interface User {
     likesCount: number;
     commentsCount: number;
     createdAt: string;
+    isLiked?: boolean;
   }>;
 }
 
@@ -152,6 +153,54 @@ export default function ProfileScreen() {
 
   const handleEditProfile = () => {
     router.push('/profile/edit');
+  };
+
+  // Función para manejar likes en el perfil
+  const handleLike = async (postId: string): Promise<void> => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        throw new Error('No hay token de autenticación');
+      }
+
+      // Buscar el post para determinar si ya tiene like
+      const post = user.posts?.find(p => p.id === postId);
+      const isLiked = post?.isLiked || false;
+      
+      const method = isLiked ? 'DELETE' : 'POST';
+      const url = `${process.env.EXPO_PUBLIC_API_URL}/api/posts/${postId}/like`;
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+      
+      // Actualizar el estado local del usuario
+      setUser(prevUser => ({
+        ...prevUser,
+        posts: prevUser.posts?.map(p => {
+          if (p.id === postId) {
+            return {
+              ...p,
+              isLiked: !isLiked,
+              likesCount: isLiked ? Math.max(0, (p.likesCount || 0) - 1) : (p.likesCount || 0) + 1
+            };
+          }
+          return p;
+        }) || []
+      }));
+      
+    } catch (error) {
+      console.error('❌ Error al dar like:', error);
+    }
   };
 
   const handleSettings = () => {
@@ -427,6 +476,7 @@ export default function ProfileScreen() {
             }}
             isEmbedded={true}
             isOwnProfile={true}
+            onLike={handleLike}
           />
         </View>
       </ScrollView>
