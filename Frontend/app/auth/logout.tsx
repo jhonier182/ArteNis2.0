@@ -1,35 +1,21 @@
 import { useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { useRouter } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
+import { useUser } from '../../context/UserContext';
 
 export default function Logout() {
   const router = useRouter();
+  const { logout } = useUser();
 
   useEffect(() => {
     (async () => {
       try {
-        const SecureStore = await import('expo-secure-store');
-        const refreshToken = await SecureStore.getItemAsync('refreshToken');
-        if (refreshToken) {
-          try {
-            const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-            await fetch(`${apiUrl}/api/auth/logout`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ refreshToken })
-            });
-          } catch {}
-        }
-        await SecureStore.deleteItemAsync('refreshToken');
-        await AsyncStorage.removeItem('token');
-        await AsyncStorage.removeItem('remember');
+        await logout();
       } finally {
         router.replace('/auth/login');
       }
     })();
-  }, []);
+  }, [logout, router]);
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

@@ -2,54 +2,26 @@ import { useState } from 'react';
 import { ImageBackground, StyleSheet, View, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Checkbox from 'expo-checkbox';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-import axios from 'axios';
-  
 import { Link, useRouter } from 'expo-router';
+import { useUser } from '../../context/UserContext';
 
 const background = require('@/assets/images/fondototal.jpg');
 
 export default function Login() {
   const router = useRouter();
+  const { login } = useUser();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [secure, setSecure] = useState(true);
   const [loading, setLoading] = useState(false);
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
   const onLogin = async () => {
     if (!identifier || !password) return;
     try {
       setLoading(true);
-      const res = await axios.post(`${apiUrl}/api/auth/login`, { identifier, password });
-      const data = res.data;
-      let token =
-        data?.data?.token ||
-        data?.token ||
-        data?.data?.accessToken ||
-        data?.accessToken ||
-        data?.jwt ||
-        data?.data?.jwt;
-      if (!token) {
-        const authHeader = (res.headers as any)?.authorization || (res.headers as any)?.Authorization;
-        if (authHeader && typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
-          token = authHeader.slice(7);
-        }
-      }
-      if (token) {
-        await AsyncStorage.setItem('token', token);
-        if (remember) await AsyncStorage.setItem('remember', '1');
-        const refreshToken = data?.data?.refreshToken || data?.refreshToken;
-        if (refreshToken) {
-          try {
-            const SecureStore = await import('expo-secure-store');
-            await SecureStore.setItemAsync('refreshToken', refreshToken);
-          } catch {}
-        }
-        router.replace('/(tabs)');
-      }
+      await login(identifier, password);
+      router.replace('/(tabs)');
     } catch (e: any) {
       const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || 'No se pudo iniciar sesión.';
       Alert.alert('Error', msg);

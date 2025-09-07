@@ -7,6 +7,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { UserProvider } from '@/context/UserContext';
+import { useAuth } from '@/hooks/useAuth';
+
+function RootLayoutNav() {
+  useAuth(); // Hook que maneja la navegación basada en autenticación
+  return null;
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -23,7 +29,8 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <UserProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <Stack initialRouteName={'auth/login'}>
+          <RootLayoutNav />
+          <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="settings" options={{ headerShown: false, headerTitle: '', headerBackTitle: '', headerBackVisible: false }} />
             <Stack.Screen name="auth/login" options={{ headerShown: false }} />

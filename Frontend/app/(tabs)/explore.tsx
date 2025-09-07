@@ -8,12 +8,12 @@ import {
   StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useUser } from '../../context/UserContext';
 import { createShadow, shadows } from '../../utils/shadowHelper';
 import InstagramGrid from '../../components/InstagramGrid';
 import { BrandColors, TextColors, NeutralColors, StateColors } from '../../constants/Colors';
+import apiClient from '../../utils/apiClient';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -51,27 +51,11 @@ export default function ExploreScreen() {
   // Obtener lista de usuarios que sigue
   const fetchFollowingUsers = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/follow/following`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const followingIds = data.data?.users?.map((u: any) => u.id) || [];
-        setFollowingUsers(followingIds);
-      } else {
-        // Si falla, dejamos la lista vacía y usamos el filtro por isFollowing
-        setFollowingUsers([]);
-      }
+      const response = await apiClient.get('/api/follow/following');
+      const followingIds = response.data.data?.users?.map((u: any) => u.id) || [];
+      setFollowingUsers(followingIds);
     } catch (error) {
+      console.log('Error obteniendo usuarios seguidos:', error);
       setFollowingUsers([]);
     }
   };
@@ -80,58 +64,44 @@ export default function ExploreScreen() {
   const fetchAllPosts = async (pageNum = 1) => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-
-      const response = await fetch(`${API_BASE_URL}/api/posts?page=${pageNum}&limit=10`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const response = await apiClient.get(`/api/posts?page=${pageNum}&limit=10`);
+      
+      const data = response.data;
+      let newPosts = data.data?.posts || [];
+      
+      // Filtrar: solo posts de usuarios que NO sigues
+      newPosts = newPosts.filter((post: Post) => {
+        // Excluir posts propios
+        if (post.author.id === user?.id) {
+          return false;
         }
+        
+        // Excluir posts de usuarios que ya sigues
+        // Primero intentar usar la lista de followingUsers (más confiable)
+        if (followingUsers.length > 0 && followingUsers.includes(post.author.id)) {
+          return false;
+        }
+        
+        // Si no tenemos la lista, usar isFollowing como respaldo
+        if (followingUsers.length === 0 && post.author.isFollowing === true) {
+          return false;
+        }
+        
+        // Solo incluir posts de usuarios que NO sigues
+        return true;
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        let newPosts = data.data?.posts || [];
-        
-        // Filtrar: solo posts de usuarios que NO sigues
-        newPosts = newPosts.filter((post: Post) => {
-          // Excluir posts propios
-          if (post.author.id === user?.id) {
-            return false;
-          }
-          
-          // Excluir posts de usuarios que ya sigues
-          // Primero intentar usar la lista de followingUsers (más confiable)
-          if (followingUsers.length > 0 && followingUsers.includes(post.author.id)) {
-            return false;
-          }
-          
-          // Si no tenemos la lista, usar isFollowing como respaldo
-          if (followingUsers.length === 0 && post.author.isFollowing === true) {
-            return false;
-          }
-          
-          // Solo incluir posts de usuarios que NO sigues
-          return true;
-        });
-        
-        if (pageNum === 1) {
-          // Actualización silenciosa en segundo plano
-          setPosts(newPosts);
-        } else {
-          setPosts(prevPosts => [...prevPosts, ...newPosts]);
-        }
-        
-        const apiHasMore = data.data?.pagination?.currentPage < data.data?.pagination?.totalPages;
-        const filteredHasMore = (pageNum > 1 && newPosts.length === 0) ? false : apiHasMore;
-        setHasMore(filteredHasMore);
-        setPage(pageNum);
+      
+      if (pageNum === 1) {
+        // Actualización silenciosa en segundo plano
+        setPosts(newPosts);
       } else {
-        const errorText = await response.text();
-        console.error('Error fetching posts:', response.status, errorText);
-        setError(`Error ${response.status}: ${errorText}`);
+        setPosts(prevPosts => [...prevPosts, ...newPosts]);
       }
+      
+      const apiHasMore = data.data?.pagination?.currentPage < data.data?.pagination?.totalPages;
+      const filteredHasMore = (pageNum > 1 && newPosts.length === 0) ? false : apiHasMore;
+      setHasMore(filteredHasMore);
+      setPage(pageNum);
     } catch (error) {
       console.error('Error fetching posts:', error);
       setError('Error de conexión');
@@ -191,31 +161,10 @@ export default function ExploreScreen() {
   // Manejar like
   const handleLike = async (postId: string): Promise<void> => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        throw new Error('No hay token de autenticación');
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/like`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-      }
-
-      // La actualización del estado local ya se hace en el componente
-      // Solo verificamos que la API respondió correctamente
+      const response = await apiClient.post(`/api/posts/${postId}/like`);
       console.log('✅ Like procesado correctamente');
-      
     } catch (error) {
       console.error('Error handling like:', error);
-      // Re-lanzar el error para que el componente lo maneje
       throw error;
     }
   };
@@ -238,57 +187,40 @@ export default function ExploreScreen() {
   // Manejar seguimiento de usuario
   const handleFollowUser = async (userId: string, isFollowing: boolean) => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        console.error('No hay token para seguir usuarios');
-        return;
-      }
-
-      const url = isFollowing 
-        ? `${API_BASE_URL}/api/follow/${userId}`
-        : `${API_BASE_URL}/api/follow`;
-      
+      const url = isFollowing ? `/api/follow/${userId}` : '/api/follow';
       const method = isFollowing ? 'DELETE' : 'POST';
-      const body = isFollowing ? undefined : JSON.stringify({ userId });
+      const body = isFollowing ? undefined : { userId };
 
-      const response = await fetch(url, {
+      const response = await apiClient.request({
+        url,
         method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body
+        data: body
       });
 
-      if (response.ok) {
-        // Actualizar el estado local del post
-        setPosts(prevPosts => prevPosts.map(post => {
-          if (post.author.id === userId) {
-            return {
-              ...post,
-              author: {
-                ...post.author,
-                isFollowing: !isFollowing,
-                followersCount: isFollowing 
-                  ? Math.max(0, ((post.author as any).followersCount || 0) - 1)
-                  : ((post.author as any).followersCount || 0) + 1
-              }
-            };
-          }
-          return post;
-        }));
-
-        // Actualizar la lista de usuarios seguidos localmente
-        if (isFollowing) {
-          // Dejó de seguir al usuario
-          setFollowingUsers(prev => prev.filter(id => id !== userId));
-        } else {
-          // Empezó a seguir al usuario
-          setFollowingUsers(prev => [...prev, userId]);
+      // Actualizar el estado local del post
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post.author.id === userId) {
+          return {
+            ...post,
+            author: {
+              ...post.author,
+              isFollowing: !isFollowing,
+              followersCount: isFollowing 
+                ? Math.max(0, ((post.author as any).followersCount || 0) - 1)
+                : ((post.author as any).followersCount || 0) + 1
+            }
+          };
         }
+        return post;
+      }));
+
+      // Actualizar la lista de usuarios seguidos localmente
+      if (isFollowing) {
+        // Dejó de seguir al usuario
+        setFollowingUsers(prev => prev.filter(id => id !== userId));
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Error al seguir/dejar de seguir:', errorData.message);
+        // Empezó a seguir al usuario
+        setFollowingUsers(prev => [...prev, userId]);
       }
     } catch (error) {
       console.error('Error al seguir/dejar de seguir usuario:', error);

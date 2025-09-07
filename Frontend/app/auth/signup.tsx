@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { ImageBackground, StyleSheet, View, TextInput, TouchableOpacity, Text, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import axios from 'axios';
-
 import { Link, useRouter } from 'expo-router';
+import apiClient from '../../utils/apiClient';
 
 const background = require('@/assets/images/fondototal.jpg');
 
@@ -13,7 +12,6 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
   const onSignup = async () => {
     if (!username || !email || !password) {
@@ -27,14 +25,10 @@ export default function Signup() {
     }
     try {
       setLoading(true);
-      const { data } = await axios.post(`${apiUrl}/api/auth/register`, {
+      const { data } = await apiClient.post('/api/auth/register', {
         username, email, password, fullName: username
-      }, { timeout: 15000 });
-      // Guardar refresh si viene (el backend devuelve en register)
-      const refreshToken = data?.data?.refreshToken || data?.refreshToken;
-      if (refreshToken) {
-        try { const SecureStore = require('expo-secure-store'); await SecureStore.setItemAsync('refreshToken', refreshToken); } catch {}
-      }
+      });
+      
       Alert.alert('Cuenta creada', 'Inicia sesión para continuar.', [
         { text: 'OK', onPress: () => router.replace('/auth/login') }
       ]);
