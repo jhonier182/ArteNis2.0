@@ -396,8 +396,15 @@ export default function HomeScreen() {
         throw new Error('No hay token de autenticación');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/like`, {
-        method: 'POST',
+      // Buscar el post para determinar si ya tiene like
+      const post = posts.find(p => p.id === postId);
+      const isLiked = post?.isLiked || false;
+      
+      const method = isLiked ? 'DELETE' : 'POST';
+      const url = `${API_BASE_URL}/api/posts/${postId}/like`;
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -406,16 +413,29 @@ export default function HomeScreen() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+        console.error(`❌ Error:`, response.status, errorData);
+        throw new Error(errorData.message || `Error ${response.status}`);
       }
-
-      // La actualización del estado local ya se hace en el componente
-      // Solo verificamos que la API respondió correctamente
-      console.log('✅ Like procesado correctamente');
+      
+      // Actualizar el estado local del post
+      setPosts(prevPosts => {
+        const updatedPosts = prevPosts.map(p => {
+          if (p.id === postId) {
+            const updatedPost = {
+              ...p,
+              isLiked: !isLiked,
+              likesCount: isLiked ? Math.max(0, (p.likesCount || 0) - 1) : (p.likesCount || 0) + 1
+            };
+            return updatedPost;
+          }
+          return p;
+        });
+        
+        return updatedPosts;
+      });
       
     } catch (error) {
-      console.error('Error al dar like:', error);
-      // Re-lanzar el error para que el componente lo maneje
+      console.error('❌ Error al dar like:', error);
       throw error;
     }
   };

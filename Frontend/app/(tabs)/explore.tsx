@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../../context/UserContext';
 import { createShadow, shadows } from '../../utils/shadowHelper';
 import InstagramGrid from '../../components/InstagramGrid';
@@ -156,10 +157,46 @@ export default function ExploreScreen() {
   // Manejar like
   const handleLike = async (postId: string): Promise<void> => {
     try {
-      const response = await apiClient.post(`/api/posts/${postId}/like`);
-      console.log('✅ Like procesado correctamente');
+      // Buscar el post para determinar si ya tiene like
+      const post = posts.find(p => p.id === postId);
+      const isLiked = post?.isLiked || false;
+      
+      const method = isLiked ? 'DELETE' : 'POST';
+      const url = `${API_BASE_URL}/api/posts/${postId}/like`;
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${await AsyncStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`❌ Error:`, response.status, errorData);
+        throw new Error(errorData.message || `Error ${response.status}`);
+      }
+      
+      // Actualizar el estado local del post
+      setPosts(prevPosts => {
+        const updatedPosts = prevPosts.map(p => {
+          if (p.id === postId) {
+            const updatedPost = {
+              ...p,
+              isLiked: !isLiked,
+              likesCount: isLiked ? Math.max(0, (p.likesCount || 0) - 1) : (p.likesCount || 0) + 1
+            };
+            return updatedPost;
+          }
+          return p;
+        });
+        
+        return updatedPosts;
+      });
+      
     } catch (error) {
-      console.error('Error handling like:', error);
+      console.error('❌ Error al dar like:', error);
       throw error;
     }
   };

@@ -61,13 +61,15 @@ export default function ElegantPostCard({
   onFollowUser,
   size = 'medium'
 }: ElegantPostCardProps) {
-  const [isLiked, setIsLiked] = useState(post.isLiked || false);
-  const [likesCount, setLikesCount] = useState(post.likesCount || 0);
   const [isLiking, setIsLiking] = useState(false);
   const [spinValue] = useState(new Animated.Value(0));
   const [showPostModal, setShowPostModal] = useState(false);
   const { user } = useUser();
   const router = useRouter();
+
+  // Usar directamente los datos del post, no estado local
+  const isLiked = post.isLiked || false;
+  const likesCount = post.likesCount || 0;
 
   // Gestos para cerrar el modal deslizando hacia la derecha
   const onGestureEvent = (event: any) => {
@@ -90,11 +92,7 @@ export default function ElegantPostCard({
     }
   };
 
-  // Sincronizar estado local con props cuando cambien
-  useEffect(() => {
-    setIsLiked(post.isLiked || false);
-    setLikesCount(post.likesCount || 0);
-  }, [post.isLiked, post.likesCount]);
+  // El estado se obtiene directamente del post, no necesita sincronización
 
   // Animación de rotación para el indicador de carga
   useEffect(() => {
@@ -117,30 +115,12 @@ export default function ElegantPostCard({
   });
 
   const handleLike = async () => {
-    if (isLiking) return; // Evitar múltiples clicks
-    
-    const newIsLiked = !isLiked;
-    const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1;
-    
-    // Actualizar estado local inmediatamente (optimistic update)
-    setIsLiked(newIsLiked);
-    setLikesCount(newLikesCount);
+    if (isLiking) return;
     setIsLiking(true);
-    
     try {
-      // Llamar a la función del padre para manejar la API
       await onLike(post.id);
     } catch (error) {
-      // Si hay error, revertir el estado local
-      setIsLiked(!newIsLiked);
-      setLikesCount(!newIsLiked ? likesCount + 1 : likesCount - 1);
-      
-      // Mostrar alerta de error
-      Alert.alert(
-        'Error',
-        'No se pudo procesar el like. Por favor, inténtalo de nuevo.',
-        [{ text: 'OK' }]
-      );
+      console.error('Error en like:', error);
     } finally {
       setIsLiking(false);
     }
