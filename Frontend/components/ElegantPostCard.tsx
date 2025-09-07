@@ -243,12 +243,12 @@ export default function ElegantPostCard({
   const getImageSize = () => {
     switch (size) {
       case 'small':
-        return width * 0.33; // 33% del ancho de pantalla
+        return '100%'; // Usar 100% del ancho del contenedor
       case 'large':
-        return width * 0.66; // 66% del ancho de pantalla
+        return '100%'; // Usar 100% del ancho del contenedor
       case 'medium':
       default:
-        return width * 0.33; // 33% del ancho de pantalla (tamaño por defecto)
+        return '100%'; // Usar 100% del ancho del contenedor
     }
   };
 
@@ -297,7 +297,7 @@ export default function ElegantPostCard({
     <>
       {/* Solo la imagen - sin información */}
       <TouchableOpacity 
-        style={[styles.imageOnlyContainer, { width: imageSize, height: '100%' }]} 
+        style={[styles.imageOnlyContainer, { width: '100%', height: '100%' }]} 
         onPress={handleImagePress}
         activeOpacity={0.9}
       >

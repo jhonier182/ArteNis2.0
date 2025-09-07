@@ -56,25 +56,24 @@ export default function InstagramGrid({
     return heights[randomIndex];
   };
 
-  // Función para distribuir posts en dos columnas
+  // Función para distribuir posts en dos columnas con algoritmo masonry escalonado
   const distributePostsInColumns = () => {
-    const columnWidth = (width - 6) / 2; // 2 columnas con 2px de separación
+    const columnWidth = (width - 12) / 2; // 2 columnas con 12px de separación total
     const leftColumn: Post[] = [];
     const rightColumn: Post[] = [];
     let leftHeight = 0;
     let rightHeight = 0;
 
-    posts.forEach((post) => {
+    posts.forEach((post, index) => {
       const imageHeight = getImageHeight(post.imageUrl, columnWidth);
-      const margin = 2; // Margen entre imágenes
       
-      // Elegir la columna con menor altura
-      if (leftHeight <= rightHeight) {
+      // Alternar columnas para crear efecto escalonado
+      if (index % 2 === 0) {
         leftColumn.push(post);
-        leftHeight += imageHeight + margin;
+        leftHeight += imageHeight + 2; // +2 por el margen
       } else {
         rightColumn.push(post);
-        rightHeight += imageHeight + margin;
+        rightHeight += imageHeight + 2;
       }
     });
 
@@ -87,7 +86,7 @@ export default function InstagramGrid({
     return (
       <View style={styles.column}>
         {columnPosts.map((post) => {
-          const imageHeight = getImageHeight(post.imageUrl, (width - 6) / 2);
+          const imageHeight = getImageHeight(post.imageUrl, (width - 12) / 2);
           
           return (
             <View 
@@ -95,7 +94,7 @@ export default function InstagramGrid({
               style={[
                 styles.postContainer, 
                 { 
-                  width: (width - 6) / 2,
+                  width: (width - 12) / 2,
                   height: imageHeight,
                   marginBottom: 2
                 }
@@ -140,51 +139,6 @@ export default function InstagramGrid({
   );
 }
 
-/*
-EJEMPLO DE USO:
-
-import InstagramGrid from './InstagramGrid';
-
-// En tu pantalla principal:
-<InstagramGrid
-  posts={posts}
-  onLike={handleLike}
-  onComment={handleComment}
-  onEditPost={handleEditPost}
-  onDeletePost={handleDeletePost}
-  onFollowUser={handleFollowUser}
-  loading={loading}
-  hasMore={hasMore}
-/>
-
-CARACTERÍSTICAS DEL GRID:
-- Layout tipo Instagram con imágenes de diferentes tamaños
-- Patrón visual variado: large (65%), medium (35%), small (32%)
-- Organización automática en filas de 3 posts
-- Espaciado uniforme entre posts (2px)
-- Scroll vertical suave
-- Fondo negro consistente con el modo oscuro
-- Responsive: se adapta al ancho de la pantalla
-- Indicador de carga al final
-
-PATRÓN DE TAMAÑOS:
-- Índice 0: Large (65% del ancho) - Imagen destacada
-- Índice 1: Small (32% del ancho) - Imagen pequeña
-- Índice 2: Small (32% del ancho) - Imagen pequeña
-- Índice 3: Medium (35% del ancho) - Imagen mediana
-- Índice 4: Small (32% del ancho) - Imagen pequeña
-- Índice 5: Medium (35% del ancho) - Imagen mediana
-- Índice 6: Small (32% del ancho) - Imagen pequeña
-- Índice 7: Small (32% del ancho) - Imagen pequeña
-- Se repite cada 8 posts para crear variación visual
-
-RESULTADO:
-- Grid visualmente atractivo y variado
-- Mejor aprovechamiento del espacio de pantalla
-- Experiencia similar a Instagram
-- Fácil navegación y visualización
-- Imágenes solo se muestran, toda la información en modal al hacer click
-*/
 
 const styles = StyleSheet.create({
   container: {
@@ -197,11 +151,11 @@ const styles = StyleSheet.create({
   gridContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 2,
+    paddingHorizontal: 3,
   },
   column: {
     flex: 1,
-    marginHorizontal: 1,
+    marginHorizontal: 3,
   },
   postContainer: {
     overflow: 'hidden',
