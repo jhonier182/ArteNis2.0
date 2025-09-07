@@ -21,6 +21,7 @@ interface UserContextValue {
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
+  isInitializing: boolean;
 }
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);
@@ -28,6 +29,7 @@ const UserContext = createContext<UserContextValue | undefined>(undefined);
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -60,7 +62,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('No se pudo obtener el usuario del perfil');
         setIsAuthenticated(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log('Error al refrescar usuario:', error);
       setIsAuthenticated(false);
       // Si hay error de autenticación, limpiar datos
@@ -130,8 +132,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthenticated(true);
         }
       } catch {}
+      
       // Intentar refrescar desde API si hay token
-      refreshUser();
+      await refreshUser();
+      
+      // Marcar como inicializado
+      setIsInitializing(false);
     })();
   }, [refreshUser]);
 
@@ -142,6 +148,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     isAuthenticated,
+    isInitializing,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

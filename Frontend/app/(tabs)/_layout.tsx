@@ -105,7 +105,7 @@ export default function TabLayout() {
                 overflow: 'hidden',
               }}>
                 <LinearGradient
-                  colors={Gradients.primary}
+                  colors={Gradients.primary as any}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={{

@@ -4,14 +4,34 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { View, ActivityIndicator } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { UserProvider } from '@/context/UserContext';
 import { useAuth } from '@/hooks/useAuth';
 
 function RootLayoutNav() {
-  useAuth(); // Hook que maneja la navegación basada en autenticación
-  return null;
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  // Mostrar loading mientras se inicializa la autenticación
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  return (
+    <Stack>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="settings" options={{ headerShown: false, headerTitle: '', headerBackTitle: '', headerBackVisible: false }} />
+      <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+      <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
+      <Stack.Screen name="auth/logout" options={{ headerShown: false }} />
+      <Stack.Screen name="+not-found" />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
@@ -30,14 +50,6 @@ export default function RootLayout() {
       <UserProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <RootLayoutNav />
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="settings" options={{ headerShown: false, headerTitle: '', headerBackTitle: '', headerBackVisible: false }} />
-            <Stack.Screen name="auth/login" options={{ headerShown: false }} />
-            <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
-            <Stack.Screen name="auth/logout" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
           <StatusBar style="auto" />
         </GestureHandlerRootView>
       </UserProvider>
