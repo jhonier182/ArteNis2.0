@@ -63,7 +63,7 @@ export default function HomeScreen() {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`${API_BASE_URL}/api/posts/following?page=${pageNum}&limit=10`, {
+      const response = await fetch(`${API_BASE_URL}/api/posts/following?page=${pageNum}&limit=20`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

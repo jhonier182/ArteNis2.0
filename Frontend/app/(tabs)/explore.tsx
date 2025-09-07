@@ -64,7 +64,7 @@ export default function ExploreScreen() {
   const fetchAllPosts = async (pageNum = 1) => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/api/posts?page=${pageNum}&limit=10`);
+      const response = await apiClient.get(`/api/posts?page=${pageNum}&limit=20`);
       
       const data = response.data;
       let newPosts = data.data?.posts || [];
@@ -130,15 +130,11 @@ export default function ExploreScreen() {
   // Refrescar posts cuando se enfoca la pantalla
   const refreshOnFocus = async () => {
     try {
-      console.log('🔄 Refrescando publicaciones en segundo plano...');
-      
       // Refrescar usuarios seguidos primero
       await fetchFollowingUsers();
       
       // Luego refrescar posts silenciosamente
       await fetchAllPosts(1);
-      
-      console.log('✅ Publicaciones refrescadas silenciosamente');
       
     } catch (error) {
       console.error('❌ Error al refrescar en focus:', error);
@@ -148,7 +144,6 @@ export default function ExploreScreen() {
   // Hook para detectar cuando la pantalla se enfoca
   useFocusEffect(
     useCallback(() => {
-      console.log('🎯 Pantalla Explorar enfocada - refrescando publicaciones...');
       // Delay más largo para evitar refrescar inmediatamente al cambiar de pestaña
       const timer = setTimeout(() => {
         refreshOnFocus();

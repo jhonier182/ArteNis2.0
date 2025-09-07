@@ -20,7 +20,7 @@ export function useInfiniteScroll<T>(
   fetchFunction: (page: number, pageSize: number) => Promise<{ data: T[]; hasMore: boolean }>,
   options: UseInfiniteScrollOptions = {}
 ): UseInfiniteScrollReturn<T> {
-  const { pageSize = 10, initialPage = 1 } = options;
+  const { pageSize = 20, initialPage = 1 } = options;
   
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
