@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   gridContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 3,
+    paddingHorizontal: 1,
   },
   column: {
     flex: 1,
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 10,
   },
   loadingText: {
     marginLeft: 10,
