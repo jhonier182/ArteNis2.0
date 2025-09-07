@@ -310,7 +310,6 @@ class PostService {
         
         // Si es un deadlock y no hemos agotado los reintentos, esperar y reintentar
         if (error.message.includes('Deadlock') && attempt < maxRetries) {
-          console.log(`⚠️ Deadlock detectado en likePost, reintentando... (${attempt}/${maxRetries})`);
           // Esperar un tiempo aleatorio antes de reintentar (backoff exponencial)
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
           continue;
@@ -372,7 +371,6 @@ class PostService {
         
         // Si es un deadlock y no hemos agotado los reintentos, esperar y reintentar
         if (error.message.includes('Deadlock') && attempt < maxRetries) {
-          console.log(`⚠️ Deadlock detectado en unlikePost, reintentando... (${attempt}/${maxRetries})`);
           // Esperar un tiempo aleatorio antes de reintentar (backoff exponencial)
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
           continue;
@@ -598,16 +596,13 @@ class PostService {
       
       if (existingLike) {
         // Quitar like
-        console.log(`🔄 Quitando like del comentario ${commentId}`);
         await sequelize.transaction(async (t) => {
           await existingLike.destroy({ transaction: t });
           await comment.decrementLikes();
         });
-        console.log(`✅ Like removido del comentario ${commentId}`);
         return { message: 'Like removido del comentario' };
       } else {
         // Dar like
-        console.log(`🔄 Agregando like al comentario ${commentId}`);
         await sequelize.transaction(async (t) => {
           await Like.create({
             userId,
@@ -616,7 +611,6 @@ class PostService {
           }, { transaction: t });
           await comment.incrementLikes();
         });
-        console.log(`✅ Like agregado al comentario ${commentId}`);
         return { message: 'Like agregado al comentario' };
       }
     } catch (error) {

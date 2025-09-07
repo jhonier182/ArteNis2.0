@@ -122,11 +122,7 @@ class PostController {
       const { id } = req.params;
       const { type = 'like' } = req.body;
       
-      console.log(`❤️ Usuario ${req.user.id} dando like al post ${id}`);
-      
       const result = await PostService.likePost(req.user.id, id, type);
-      
-      console.log(`✅ Like procesado exitosamente:`, result);
       
       res.status(200).json({
         success: true,

@@ -177,10 +177,8 @@ Post.prototype.incrementViews = async function() {
 };
 
 Post.prototype.incrementLikes = async function() {
-  console.log(`🔄 Incrementando likes para post ${this.id} - Likes actuales: ${this.likesCount}`);
   try {
     await this.increment('likesCount');
-    console.log(`✅ Likes incrementados para post ${this.id}`);
   } catch (error) {
     console.error(`❌ Error incrementando likes para post ${this.id}:`, error);
     throw error;
@@ -188,10 +186,8 @@ Post.prototype.incrementLikes = async function() {
 };
 
 Post.prototype.decrementLikes = async function() {
-  console.log(`🔄 Decrementando likes para post ${this.id} - Likes actuales: ${this.likesCount}`);
   try {
     await this.decrement('likesCount');
-    console.log(`✅ Likes decrementados para post ${this.id}`);
   } catch (error) {
     console.error(`❌ Error decrementando likes para post ${this.id}:`, error);
     throw error;
