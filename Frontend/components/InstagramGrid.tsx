@@ -48,61 +48,59 @@ export default function InstagramGrid({
   loading = false,
   hasMore = false,
 }: InstagramGridProps) {
-  // Función para determinar el tamaño de cada post basado en su posición
-  const getPostSize = (index: number): 'small' | 'medium' | 'large' => {
-    // Patrón tipo Instagram: crear variación visual interesante
-    const pattern = index % 8;
-    
-    switch (pattern) {
-      case 0: // Primera imagen - grande
-        return 'large';
-      case 1: // Segunda imagen - pequeña
-        return 'small';
-      case 2: // Tercera imagen - pequeña
-        return 'small';
-      case 3: // Cuarta imagen - mediana
-        return 'medium';
-      case 4: // Quinta imagen - pequeña
-        return 'small';
-      case 5: // Sexta imagen - mediana
-        return 'medium';
-      case 6: // Séptima imagen - pequeña
-        return 'small';
-      case 7: // Octava imagen - pequeña
-        return 'small';
-      default:
-        return 'medium';
-    }
+  // Función para calcular la altura de la imagen basada en su aspecto
+  const getImageHeight = (imageUrl: string, baseWidth: number): number => {
+    // Alturas variadas para simular diferentes aspectos de imagen como en la imagen de referencia
+    const heights = [180, 220, 160, 280, 200, 240, 300, 190, 260, 170, 250, 210];
+    const randomIndex = Math.abs(imageUrl.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % heights.length;
+    return heights[randomIndex];
   };
 
-  // Función para calcular el ancho real de cada post
-  const getPostWidth = (size: 'small' | 'medium' | 'large') => {
-    const gap = 1; // Espacio entre posts (mínimo)
-    const totalGaps = 2; // Número de gaps en una fila
-    const availableWidth = width - (gap * totalGaps); // Sin padding horizontal
-    
-    switch (size) {
-      case 'large':
-        return availableWidth * 0.66; // 66% del ancho disponible
-      case 'medium':
-        return availableWidth * 0.33; // 33% del ancho disponible
-      case 'small':
-        return availableWidth * 0.33; // 33% del ancho disponible
-      default:
-        return availableWidth * 0.33;
-    }
+  // Función para distribuir posts en dos columnas
+  const distributePostsInColumns = () => {
+    const columnWidth = (width - 6) / 2; // 2 columnas con 2px de separación
+    const leftColumn: Post[] = [];
+    const rightColumn: Post[] = [];
+    let leftHeight = 0;
+    let rightHeight = 0;
+
+    posts.forEach((post) => {
+      const imageHeight = getImageHeight(post.imageUrl, columnWidth);
+      const margin = 2; // Margen entre imágenes
+      
+      // Elegir la columna con menor altura
+      if (leftHeight <= rightHeight) {
+        leftColumn.push(post);
+        leftHeight += imageHeight + margin;
+      } else {
+        rightColumn.push(post);
+        rightHeight += imageHeight + margin;
+      }
+    });
+
+    return { leftColumn, rightColumn };
   };
 
-  // Función para renderizar una fila de posts
-  const renderRow = (rowPosts: Post[], rowIndex: number) => {
+  const { leftColumn, rightColumn } = distributePostsInColumns();
+
+  const renderColumn = (columnPosts: Post[], columnSide: 'left' | 'right') => {
     return (
-      <View key={`row-${rowIndex}`} style={styles.row}>
-        {rowPosts.map((post, postIndex) => {
-          const size = getPostSize(rowIndex * 3 + postIndex);
-          const postWidth = getPostWidth(size);
+      <View style={styles.column}>
+        {columnPosts.map((post) => {
+          const imageHeight = getImageHeight(post.imageUrl, (width - 6) / 2);
           
           return (
-            <View key={post.id} style={[styles.postContainer, { width: postWidth }]}>
+            <View 
+              key={post.id} 
+              style={[
+                styles.postContainer, 
+                { 
+                  width: (width - 6) / 2,
+                  height: imageHeight,
+                  marginBottom: 2
+                }
+              ]}
+            >
               <ElegantPostCard
                 post={post}
                 onLike={onLike}
@@ -110,7 +108,7 @@ export default function InstagramGrid({
                 onEditPost={onEditPost}
                 onDeletePost={onDeletePost}
                 onFollowUser={onFollowUser}
-                size={size}
+                size="medium"
               />
             </View>
           );
@@ -119,16 +117,6 @@ export default function InstagramGrid({
     );
   };
 
-  // Organizar posts en filas de 3
-  const organizePostsInRows = () => {
-    const rows: Post[][] = [];
-    for (let i = 0; i < posts.length; i += 3) {
-      rows.push(posts.slice(i, i + 3));
-    }
-    return rows;
-  };
-
-  const rows = organizePostsInRows();
 
   return (
     <ScrollView 
@@ -136,7 +124,10 @@ export default function InstagramGrid({
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.contentContainer}
     >
-      {rows.map((rowPosts, rowIndex) => renderRow(rowPosts, rowIndex))}
+      <View style={styles.gridContainer}>
+        {renderColumn(leftColumn, 'left')}
+        {renderColumn(rightColumn, 'right')}
+      </View>
       
       {/* Indicador de carga */}
       {loading && hasMore && (
@@ -203,14 +194,19 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingVertical: 1,
   },
-  row: {
+  gridContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 1,
+    paddingHorizontal: 2,
+  },
+  column: {
+    flex: 1,
+    marginHorizontal: 1,
   },
   postContainer: {
-    // El ancho se establece dinámicamente
+    overflow: 'hidden',
+    borderRadius: 12,
+    backgroundColor: NeutralColors.gray900,
   },
   loadingFooter: {
     flexDirection: 'row',

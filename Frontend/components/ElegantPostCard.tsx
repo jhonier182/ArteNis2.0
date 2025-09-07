@@ -297,7 +297,7 @@ export default function ElegantPostCard({
     <>
       {/* Solo la imagen - sin información */}
       <TouchableOpacity 
-        style={[styles.imageOnlyContainer, { width: imageSize, height: imageSize }]} 
+        style={[styles.imageOnlyContainer, { width: imageSize, height: '100%' }]} 
         onPress={handleImagePress}
         activeOpacity={0.9}
       >
