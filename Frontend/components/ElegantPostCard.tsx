@@ -452,6 +452,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: NeutralColors.black,
     paddingTop: 0, // Sin header, empezamos desde arriba
+    paddingHorizontal: 0, // Sin padding horizontal para usar todo el ancho
   },
   modalContent: {
     paddingHorizontal: 0,
@@ -473,7 +474,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 15,
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
   },
   userInfo: {
     flexDirection: 'row',
@@ -503,7 +504,7 @@ const styles = StyleSheet.create({
   },
   modalImageContainer: {
     width: '100%',
-    height: width * 0.8, // Tamaño fijo para la imagen en el modal
+    height: width * 1.2, // Imagen más grande en el modal
     overflow: 'hidden',
     marginBottom: 15,
   },
@@ -518,7 +519,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
   },
   description: {
     color: TextColors.inverse,
@@ -541,7 +542,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     backgroundColor: NeutralColors.gray900,
     paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     borderWidth: 1,
     borderColor: NeutralColors.gray800,
   },
