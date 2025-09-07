@@ -400,45 +400,6 @@ export default function ElegantPostCard({
     </>
   );
 }
-
-/*
-EJEMPLO DE USO:
-
-// Publicación pequeña (30% del ancho)
-<ElegantPostCard
-  post={post}
-  onLike={handleLike}
-  onComment={handleComment}
-  onFollowUser={handleFollowUser}
-  size="small"
-/>
-
-// Publicación mediana (50% del ancho) - por defecto
-<ElegantPostCard
-  post={post}
-  onLike={handleLike}
-  onComment={handleComment}
-  onFollowUser={handleFollowUser}
-  size="medium"
-/>
-
-// Publicación grande (80% del ancho)
-<ElegantPostCard
-  post={post}
-  onLike={handleLike}
-  onComment={handleComment}
-  onFollowUser={handleFollowUser}
-  size="large"
-/>
-
-CARACTERÍSTICAS:
-- Solo muestra la imagen (sin información)
-- Al hacer click se abre un modal completo con toda la información
-- Diferentes tamaños disponibles: small, medium, large
-- Modal incluye: header del usuario, imagen grande, descripción, métricas
-- Funcionalidades: like, comentarios, seguir usuario, opciones del post
-*/
-
 const styles = StyleSheet.create({
   imageOnlyContainer: {
     overflow: 'hidden',
