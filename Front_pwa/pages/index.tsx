@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { motion } from 'framer-motion'
 import { 
   Home, 
   Search, 
-  Plus, 
-  MessageCircle, 
+  Users,
   User,
   Heart,
-  Share2,
+  MessageCircle,
   Bookmark,
-  MoreHorizontal,
-  Download
+  Share2,
+  Download,
+  TrendingUp
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
@@ -43,7 +43,6 @@ export default function HomePage() {
   const { user, isAuthenticated, isLoading } = useUser()
   const [posts, setPosts] = useState<Post[]>([])
   const [loadingPosts, setLoadingPosts] = useState(true)
-  const [activeTab, setActiveTab] = useState('home')
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const router = useRouter()
 
@@ -60,7 +59,6 @@ export default function HomePage() {
   }, [isAuthenticated])
 
   useEffect(() => {
-    // Detectar si se puede instalar la PWA
     const handler = (e: Event) => {
       e.preventDefault()
       ;(window as any).deferredPrompt = e
@@ -118,7 +116,7 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     )
@@ -129,24 +127,25 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-[#0f1419] text-white pb-20">
       <Head>
         <title>ArteNis 2.0 - Inicio</title>
       </Head>
-
+      
       {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-50 safe-top">
+      <header className="sticky top-0 z-50 bg-[#0f1419]/95 backdrop-blur-sm border-b border-gray-800">
         <div className="container-mobile px-4 py-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
               ArteNis
             </h1>
-            <div className="flex items-center space-x-4">
-              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <Search className="w-6 h-6 text-gray-600" />
+            <div className="flex items-center space-x-3">
+              <button className="p-2 hover:bg-gray-800 rounded-full transition-colors relative">
+                <TrendingUp className="w-6 h-6" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
               </button>
-              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <MessageCircle className="w-6 h-6 text-gray-600" />
+              <button className="p-2 hover:bg-gray-800 rounded-full transition-colors">
+                <MessageCircle className="w-6 h-6" />
               </button>
             </div>
           </div>
@@ -158,7 +157,7 @@ export default function HomePage() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-blue-500 text-white p-4"
+          className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 border-b border-gray-800"
         >
           <div className="container-mobile flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -167,7 +166,7 @@ export default function HomePage() {
             </div>
             <button
               onClick={handleInstallClick}
-              className="bg-white text-blue-500 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-colors"
+              className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors"
             >
               Instalar
             </button>
@@ -187,148 +186,147 @@ export default function HomePage() {
             animate={{ opacity: 1 }}
             className="text-center py-20 px-4"
           >
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay publicaciones aún</h3>
-            <p className="text-gray-500 mb-6">Sé el primero en compartir tu arte</p>
+            <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Home className="w-12 h-12 text-gray-600" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No hay publicaciones aún</h3>
+            <p className="text-gray-400 mb-6">Sé el primero en compartir tu arte</p>
             <Link
               href="/create"
-              className="inline-flex items-center space-x-2 bg-blue-500 text-white px-6 py-3 rounded-full font-medium hover:bg-blue-600 transition-colors"
+              className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-full font-medium hover:from-blue-600 hover:to-purple-700 transition-all"
             >
-              <Plus className="w-5 h-5" />
               <span>Crear publicación</span>
             </Link>
           </motion.div>
         ) : (
-          <div className="space-y-4 p-4">
-            {posts.map((post, index) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-              >
-                {/* Post Header */}
-                <div className="flex items-center justify-between p-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-                      {post.User?.avatar ? (
+          <div className="py-4">
+            {/* Pinterest-style Masonry Grid */}
+            <div className="columns-2 gap-3 px-3">
+              {posts.map((post, index) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="break-inside-avoid mb-3"
+                >
+                  <div className="bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 hover:border-gray-700 transition-colors">
+                    {/* Post Image */}
+                    {post.mediaUrl && (
+                      <div className="relative group cursor-pointer">
                         <img
-                          src={post.User.avatar}
-                          alt={post.User.username}
-                          className="w-10 h-10 rounded-full object-cover"
+                          src={post.mediaUrl}
+                          alt={post.title || 'Post'}
+                          className="w-full object-cover"
                         />
-                      ) : (
-                        <User className="w-5 h-5 text-white" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleLike(post.id)
+                                }}
+                                className="flex items-center space-x-1 text-white"
+                              >
+                                <Heart className="w-5 h-5" />
+                                <span className="text-sm font-medium">{post.likesCount}</span>
+                              </button>
+                              <div className="flex items-center space-x-1 text-white">
+                                <MessageCircle className="w-5 h-5" />
+                                <span className="text-sm font-medium">{post.commentsCount}</span>
+                              </div>
+                            </div>
+                            <button className="text-white">
+                              <Share2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Post Info */}
+                    <div className="p-3">
+                      {post.title && (
+                        <h3 className="font-semibold mb-1 line-clamp-2">{post.title}</h3>
                       )}
+                      {post.description && (
+                        <p className="text-sm text-gray-400 mb-3 line-clamp-2">{post.description}</p>
+                      )}
+                      
+                      {/* Author */}
+                      <Link href={`/profile/${post.User?.id}`} className="flex items-center space-x-2 group">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                          {post.User?.avatar ? (
+                            <img
+                              src={post.User.avatar}
+                              alt={post.User.username}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <User className="w-4 h-4 text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium group-hover:text-blue-500 transition-colors truncate">
+                            {post.User?.username || 'Usuario'}
+                          </p>
+                          {post.User?.userType === 'artist' && (
+                            <p className="text-xs text-gray-500">Artista</p>
+                          )}
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault()
+                            handleLike(post.id)
+                          }}
+                          className="p-2 hover:bg-gray-800 rounded-full transition-colors"
+                        >
+                          <Bookmark className="w-5 h-5 text-gray-400 hover:text-blue-500" />
+                        </button>
+                      </Link>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{post.User?.username || 'Usuario'}</h3>
-                      <p className="text-xs text-gray-500">
-                        {new Date(post.publishedAt || post.createdAt).toLocaleDateString('es-ES', {
-                          day: 'numeric',
-                          month: 'short'
-                        })}
-                      </p>
-                    </div>
                   </div>
-                  <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                    <MoreHorizontal className="w-5 h-5 text-gray-400" />
-                  </button>
-                </div>
-
-                {/* Post Content */}
-                {post.title && (
-                  <h4 className="px-4 pb-2 font-semibold text-gray-900">{post.title}</h4>
-                )}
-                {post.description && (
-                  <p className="px-4 pb-3 text-gray-900">{post.description}</p>
-                )}
-                
-                {post.mediaUrl && (
-                  <div className="w-full">
-                    <img
-                      src={post.mediaUrl}
-                      alt={post.title || 'Post'}
-                      className="w-full object-cover max-h-96"
-                    />
-                  </div>
-                )}
-
-                {/* Post Actions */}
-                <div className="flex items-center justify-between p-4 border-t border-gray-100">
-                  <div className="flex items-center space-x-6">
-                    <button
-                      onClick={() => handleLike(post.id)}
-                      className="flex items-center space-x-1 text-gray-600 hover:text-red-500 transition-colors group"
-                    >
-                      <Heart className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                      <span className="text-sm font-medium">{post.likesCount}</span>
-                    </button>
-                    <button className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors group">
-                      <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                      <span className="text-sm font-medium">{post.commentsCount}</span>
-                    </button>
-                    <button className="text-gray-600 hover:text-green-500 transition-colors group">
-                      <Share2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                    </button>
-                  </div>
-                  <button className="text-gray-600 hover:text-yellow-500 transition-colors group">
-                    <Bookmark className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                  </button>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </div>
           </div>
         )}
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#0f1419] border-t border-gray-800 z-50 safe-bottom">
         <div className="container-mobile flex items-center justify-around py-2">
-          <button
-            onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center py-2 px-3 transition-colors ${
-              activeTab === 'home' ? 'text-blue-600' : 'text-gray-600'
-            }`}
-          >
-            <Home className="w-6 h-6" fill={activeTab === 'home' ? 'currentColor' : 'none'} />
-            <span className="text-xs mt-1 font-medium">Inicio</span>
+          <button className="flex flex-col items-center py-2 px-3 text-blue-500">
+            <Home className="w-6 h-6 mb-1" fill="currentColor" />
+            <span className="text-xs font-medium">Inicio</span>
           </button>
+          
           <button
-            onClick={() => setActiveTab('explore')}
-            className={`flex flex-col items-center py-2 px-3 transition-colors ${
-              activeTab === 'explore' ? 'text-blue-600' : 'text-gray-600'
-            }`}
+            onClick={() => router.push('/explore')}
+            className="flex flex-col items-center py-2 px-3 text-gray-400"
           >
-            <Search className="w-6 h-6" />
-            <span className="text-xs mt-1 font-medium">Explorar</span>
+            <Search className="w-6 h-6 mb-1" />
+            <span className="text-xs">Buscar</span>
           </button>
-          <Link
-            href="/create"
-            className="flex flex-col items-center py-2 px-3 text-gray-600"
-          >
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-full -mt-4 shadow-lg">
-              <Plus className="w-6 h-6 text-white" />
-            </div>
-          </Link>
+          
+          <button className="flex flex-col items-center py-2 px-3 text-gray-400">
+            <Users className="w-6 h-6 mb-1" />
+            <span className="text-xs">Ranking</span>
+          </button>
+          
+          <button className="flex flex-col items-center py-2 px-3 text-gray-400">
+            <Bookmark className="w-6 h-6 mb-1" />
+            <span className="text-xs">Guardado</span>
+          </button>
+          
           <button
-            onClick={() => setActiveTab('messages')}
-            className={`flex flex-col items-center py-2 px-3 transition-colors ${
-              activeTab === 'messages' ? 'text-blue-600' : 'text-gray-600'
-            }`}
+            onClick={() => router.push('/profile')}
+            className="flex flex-col items-center py-2 px-3 text-gray-400"
           >
-            <MessageCircle className="w-6 h-6" />
-            <span className="text-xs mt-1 font-medium">Mensajes</span>
+            <User className="w-6 h-6 mb-1" />
+            <span className="text-xs">Perfil</span>
           </button>
-          <Link
-            href="/profile"
-            className={`flex flex-col items-center py-2 px-3 transition-colors ${
-              activeTab === 'profile' ? 'text-blue-600' : 'text-gray-600'
-            }`}
-          >
-            <User className="w-6 h-6" />
-            <span className="text-xs mt-1 font-medium">Perfil</span>
-          </Link>
         </div>
       </nav>
     </div>
