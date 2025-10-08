@@ -552,7 +552,10 @@ class PostService {
       } = options;
 
       const offset = (page - 1) * limit;
-      const where = { userId };
+      const where = { 
+        userId,
+        status: 'published' // Solo mostrar publicaciones publicadas
+      };
 
       // Si no es el mismo usuario, solo mostrar publicaciones públicas
       if (requesterId !== userId) {

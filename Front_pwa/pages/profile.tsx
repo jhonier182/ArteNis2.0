@@ -20,7 +20,8 @@ import {
   Zap,
   Home,
   Search,
-  Bell
+  Bell,
+  Heart
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
@@ -51,7 +52,8 @@ export default function ProfilePage() {
   const fetchUserPosts = async () => {
     try {
       setLoadingPosts(true)
-      const response = await apiClient.get(`/api/users/${user?.id}/posts`)
+      const response = await apiClient.get(`/api/posts/user/${user?.id}`)
+      console.log('Posts del usuario:', response.data)
       setUserPosts(response.data?.data?.posts || [])
     } catch (error) {
       console.error('Error al cargar posts del usuario:', error)
