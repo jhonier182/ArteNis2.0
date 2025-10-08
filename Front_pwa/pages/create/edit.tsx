@@ -8,7 +8,17 @@ import {
   RotateCw,
   Crop,
   Sliders,
-  Sparkles
+  Sparkles,
+  Sun,
+  Contrast,
+  Droplets,
+  Zap,
+  Lightbulb,
+  Moon,
+  Flame,
+  Palette,
+  Focus,
+  Circle
 } from 'lucide-react'
 import { apiClient } from '@/utils/apiClient'
 
@@ -529,170 +539,185 @@ export default function EditImagePage() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="space-y-6"
+              className="space-y-4"
             >
-              {/* Brillo */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-300">Brillo</label>
-                  <span className="text-sm text-gray-500">{brightness}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="200"
-                  value={brightness}
-                  onChange={(e) => handleManualAdjustmentChange('brightness', Number(e.target.value))}
-                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
-                />
-              </div>
+              {/* Scroll horizontal de ajustes con iconos */}
+              <div className="overflow-x-auto scrollbar-hide">
+                <div className="flex space-x-4 pb-2" style={{ width: 'max-content' }}>
+                  {/* Brillo */}
+                  <div className="flex-shrink-0 w-20 text-center">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                      <Sun className="w-6 h-6 text-yellow-400" />
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">Brillo</p>
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={brightness}
+                      onChange={(e) => handleManualAdjustmentChange('brightness', Number(e.target.value))}
+                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{brightness}</p>
+                  </div>
 
-              {/* Contraste */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-300">Contraste</label>
-                  <span className="text-sm text-gray-500">{contrast}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="200"
-                  value={contrast}
-                  onChange={(e) => handleManualAdjustmentChange('contrast', Number(e.target.value))}
-                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
-                />
-              </div>
+                  {/* Contraste */}
+                  <div className="flex-shrink-0 w-20 text-center">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                      <Contrast className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">Contraste</p>
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={contrast}
+                      onChange={(e) => handleManualAdjustmentChange('contrast', Number(e.target.value))}
+                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{contrast}</p>
+                  </div>
 
-              {/* Saturación */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-300">Saturación</label>
-                  <span className="text-sm text-gray-500">{saturation}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="200"
-                  value={saturation}
-                  onChange={(e) => handleManualAdjustmentChange('saturation', Number(e.target.value))}
-                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
-                />
-              </div>
+                  {/* Saturación */}
+                  <div className="flex-shrink-0 w-20 text-center">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                      <Droplets className="w-6 h-6 text-pink-400" />
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">Saturación</p>
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={saturation}
+                      onChange={(e) => handleManualAdjustmentChange('saturation', Number(e.target.value))}
+                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{saturation}</p>
+                  </div>
 
-              {/* Exposición */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-300">Exposición</label>
-                  <span className="text-sm text-gray-500">{exposure}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="200"
-                  value={exposure}
-                  onChange={(e) => handleManualAdjustmentChange('exposure', Number(e.target.value))}
-                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
-                />
-              </div>
+                  {/* Exposición */}
+                  <div className="flex-shrink-0 w-20 text-center">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                      <Zap className="w-6 h-6 text-orange-400" />
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">Exposición</p>
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={exposure}
+                      onChange={(e) => handleManualAdjustmentChange('exposure', Number(e.target.value))}
+                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{exposure}</p>
+                  </div>
 
-              {/* Highlights */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-300">Altas luces</label>
-                  <span className="text-sm text-gray-500">{highlights}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="200"
-                  value={highlights}
-                  onChange={(e) => handleManualAdjustmentChange('highlights', Number(e.target.value))}
-                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
-                />
-              </div>
+                  {/* Highlights */}
+                  <div className="flex-shrink-0 w-20 text-center">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                      <Lightbulb className="w-6 h-6 text-yellow-300" />
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">Altas luces</p>
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={highlights}
+                      onChange={(e) => handleManualAdjustmentChange('highlights', Number(e.target.value))}
+                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{highlights}</p>
+                  </div>
 
-              {/* Shadows */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-300">Sombras</label>
-                  <span className="text-sm text-gray-500">{shadows}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="200"
-                  value={shadows}
-                  onChange={(e) => handleManualAdjustmentChange('shadows', Number(e.target.value))}
-                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
-                />
-              </div>
+                  {/* Shadows */}
+                  <div className="flex-shrink-0 w-20 text-center">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                      <Moon className="w-6 h-6 text-indigo-400" />
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">Sombras</p>
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={shadows}
+                      onChange={(e) => handleManualAdjustmentChange('shadows', Number(e.target.value))}
+                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{shadows}</p>
+                  </div>
 
-              {/* Warmth */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-300">Calidez</label>
-                  <span className="text-sm text-gray-500">{warmth - 50 > 0 ? '+' : ''}{warmth - 50}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={warmth}
-                  onChange={(e) => handleManualAdjustmentChange('warmth', Number(e.target.value))}
-                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
-                />
-              </div>
+                  {/* Warmth */}
+                  <div className="flex-shrink-0 w-20 text-center">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                      <Flame className="w-6 h-6 text-red-400" />
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">Calidez</p>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={warmth}
+                      onChange={(e) => handleManualAdjustmentChange('warmth', Number(e.target.value))}
+                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{warmth - 50 > 0 ? '+' : ''}{warmth - 50}</p>
+                  </div>
 
-              {/* Tint */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-300">Tono</label>
-                  <span className="text-sm text-gray-500">{tint - 50 > 0 ? '+' : ''}{tint - 50}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={tint}
-                  onChange={(e) => handleManualAdjustmentChange('tint', Number(e.target.value))}
-                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
-                />
-              </div>
+                  {/* Tint */}
+                  <div className="flex-shrink-0 w-20 text-center">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                      <Palette className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">Tono</p>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={tint}
+                      onChange={(e) => handleManualAdjustmentChange('tint', Number(e.target.value))}
+                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{tint - 50 > 0 ? '+' : ''}{tint - 50}</p>
+                  </div>
 
-              {/* Sharpness */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-300">Nitidez</label>
-                  <span className="text-sm text-gray-500">{sharpness}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={sharpness}
-                  onChange={(e) => handleManualAdjustmentChange('sharpness', Number(e.target.value))}
-                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
-                />
-              </div>
+                  {/* Sharpness */}
+                  <div className="flex-shrink-0 w-20 text-center">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                      <Focus className="w-6 h-6 text-cyan-400" />
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">Nitidez</p>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={sharpness}
+                      onChange={(e) => handleManualAdjustmentChange('sharpness', Number(e.target.value))}
+                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{sharpness}</p>
+                  </div>
 
-              {/* Vignette */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-300">Viñeta</label>
-                  <span className="text-sm text-gray-500">{vignette}</span>
+                  {/* Vignette */}
+                  <div className="flex-shrink-0 w-20 text-center">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                      <Circle className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">Viñeta</p>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={vignette}
+                      onChange={(e) => handleManualAdjustmentChange('vignette', Number(e.target.value))}
+                      className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{vignette}</p>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={vignette}
-                  onChange={(e) => handleManualAdjustmentChange('vignette', Number(e.target.value))}
-                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
-                />
               </div>
 
               {/* Herramientas adicionales */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3">
                 <button
                   onClick={handleRotate}
                   className="flex-1 bg-gray-800 text-white py-3 rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
