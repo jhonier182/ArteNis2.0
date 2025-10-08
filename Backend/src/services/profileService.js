@@ -101,7 +101,8 @@ class ProfileService {
       // Campos permitidos para actualización
       const allowedFields = [
         'fullName', 'bio', 'phone', 'city', 'state', 'country',
-        'studioName', 'studioAddress', 'pricePerHour', 'experience', 'specialties'
+        'studioName', 'studioAddress', 'pricePerHour', 'experience', 'specialties',
+        'userType'
       ];
       const updateData = {};
       
