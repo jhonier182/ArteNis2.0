@@ -14,7 +14,10 @@ import {
   Bookmark,
   ChevronLeft,
   MoreVertical,
-  Camera
+  Camera,
+  Share2,
+  Gift,
+  Zap
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import EditProfileModal from '@/components/EditProfileModal'
@@ -59,8 +62,22 @@ export default function ProfilePage() {
   // Mock data - Reemplazar con datos reales del backend
   const stats = {
     followers: 1200,
-    rating: 4.9,
-    collections: 58
+    rating: 4.5,
+    totalReviews: 28,
+    collections: 58,
+    completedAppointments: 150,
+    responseRate: 98
+  }
+
+  const userRewards = {
+    points: 1250,
+    level: 'Gold',
+    nextReward: 1500,
+    badges: [
+      { id: 1, name: 'Compartió 10 veces', icon: Share2, earned: true },
+      { id: 2, name: 'Super Fan', icon: Star, earned: true },
+      { id: 3, name: 'Embajador', icon: Award, earned: false },
+    ]
   }
 
   const badges = [
@@ -139,13 +156,48 @@ export default function ProfilePage() {
           <p className="text-gray-400">
             {user.userType === 'artist' ? 'Tatuador/a' : 'Usuario'} en {user.city || 'Madrid'}
           </p>
+          
+          {/* Rating con estrellas (solo para artistas) */}
+          {user.userType === 'artist' && (
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-4 h-4 ${
+                      i < Math.floor(stats.rating)
+                        ? 'fill-yellow-500 text-yellow-500'
+                        : i < stats.rating
+                        ? 'fill-yellow-500/50 text-yellow-500'
+                        : 'text-gray-600'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-sm font-semibold text-white">
+                {stats.rating}
+              </span>
+              <span className="text-xs text-gray-500">
+                ({stats.totalReviews} valoraciones)
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-3 mb-8">
-          <button className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors">
-            Seguir
-          </button>
+          {user.userType === 'artist' ? (
+            <button 
+              onClick={() => router.push('/appointments/book')}
+              className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Solicitar cotización
+            </button>
+          ) : (
+            <button className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors">
+              Seguir
+            </button>
+          )}
           <button className="flex-1 bg-gray-800 text-white py-3 rounded-xl font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
             <MessageCircle className="w-5 h-5" />
             Mensaje
@@ -153,22 +205,109 @@ export default function ProfilePage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="text-center">
-            <div className="text-2xl font-bold mb-1">
-              {stats.followers < 1000 ? stats.followers : `${(stats.followers / 1000).toFixed(1)}K`}
+        {user.userType === 'artist' ? (
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="text-center bg-[#1a1f26] rounded-2xl py-4">
+              <div className="text-2xl font-bold mb-1 text-blue-400">
+                {stats.completedAppointments}+
+              </div>
+              <div className="text-xs text-gray-400">Citas completadas</div>
             </div>
-            <div className="text-sm text-gray-400">Seguidores</div>
+            <div className="text-center bg-[#1a1f26] rounded-2xl py-4">
+              <div className="text-2xl font-bold mb-1 text-green-400">
+                {stats.responseRate}%
+              </div>
+              <div className="text-xs text-gray-400">Tasa de respuesta</div>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold mb-1">{stats.rating}</div>
-            <div className="text-sm text-gray-400">Valoración</div>
+        ) : (
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="text-center">
+              <div className="text-2xl font-bold mb-1">
+                {stats.followers < 1000 ? stats.followers : `${(stats.followers / 1000).toFixed(1)}K`}
+              </div>
+              <div className="text-sm text-gray-400">Seguidores</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold mb-1">{stats.rating}</div>
+              <div className="text-sm text-gray-400">Valoración</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold mb-1">{stats.collections}</div>
+              <div className="text-sm text-gray-400">Colecciones</div>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold mb-1">{stats.collections}</div>
-            <div className="text-sm text-gray-400">Colecciones</div>
+        )}
+
+        {/* Sistema de Recompensas (solo usuarios no artistas) */}
+        {user.userType !== 'artist' && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-yellow-600/20 via-orange-600/20 to-pink-600/20 rounded-2xl p-5 border border-yellow-600/30">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                    <Gift className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white">Recompensas por Compartir</h3>
+                    <p className="text-xs text-gray-400">Nivel {userRewards.level}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-yellow-400">{userRewards.points}</div>
+                  <p className="text-xs text-gray-400">puntos</p>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                  <span>Progreso al siguiente nivel</span>
+                  <span>{userRewards.points}/{userRewards.nextReward}</span>
+                </div>
+                <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(userRewards.points / userRewards.nextReward) * 100}%` }}
+                    transition={{ duration: 1, ease: 'easeOut' }}
+                    className="h-full bg-gradient-to-r from-yellow-500 to-orange-500"
+                  />
+                </div>
+              </div>
+
+              {/* Badges */}
+              <div className="flex gap-2">
+                {userRewards.badges.map((badge) => (
+                  <div
+                    key={badge.id}
+                    className={`flex-1 p-3 rounded-xl flex flex-col items-center gap-2 transition-all ${
+                      badge.earned
+                        ? 'bg-yellow-500/20 border border-yellow-500/30'
+                        : 'bg-gray-800/50 border border-gray-700'
+                    }`}
+                  >
+                    <badge.icon
+                      className={`w-5 h-5 ${
+                        badge.earned ? 'text-yellow-400' : 'text-gray-600'
+                      }`}
+                    />
+                    <p className={`text-[10px] text-center leading-tight ${
+                      badge.earned ? 'text-yellow-400' : 'text-gray-500'
+                    }`}>
+                      {badge.name}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Acción rápida */}
+              <button className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2">
+                <Zap className="w-4 h-4" />
+                Ganar más puntos
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Badges Section */}
         <div className="mb-8">
