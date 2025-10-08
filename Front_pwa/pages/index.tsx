@@ -38,6 +38,7 @@ interface Post {
   viewsCount: number
   createdAt: string
   publishedAt?: string
+  isLiked?: boolean
 }
 
 export default function HomePage() {
@@ -145,14 +146,36 @@ export default function HomePage() {
 
   const handleLike = async (postId: string) => {
     try {
+      // Actualización optimista - actualizar UI inmediatamente
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post.id === postId) {
+          const isCurrentlyLiked = post.isLiked || false
+          return {
+            ...post,
+            isLiked: !isCurrentlyLiked,
+            likesCount: isCurrentlyLiked ? post.likesCount - 1 : post.likesCount + 1
+          }
+        }
+        return post
+      }))
+
+      // Hacer la petición al backend
       await apiClient.post(`/api/posts/${postId}/like`)
-      setPosts(posts.map(post => 
-        post.id === postId 
-          ? { ...post, likesCount: post.likesCount + 1 }
-          : post
-      ))
     } catch (error) {
       console.error('Error al dar like:', error)
+      
+      // Revertir cambios en caso de error
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post.id === postId) {
+          const isCurrentlyLiked = post.isLiked || false
+          return {
+            ...post,
+            isLiked: !isCurrentlyLiked,
+            likesCount: isCurrentlyLiked ? post.likesCount + 1 : post.likesCount - 1
+          }
+        }
+        return post
+      }))
     }
   }
 
@@ -282,9 +305,11 @@ export default function HomePage() {
                                   e.stopPropagation()
                                   handleLike(post.id)
                                 }}
-                                className="flex items-center space-x-1 text-white"
+                                className={`flex items-center space-x-1 transition-colors ${
+                                  post.isLiked ? 'text-red-500' : 'text-white'
+                                }`}
                               >
-                                <Heart className="w-5 h-5" />
+                                <Heart className={`w-5 h-5 ${post.isLiked ? 'fill-red-500' : ''}`} />
                                 <span className="text-sm font-medium">{post.likesCount}</span>
                               </button>
                               <div className="flex items-center space-x-1 text-white">
