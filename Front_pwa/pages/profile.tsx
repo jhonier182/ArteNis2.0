@@ -18,12 +18,14 @@ import {
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import EditProfileModal from '@/components/EditProfileModal'
+import SettingsModal from '@/components/SettingsModal'
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, setUser } = useUser()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('collections')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -84,7 +86,10 @@ export default function ProfilePage() {
               <ChevronLeft className="w-6 h-6" />
             </button>
             <h1 className="text-lg font-bold">Perfil</h1>
-            <button className="p-2 hover:bg-gray-800 rounded-full transition-colors">
+            <button 
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="p-2 hover:bg-gray-800 rounded-full transition-colors"
+            >
               <MoreVertical className="w-6 h-6" />
             </button>
           </div>
@@ -273,7 +278,14 @@ export default function ProfilePage() {
         userId={user.id}
       />
 
-      {/* Settings/Logout Modal - Trigger from header MoreVertical */}
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        onLogout={handleLogout}
+        userName={user.fullName || user.username}
+        userEmail={user.email}
+      />
       <style jsx global>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
