@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -19,7 +19,7 @@ import { useUser } from '@/context/UserContext'
 
 export default function CreatePostPage() {
   const router = useRouter()
-  const { user, isAuthenticated } = useUser()
+  const { user, isAuthenticated, isLoading } = useUser()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   
@@ -37,8 +37,21 @@ export default function CreatePostPage() {
     'Tribal', 'Neo-tradicional', 'Ilustrativo', 'Lettering'
   ]
 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isLoading, isAuthenticated, router])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
+
   if (!isAuthenticated) {
-    router.push('/login')
     return null
   }
 

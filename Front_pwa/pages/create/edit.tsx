@@ -10,6 +10,7 @@ import {
   Sliders,
   Sparkles
 } from 'lucide-react'
+import { apiClient } from '@/utils/apiClient'
 
 type FilterType = 'none' | 'vivid' | 'bright' | 'dark' | 'vintage' | 'cool' | 'warm'
 
@@ -29,6 +30,7 @@ export default function EditImagePage() {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('none')
   const [rotation, setRotation] = useState(0)
   const [activeTab, setActiveTab] = useState<'adjust' | 'filters'>('adjust')
+  const [isPublishing, setIsPublishing] = useState(false)
 
   // Cargar imagen y datos del draft
   useEffect(() => {
@@ -68,26 +70,62 @@ export default function EditImagePage() {
   }
 
   const handlePublish = async () => {
-    // Aquí iría la lógica de publicación
-    console.log({
-      brightness,
-      contrast,
-      saturation,
-      filter: selectedFilter,
-      rotation,
-      ...draftData
-    })
+    if (!imageUrl) {
+      alert('No hay imagen para publicar')
+      return
+    }
 
-    // Limpiar localStorage
-    localStorage.removeItem('draft_image')
-    localStorage.removeItem('draft_filename')
-    localStorage.removeItem('draft_description')
-    localStorage.removeItem('draft_styles')
-    localStorage.removeItem('draft_client')
-    localStorage.removeItem('draft_visibility')
+    try {
+      setIsPublishing(true)
 
-    alert('¡Publicación creada exitosamente!')
-    router.push('/')
+      // Paso 1: Convertir base64 a File
+      const filename = localStorage.getItem('draft_filename') || 'image.jpg'
+      const response = await fetch(imageUrl)
+      const blob = await response.blob()
+      const file = new File([blob], filename, { type: blob.type })
+
+      // Paso 2: Subir imagen a Cloudinary
+      const uploadFormData = new FormData()
+      uploadFormData.append('image', file)
+
+      const uploadResult = await apiClient.post('/api/posts/upload', uploadFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      const { url: uploadedImageUrl, publicId: cloudinaryPublicId } = uploadResult.data.data
+
+      // Paso 3: Crear el post con la URL de Cloudinary
+      const postData: any = {
+        imageUrl: uploadedImageUrl,
+        cloudinaryPublicId,
+        description: draftData.description,
+        type: file.type.startsWith('video/') ? 'video' : 'image',
+      }
+
+      if (draftData.styles) {
+        postData.hashtags = draftData.styles.split(',').map(s => s.trim()).filter(Boolean).join(',')
+      }
+
+      await apiClient.post('/api/posts', postData)
+
+      // Limpiar localStorage
+      localStorage.removeItem('draft_image')
+      localStorage.removeItem('draft_filename')
+      localStorage.removeItem('draft_description')
+      localStorage.removeItem('draft_styles')
+      localStorage.removeItem('draft_client')
+      localStorage.removeItem('draft_visibility')
+
+      alert('¡Publicación creada exitosamente!')
+      router.push('/')
+    } catch (error: any) {
+      console.error('Error al publicar:', error)
+      alert(error.response?.data?.message || 'Error al crear la publicación')
+    } finally {
+      setIsPublishing(false)
+    }
   }
 
   return (
@@ -109,10 +147,20 @@ export default function EditImagePage() {
             <h1 className="text-lg font-bold">Edición y Filtros de Imagen</h1>
             <button
               onClick={handlePublish}
-              className="text-blue-500 font-semibold flex items-center gap-1"
+              disabled={isPublishing}
+              className="text-blue-500 font-semibold flex items-center gap-1 disabled:opacity-50"
             >
-              <Check className="w-5 h-5" />
-              Publicar
+              {isPublishing ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                  Publicando...
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5" />
+                  Publicar
+                </>
+              )}
             </button>
           </div>
         </div>
