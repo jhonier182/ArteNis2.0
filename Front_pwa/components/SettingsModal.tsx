@@ -10,9 +10,13 @@ import {
   Shield,
   Moon,
   Globe,
-  ChevronRight
+  ChevronRight,
+  Palette,
+  RefreshCw
 } from 'lucide-react'
 import { useRouter } from 'next/router'
+import { useState } from 'react'
+import { apiClient } from '@/utils/apiClient'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -20,6 +24,8 @@ interface SettingsModalProps {
   onLogout: () => void
   userName: string
   userEmail?: string
+  userType?: 'user' | 'artist'
+  onUserTypeChange?: (newType: 'user' | 'artist') => void
 }
 
 export default function SettingsModal({ 
@@ -27,9 +33,13 @@ export default function SettingsModal({
   onClose, 
   onLogout,
   userName,
-  userEmail
+  userEmail,
+  userType = 'user',
+  onUserTypeChange
 }: SettingsModalProps) {
   const router = useRouter()
+  const [isChangingType, setIsChangingType] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   const handleLogout = () => {
     onClose()
@@ -39,6 +49,31 @@ export default function SettingsModal({
   const handleEditProfile = () => {
     onClose()
     router.push('/edit-profile')
+  }
+
+  const handleChangeUserType = async () => {
+    setShowConfirmModal(false)
+    setIsChangingType(true)
+
+    try {
+      const newType = userType === 'user' ? 'artist' : 'user'
+      
+      const response = await apiClient.put('/api/profile/me', {
+        userType: newType
+      })
+
+      if (onUserTypeChange) {
+        onUserTypeChange(newType)
+      }
+
+      // Mostrar mensaje de éxito
+      alert(`¡Cuenta cambiada exitosamente a ${newType === 'artist' ? 'Tatuador' : 'Usuario'}!`)
+      onClose()
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Error al cambiar tipo de cuenta')
+    } finally {
+      setIsChangingType(false)
+    }
   }
 
   const settingsOptions = [
@@ -160,6 +195,41 @@ export default function SettingsModal({
                 {/* Divider */}
                 <div className="border-t border-gray-800 my-2"></div>
 
+                {/* Cambiar tipo de cuenta */}
+                <div className="px-4 py-2">
+                  <motion.button
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: settingsOptions.length * 0.05 }}
+                    onClick={() => setShowConfirmModal(true)}
+                    disabled={isChangingType}
+                    className="w-full flex items-center gap-4 p-4 hover:bg-purple-500/10 rounded-xl transition-all group disabled:opacity-50"
+                  >
+                    <div className="p-3 rounded-xl bg-purple-500/20 text-purple-500 group-hover:scale-110 transition-transform">
+                      <RefreshCw className={`w-5 h-5 ${isChangingType ? 'animate-spin' : ''}`} />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-purple-500">
+                        Cambiar a {userType === 'user' ? 'Tatuador' : 'Usuario'}
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        {userType === 'user' 
+                          ? 'Publica tu arte y gestiona citas'
+                          : 'Explora y guarda tatuajes'
+                        }
+                      </p>
+                    </div>
+                    {userType === 'user' ? (
+                      <Palette className="w-5 h-5 text-purple-400" />
+                    ) : (
+                      <User className="w-5 h-5 text-purple-400" />
+                    )}
+                  </motion.button>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-800 my-2"></div>
+
                 {/* Logout Button */}
                 <div className="px-4 py-2">
                   <motion.button
@@ -185,6 +255,67 @@ export default function SettingsModal({
                 <p className="text-center text-xs text-gray-500">
                   InkEndin • Versión 1.0.0
                 </p>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowConfirmModal(false)}
+            className="fixed inset-0 bg-black/90 z-[60] backdrop-blur-sm"
+          />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:max-w-sm z-[60]"
+          >
+            <div className="bg-[#1a1f26] rounded-3xl shadow-2xl overflow-hidden border border-gray-800 p-6">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <RefreshCw className="w-8 h-8 text-purple-500" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  Cambiar tipo de cuenta
+                </h3>
+                <p className="text-gray-400 text-sm">
+                  {userType === 'user' ? (
+                    <>
+                      ¿Quieres convertir tu cuenta a <span className="text-purple-400 font-semibold">Tatuador</span>? 
+                      Podrás publicar tu arte y gestionar citas.
+                    </>
+                  ) : (
+                    <>
+                      ¿Quieres convertir tu cuenta a <span className="text-blue-400 font-semibold">Usuario</span>? 
+                      Perderás acceso a crear publicaciones y gestionar citas.
+                    </>
+                  )}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={handleChangeUserType}
+                  disabled={isChangingType}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isChangingType ? 'Cambiando...' : 'Confirmar cambio'}
+                </button>
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  disabled={isChangingType}
+                  className="w-full bg-gray-800 text-white py-3 rounded-xl font-semibold hover:bg-gray-700 transition-all disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
               </div>
             </div>
           </motion.div>

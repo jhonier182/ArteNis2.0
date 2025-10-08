@@ -47,6 +47,12 @@ export default function ProfilePage() {
     }
   }
 
+  const handleUserTypeChange = (newType: 'user' | 'artist') => {
+    if (user) {
+      setUser({ ...user, userType: newType })
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
@@ -424,6 +430,8 @@ export default function ProfilePage() {
         onLogout={handleLogout}
         userName={user.fullName || user.username}
         userEmail={user.email}
+        userType={user.userType as 'user' | 'artist'}
+        onUserTypeChange={handleUserTypeChange}
       />
       <style jsx global>{`
         .hide-scrollbar::-webkit-scrollbar {
