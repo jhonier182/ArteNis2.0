@@ -41,6 +41,8 @@ export default function PublicProfilePage() {
   const { user: currentUser, isAuthenticated } = useUser()
   const [profileUser, setProfileUser] = useState<PublicUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [isFollowLoading, setIsFollowLoading] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -53,12 +55,55 @@ export default function PublicProfilePage() {
       setIsLoading(true)
       const response = await apiClient.get(`/api/profile/${id}`)
       setProfileUser(response.data.data.user)
+      
+      // Verificar si ya sigue al usuario
+      if (isAuthenticated) {
+        checkIfFollowing()
+      }
     } catch (error) {
       console.error('Error al cargar perfil:', error)
       alert('Error al cargar el perfil del usuario')
       router.push('/')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const checkIfFollowing = async () => {
+    try {
+      const response = await apiClient.get('/api/follow/following')
+      const followingUsers = response.data.data.followingUsers || []
+      const isUserFollowed = followingUsers.some((u: any) => u.id === Number(id))
+      setIsFollowing(isUserFollowed)
+    } catch (error) {
+      console.error('Error al verificar seguimiento:', error)
+    }
+  }
+
+  const handleFollowToggle = async () => {
+    if (!isAuthenticated) {
+      alert('Debes iniciar sesión para seguir usuarios')
+      router.push('/login')
+      return
+    }
+
+    try {
+      setIsFollowLoading(true)
+      
+      if (isFollowing) {
+        // Dejar de seguir
+        await apiClient.delete(`/api/follow/${id}`)
+        setIsFollowing(false)
+      } else {
+        // Seguir
+        await apiClient.post('/api/follow', { userId: Number(id) })
+        setIsFollowing(true)
+      }
+    } catch (error: any) {
+      console.error('Error al cambiar seguimiento:', error)
+      alert(error.response?.data?.message || 'Error al actualizar seguimiento')
+    } finally {
+      setIsFollowLoading(false)
     }
   }
 
@@ -205,15 +250,52 @@ export default function PublicProfilePage() {
         {/* Action Buttons */}
         <div className="flex gap-3 mb-8">
           {isArtist ? (
-            <button 
-              onClick={() => router.push('/appointments/book')}
-              className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
-            >
-              Solicitar cotización
-            </button>
+            <>
+              <button 
+                onClick={handleFollowToggle}
+                disabled={isFollowLoading}
+                className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
+                  isFollowing
+                    ? 'bg-gray-800 text-white hover:bg-gray-700'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {isFollowLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  </div>
+                ) : isFollowing ? (
+                  'Siguiendo'
+                ) : (
+                  'Seguir'
+                )}
+              </button>
+              <button 
+                onClick={() => router.push('/appointments/book')}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Solicitar cotización
+              </button>
+            </>
           ) : (
-            <button className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors">
-              Seguir
+            <button 
+              onClick={handleFollowToggle}
+              disabled={isFollowLoading}
+              className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
+                isFollowing
+                  ? 'bg-gray-800 text-white hover:bg-gray-700'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {isFollowLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                </div>
+              ) : isFollowing ? (
+                'Siguiendo'
+              ) : (
+                'Seguir'
+              )}
             </button>
           )}
           <button className="flex-1 bg-gray-800 text-white py-3 rounded-xl font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
