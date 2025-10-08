@@ -69,6 +69,128 @@ export default function EditImagePage() {
     setRotation((prev) => (prev + 90) % 360)
   }
 
+  const applyFiltersToCanvas = (): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas')
+      if (!imageUrl) {
+        reject(new Error('No image'))
+        return
+      }
+
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      
+      img.onload = () => {
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        if (!ctx) {
+          reject(new Error('No context'))
+          return
+        }
+
+        // Configurar el tamaño del canvas según la rotación
+        if (rotation === 90 || rotation === 270) {
+          canvas.width = img.height
+          canvas.height = img.width
+        } else {
+          canvas.width = img.width
+          canvas.height = img.height
+        }
+
+        // Limpiar canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+        // Aplicar rotación si es necesario
+        if (rotation !== 0) {
+          ctx.save()
+          ctx.translate(canvas.width / 2, canvas.height / 2)
+          ctx.rotate((rotation * Math.PI) / 180)
+          ctx.drawImage(img, -img.width / 2, -img.height / 2)
+          ctx.restore()
+        } else {
+          ctx.drawImage(img, 0, 0)
+        }
+
+        // Aplicar ajustes de brillo, contraste y saturación
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        const data = imageData.data
+
+        // Calcular factores
+        const brightnessFactor = brightness / 50 // 0-2
+        const contrastFactor = contrast / 50 // 0-2
+        const saturationFactor = saturation / 50 // 0-2
+
+        for (let i = 0; i < data.length; i += 4) {
+          let r = data[i]
+          let g = data[i + 1]
+          let b = data[i + 2]
+
+          // Aplicar brillo
+          r *= brightnessFactor
+          g *= brightnessFactor
+          b *= brightnessFactor
+
+          // Aplicar contraste
+          r = ((r / 255 - 0.5) * contrastFactor + 0.5) * 255
+          g = ((g / 255 - 0.5) * contrastFactor + 0.5) * 255
+          b = ((b / 255 - 0.5) * contrastFactor + 0.5) * 255
+
+          // Aplicar saturación
+          const gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+          r = gray + (r - gray) * saturationFactor
+          g = gray + (g - gray) * saturationFactor
+          b = gray + (b - gray) * saturationFactor
+
+          // Aplicar filtros preestablecidos
+          if (selectedFilter === 'vivid') {
+            r = r * 1.2
+            g = g * 1.2
+            b = b * 1.2
+          } else if (selectedFilter === 'bright') {
+            r = r * 1.3
+            g = g * 1.3
+            b = b * 1.3
+          } else if (selectedFilter === 'dark') {
+            r = r * 0.7
+            g = g * 0.7
+            b = b * 0.7
+          } else if (selectedFilter === 'vintage') {
+            const sepiaR = r * 0.393 + g * 0.769 + b * 0.189
+            const sepiaG = r * 0.349 + g * 0.686 + b * 0.168
+            const sepiaB = r * 0.272 + g * 0.534 + b * 0.131
+            r = sepiaR * 0.6 + r * 0.4
+            g = sepiaG * 0.6 + g * 0.4
+            b = sepiaB * 0.6 + b * 0.4
+          } else if (selectedFilter === 'cool') {
+            b = b * 1.2
+            r = r * 0.9
+          } else if (selectedFilter === 'warm') {
+            r = r * 1.2
+            b = b * 0.9
+          }
+
+          // Clamp valores entre 0-255
+          data[i] = Math.min(255, Math.max(0, r))
+          data[i + 1] = Math.min(255, Math.max(0, g))
+          data[i + 2] = Math.min(255, Math.max(0, b))
+        }
+
+        ctx.putImageData(imageData, 0, 0)
+
+        // Convertir canvas a blob
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob)
+          } else {
+            reject(new Error('Failed to create blob'))
+          }
+        }, 'image/jpeg', 0.95)
+      }
+
+      img.onerror = () => reject(new Error('Failed to load image'))
+      img.src = imageUrl
+    })
+  }
+
   const handlePublish = async () => {
     if (!imageUrl) {
       alert('No hay imagen para publicar')
@@ -78,13 +200,12 @@ export default function EditImagePage() {
     try {
       setIsPublishing(true)
 
-      // Paso 1: Convertir base64 a File
-      const filename = localStorage.getItem('draft_filename') || 'image.jpg'
-      const response = await fetch(imageUrl)
-      const blob = await response.blob()
-      const file = new File([blob], filename, { type: blob.type })
+      // Paso 1: Aplicar filtros y convertir a File
+      const blob = await applyFiltersToCanvas()
+      const filename = localStorage.getItem('draft_filename') || 'edited-image.jpg'
+      const file = new File([blob], filename, { type: 'image/jpeg' })
 
-      // Paso 2: Subir imagen a Cloudinary
+      // Paso 2: Subir imagen editada a Cloudinary
       const uploadFormData = new FormData()
       uploadFormData.append('image', file)
 
@@ -101,7 +222,7 @@ export default function EditImagePage() {
         imageUrl: uploadedImageUrl,
         cloudinaryPublicId,
         description: draftData.description,
-        type: file.type.startsWith('video/') ? 'video' : 'image',
+        type: 'image',
       }
 
       if (draftData.styles) {
@@ -119,7 +240,7 @@ export default function EditImagePage() {
       localStorage.removeItem('draft_visibility')
 
       alert('¡Publicación creada exitosamente!')
-      router.push('/')
+      router.push('/profile')
     } catch (error: any) {
       console.error('Error al publicar:', error)
       alert(error.response?.data?.message || 'Error al crear la publicación')
