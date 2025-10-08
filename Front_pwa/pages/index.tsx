@@ -202,8 +202,12 @@ export default function HomePage() {
                     <TrendingUp className="w-6 h-6" />
                     <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
                   </button>
-                  <button className="p-2 hover:bg-gray-800 rounded-full transition-colors">
+                  <button 
+                    onClick={() => router.push('/chat')}
+                    className="p-2 hover:bg-gray-800 rounded-full transition-colors relative"
+                  >
                     <MessageCircle className="w-6 h-6" />
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
                   </button>
                 </div>
               </div>

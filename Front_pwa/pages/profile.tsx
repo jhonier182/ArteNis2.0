@@ -124,92 +124,139 @@ export default function ProfilePage() {
 
       {/* Profile Header */}
       <div className="container-mobile px-6 pt-6">
-        {/* Avatar */}
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="flex justify-center mb-6"
-        >
-          <div className="relative group">
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
-              <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
-                {user.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={user.username}
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-                    <User className="w-16 h-16 text-white" />
+        {user.userType === 'artist' ? (
+          /* Layout para Tatuador: Foto pequeña a la izquierda */
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="flex items-start gap-4">
+              {/* Avatar pequeño */}
+              <div className="relative group flex-shrink-0">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
+                  <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
+                    {user.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.username}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                        <User className="w-10 h-10 text-white" />
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+                
+                {/* Edit Button */}
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="absolute bottom-0 right-0 p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg opacity-0 group-hover:opacity-100"
+                >
+                  <Camera className="w-3 h-3 text-white" />
+                </button>
+              </div>
+
+              {/* Info a la derecha */}
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl font-bold mb-1 truncate">
+                  {user.fullName || user.username}
+                </h2>
+                <p className="text-sm text-gray-400 mb-2">
+                  Tatuador/a en {user.city || 'Madrid'}
+                </p>
+                
+                {/* Rating con estrellas */}
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-3.5 h-3.5 ${
+                          i < Math.floor(stats.rating)
+                            ? 'fill-yellow-500 text-yellow-500'
+                            : i < stats.rating
+                            ? 'fill-yellow-500/50 text-yellow-500'
+                            : 'text-gray-600'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm font-semibold text-white">
+                    {stats.rating}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    ({stats.totalReviews})
+                  </span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Editar perfil
+                  </button>
+                  <button 
+                    className="flex-1 bg-gray-800 text-white py-2 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Compartir
+                  </button>
+                </div>
               </div>
             </div>
-            
-            {/* Edit Button */}
-            <button
-              onClick={() => setIsEditModalOpen(true)}
-              className="absolute bottom-0 right-0 p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg opacity-0 group-hover:opacity-100"
+          </motion.div>
+        ) : (
+          /* Layout para Usuario Normal: Foto grande centrada */
+          <>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="flex justify-center mb-6"
             >
-              <Camera className="w-5 h-5 text-white" />
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Name and Title */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold mb-1">
-            {user.fullName || user.username}
-          </h2>
-          <p className="text-gray-400">
-            {user.userType === 'artist' ? 'Tatuador/a' : 'Usuario'} en {user.city || 'Madrid'}
-          </p>
-          
-          {/* Rating con estrellas (solo para artistas) */}
-          {user.userType === 'artist' && (
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-4 h-4 ${
-                      i < Math.floor(stats.rating)
-                        ? 'fill-yellow-500 text-yellow-500'
-                        : i < stats.rating
-                        ? 'fill-yellow-500/50 text-yellow-500'
-                        : 'text-gray-600'
-                    }`}
-                  />
-                ))}
+              <div className="relative group">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
+                  <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
+                    {user.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.username}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                        <User className="w-16 h-16 text-white" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Edit Button */}
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="absolute bottom-0 right-0 p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg opacity-0 group-hover:opacity-100"
+                >
+                  <Camera className="w-5 h-5 text-white" />
+                </button>
               </div>
-              <span className="text-sm font-semibold text-white">
-                {stats.rating}
-              </span>
-              <span className="text-xs text-gray-500">
-                ({stats.totalReviews} valoraciones)
-              </span>
-            </div>
-          )}
-        </div>
+            </motion.div>
 
-        {/* Action Buttons - Solo para tatuadores */}
-        {user.userType === 'artist' && (
-          <div className="flex gap-3 mb-8">
-            <button 
-              onClick={() => setIsEditModalOpen(true)}
-              className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
-            >
-              Editar perfil
-            </button>
-            <button 
-              className="flex-1 bg-gray-800 text-white py-3 rounded-xl font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
-            >
-              <Share2 className="w-5 h-5" />
-              Compartir perfil
-            </button>
-          </div>
+            {/* Name and Title */}
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold mb-1">
+                {user.fullName || user.username}
+              </h2>
+              <p className="text-gray-400">
+                Usuario en {user.city || 'Madrid'}
+              </p>
+            </div>
+          </>
         )}
+
 
         {/* Stats - Solo para tatuadores */}
         {user.userType === 'artist' && (
@@ -262,101 +309,103 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Sistema de Recompensas (solo usuarios no artistas) */}
+        {/* Sistema de Recompensas (solo usuarios normales) */}
         {user.userType !== 'artist' && (
-          <div className="mb-8">
-            <div className="bg-gradient-to-r from-yellow-600/20 via-orange-600/20 to-pink-600/20 rounded-2xl p-5 border border-yellow-600/30">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
-                    <Gift className="w-6 h-6 text-white" />
+          <>
+            <div className="mb-8">
+              <div className="bg-gradient-to-r from-yellow-600/20 via-orange-600/20 to-pink-600/20 rounded-2xl p-5 border border-yellow-600/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                      <Gift className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white">Recompensas por Compartir</h3>
+                      <p className="text-xs text-gray-400">Nivel {userRewards.level}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white">Recompensas por Compartir</h3>
-                    <p className="text-xs text-gray-400">Nivel {userRewards.level}</p>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-yellow-400">{userRewards.points}</div>
+                    <p className="text-xs text-gray-400">puntos</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-yellow-400">{userRewards.points}</div>
-                  <p className="text-xs text-gray-400">puntos</p>
-                </div>
-              </div>
 
-              {/* Progress Bar */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
-                  <span>Progreso al siguiente nivel</span>
-                  <span>{userRewards.points}/{userRewards.nextReward}</span>
-                </div>
-                <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(userRewards.points / userRewards.nextReward) * 100}%` }}
-                    transition={{ duration: 1, ease: 'easeOut' }}
-                    className="h-full bg-gradient-to-r from-yellow-500 to-orange-500"
-                  />
-                </div>
-              </div>
-
-              {/* Badges */}
-              <div className="flex gap-2">
-                {userRewards.badges.map((badge) => (
-                  <div
-                    key={badge.id}
-                    className={`flex-1 p-3 rounded-xl flex flex-col items-center gap-2 transition-all ${
-                      badge.earned
-                        ? 'bg-yellow-500/20 border border-yellow-500/30'
-                        : 'bg-gray-800/50 border border-gray-700'
-                    }`}
-                  >
-                    <badge.icon
-                      className={`w-5 h-5 ${
-                        badge.earned ? 'text-yellow-400' : 'text-gray-600'
-                      }`}
+                {/* Progress Bar */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                    <span>Progreso al siguiente nivel</span>
+                    <span>{userRewards.points}/{userRewards.nextReward}</span>
+                  </div>
+                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(userRewards.points / userRewards.nextReward) * 100}%` }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
+                      className="h-full bg-gradient-to-r from-yellow-500 to-orange-500"
                     />
-                    <p className={`text-[10px] text-center leading-tight ${
-                      badge.earned ? 'text-yellow-400' : 'text-gray-500'
-                    }`}>
-                      {badge.name}
-                    </p>
                   </div>
+                </div>
+
+                {/* Badges */}
+                <div className="flex gap-2">
+                  {userRewards.badges.map((badge) => (
+                    <div
+                      key={badge.id}
+                      className={`flex-1 p-3 rounded-xl flex flex-col items-center gap-2 transition-all ${
+                        badge.earned
+                          ? 'bg-yellow-500/20 border border-yellow-500/30'
+                          : 'bg-gray-800/50 border border-gray-700'
+                      }`}
+                    >
+                      <badge.icon
+                        className={`w-5 h-5 ${
+                          badge.earned ? 'text-yellow-400' : 'text-gray-600'
+                        }`}
+                      />
+                      <p className={`text-[10px] text-center leading-tight ${
+                        badge.earned ? 'text-yellow-400' : 'text-gray-500'
+                      }`}>
+                        {badge.name}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Acción rápida */}
+                <button className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  Ganar más puntos
+                </button>
+              </div>
+            </div>
+
+            {/* Badges Section */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold">Insignias y Logros</h3>
+                <button className="text-blue-500 text-sm font-medium">Ver todo</button>
+              </div>
+              <div className="flex gap-4 overflow-x-auto pb-2 -mx-6 px-6 hide-scrollbar">
+                {badges.map((badge, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex-shrink-0 text-center"
+                  >
+                    <div className={`w-16 h-16 ${badge.color} rounded-full flex items-center justify-center mb-2`}>
+                      <badge.icon className="w-8 h-8 text-white" />
+                    </div>
+                    <p className="text-xs text-gray-400 max-w-[80px] leading-tight">
+                      {badge.label}
+                    </p>
+                  </motion.div>
                 ))}
               </div>
-
-              {/* Acción rápida */}
-              <button className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:from-yellow-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2">
-                <Zap className="w-4 h-4" />
-                Ganar más puntos
-              </button>
             </div>
-          </div>
+          </>
         )}
-
-        {/* Badges Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold">Insignias y Logros</h3>
-            <button className="text-blue-500 text-sm font-medium">Ver todo</button>
-          </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-6 px-6 hide-scrollbar">
-            {badges.map((badge, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex-shrink-0 text-center"
-              >
-                <div className={`w-16 h-16 ${badge.color} rounded-full flex items-center justify-center mb-2`}>
-                  <badge.icon className="w-8 h-8 text-white" />
-                </div>
-                <p className="text-xs text-gray-400 max-w-[80px] leading-tight">
-                  {badge.label}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
 
         {/* Collections Section */}
         <div>
