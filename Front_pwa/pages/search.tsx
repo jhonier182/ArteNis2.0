@@ -541,11 +541,6 @@ export default function SearchPage() {
             </button>
           )}
           
-          <button className="flex flex-col items-center py-2 px-3 text-gray-400">
-            <Bell className="w-6 h-6 mb-1" />
-            <span className="text-xs">Notificaciones</span>
-          </button>
-          
           <button
             onClick={() => router.push('/profile')}
             className="flex flex-col items-center py-2 px-3 text-gray-400"

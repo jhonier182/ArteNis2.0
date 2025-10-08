@@ -153,7 +153,7 @@ export default function PostDetailPage() {
             </div>
           )}
 
-          {post.User && (
+          {post.User && user?.id?.toString() !== post.User.id?.toString() && (
             <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-full font-semibold transition-colors">
               Seguir
             </button>

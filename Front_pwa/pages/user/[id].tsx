@@ -265,10 +265,38 @@ export default function PublicProfilePage() {
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 mb-8">
-          {isArtist ? (
-            <>
+        {/* Action Buttons - Solo si NO es tu propio perfil */}
+        {currentUser?.id?.toString() !== profileUser.id?.toString() && (
+          <div className="flex gap-3 mb-8">
+            {isArtist ? (
+              <>
+                <button 
+                  onClick={handleFollowToggle}
+                  disabled={isFollowLoading}
+                  className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
+                    isFollowing
+                      ? 'bg-gray-800 text-white hover:bg-gray-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {isFollowLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    </div>
+                  ) : isFollowing ? (
+                    'Siguiendo'
+                  ) : (
+                    'Seguir'
+                  )}
+                </button>
+                <button 
+                  onClick={() => router.push('/appointments/book')}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Solicitar cotización
+                </button>
+              </>
+            ) : (
               <button 
                 onClick={handleFollowToggle}
                 disabled={isFollowLoading}
@@ -288,39 +316,13 @@ export default function PublicProfilePage() {
                   'Seguir'
                 )}
               </button>
-              <button 
-                onClick={() => router.push('/appointments/book')}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Solicitar cotización
-              </button>
-            </>
-          ) : (
-            <button 
-              onClick={handleFollowToggle}
-              disabled={isFollowLoading}
-              className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
-                isFollowing
-                  ? 'bg-gray-800 text-white hover:bg-gray-700'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              {isFollowLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                </div>
-              ) : isFollowing ? (
-                'Siguiendo'
-              ) : (
-                'Seguir'
-              )}
+            )}
+            <button className="flex-1 bg-gray-800 text-white py-3 rounded-xl font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
+              <MessageCircle className="w-5 h-5" />
+              Mensaje
             </button>
-          )}
-          <button className="flex-1 bg-gray-800 text-white py-3 rounded-xl font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
-            <MessageCircle className="w-5 h-5" />
-            Mensaje
-          </button>
-        </div>
+          </div>
+        )}
 
         {/* Stats para Artistas */}
         {isArtist && (

@@ -565,11 +565,6 @@ export default function ProfilePage() {
             </button>
           )}
           
-          <button className="flex flex-col items-center py-2 px-3 text-gray-400">
-            <Bell className="w-6 h-6 mb-1" />
-            <span className="text-xs">Notificaciones</span>
-          </button>
-          
           <button className="flex flex-col items-center py-2 px-3 text-purple-500">
             <User className="w-6 h-6 mb-1 fill-purple-500" />
             <span className="text-xs">Perfil</span>
