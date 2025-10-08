@@ -93,7 +93,7 @@ export default function HomePage() {
 
   const loadSavedPosts = async () => {
     try {
-      const response = await apiClient.get('/api/boards/my-boards')
+      const response = await apiClient.get('/api/boards/me/boards')
       const boards = response.data.data?.boards || []
       const savedPostIds = new Set<string>()
       
@@ -106,24 +106,32 @@ export default function HomePage() {
       setSavedPosts(savedPostIds)
     } catch (error) {
       console.error('Error al cargar posts guardados:', error)
+      // No mostrar error al usuario, simplemente no cargar guardados
+      setSavedPosts(new Set())
     }
   }
 
   const handleSavePost = async (postId: string) => {
     try {
+      // TODO: Implementar sistema de guardado con boards
+      // Por ahora, mostrar mensaje informativo
+      alert('Sistema de guardado en desarrollo. Próximamente podrás guardar publicaciones en tus colecciones.')
+      
+      /* IMPLEMENTACIÓN FUTURA:
       if (savedPosts.has(postId)) {
         // Remover de guardados
-        await apiClient.delete(`/api/boards/posts/${postId}`)
+        await apiClient.delete(`/api/boards/${boardId}/posts/${postId}`)
         setSavedPosts(prev => {
           const newSet = new Set(prev)
           newSet.delete(postId)
           return newSet
         })
       } else {
-        // Guardar post
-        await apiClient.post('/api/boards/posts', { postId: Number(postId) })
+        // Guardar post - necesita boardId
+        await apiClient.post(`/api/boards/${boardId}/posts`, { postId })
         setSavedPosts(prev => new Set(prev).add(postId))
       }
+      */
     } catch (error: any) {
       console.error('Error al guardar post:', error)
       alert(error.response?.data?.message || 'Error al guardar la publicación')

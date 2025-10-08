@@ -91,7 +91,7 @@ export default function PublicProfilePage() {
     try {
       const response = await apiClient.get('/api/follow/following')
       const followingUsers = response.data.data.followingUsers || []
-      const isUserFollowed = followingUsers.some((u: any) => u.id === Number(id))
+      const isUserFollowed = followingUsers.some((u: any) => u.id === id)
       setIsFollowing(isUserFollowed)
     } catch (error) {
       console.error('Error al verificar seguimiento:', error)
@@ -114,7 +114,7 @@ export default function PublicProfilePage() {
         setIsFollowing(false)
       } else {
         // Seguir
-        await apiClient.post('/api/follow', { userId: Number(id) })
+        await apiClient.post('/api/follow', { userId: id })
         setIsFollowing(true)
       }
     } catch (error: any) {
