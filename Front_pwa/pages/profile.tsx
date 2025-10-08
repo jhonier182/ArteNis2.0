@@ -23,6 +23,7 @@ import {
   Bell
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
+import { apiClient } from '@/utils/apiClient'
 import EditProfileModal from '@/components/EditProfileModal'
 import SettingsModal from '@/components/SettingsModal'
 
@@ -32,12 +33,33 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('collections')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+  const [userPosts, setUserPosts] = useState<any[]>([])
+  const [loadingPosts, setLoadingPosts] = useState(true)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login')
     }
   }, [isLoading, isAuthenticated, router])
+
+  useEffect(() => {
+    if (isAuthenticated && user?.userType === 'artist') {
+      fetchUserPosts()
+    }
+  }, [isAuthenticated, user])
+
+  const fetchUserPosts = async () => {
+    try {
+      setLoadingPosts(true)
+      const response = await apiClient.get(`/api/users/${user?.id}/posts`)
+      setUserPosts(response.data?.data?.posts || [])
+    } catch (error) {
+      console.error('Error al cargar posts del usuario:', error)
+      setUserPosts([])
+    } finally {
+      setLoadingPosts(false)
+    }
+  }
 
   const handleLogout = async () => {
     await logout()
@@ -407,38 +429,97 @@ export default function ProfilePage() {
           </>
         )}
 
-        {/* Collections Section */}
+        {/* Collections/Portfolio Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold">
               {user.userType === 'artist' ? 'Portafolio' : 'Publicaciones Guardadas'}
             </h3>
-            <button 
-              onClick={() => router.push('/collections')}
-              className="text-blue-500 text-sm font-medium hover:text-blue-400 transition-colors"
-            >
-              Ver todo
-            </button>
+            {user.userType === 'artist' && userPosts.length > 0 && (
+              <button 
+                onClick={() => router.push('/collections')}
+                className="text-blue-500 text-sm font-medium hover:text-blue-400 transition-colors"
+              >
+                Ver todo
+              </button>
+            )}
           </div>
           
-          {/* Collection Grid */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            {[1, 2, 3, 4].map((item) => (
-              <motion.div
-                key={item}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: item * 0.1 }}
-                className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                {/* Placeholder image */}
-                <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
-                  <Bookmark className="w-12 h-12 text-gray-600" />
+          {/* Posts Grid */}
+          {user.userType === 'artist' ? (
+            loadingPosts ? (
+              <div className="flex justify-center items-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : userPosts.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {userPosts.slice(0, 6).map((post, index) => (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    onClick={() => router.push(`/post/${post.id}`)}
+                    className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
+                  >
+                    {post.mediaUrl && (
+                      <img
+                        src={post.mediaUrl}
+                        alt={post.description || 'Post'}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-white text-sm">
+                          <div className="flex items-center gap-1">
+                            <Heart className="w-4 h-4" />
+                            <span>{post.likesCount || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MessageCircle className="w-4 h-4" />
+                            <span>{post.commentsCount || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10 px-4">
+                <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Grid className="w-10 h-10 text-gray-600" />
                 </div>
-              </motion.div>
-            ))}
-          </div>
+                <h3 className="text-lg font-semibold mb-2">No tienes publicaciones aún</h3>
+                <p className="text-gray-400 mb-4">Comparte tu trabajo con la comunidad</p>
+                <button
+                  onClick={() => router.push('/create')}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all"
+                >
+                  Crear publicación
+                </button>
+              </div>
+            )
+          ) : (
+            /* Colecciones para usuario normal */
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {[1, 2, 3, 4].map((item) => (
+                <motion.div
+                  key={item}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: item * 0.1 }}
+                  className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+                    <Bookmark className="w-12 h-12 text-gray-600" />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

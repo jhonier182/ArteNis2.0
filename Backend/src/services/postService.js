@@ -826,7 +826,7 @@ class PostService {
     try {
       const offset = (page - 1) * limit;
       
-      // Si hay usuario autenticado, excluir posts de usuarios que ya sigue
+      // Si hay usuario autenticado, excluir posts de usuarios que ya sigue Y sus propios posts
       let excludeUserIds = [];
       if (userId) {
         const followingUsers = await Follow.findAll({
@@ -834,6 +834,9 @@ class PostService {
           attributes: ['followingId']
         });
         excludeUserIds = followingUsers.map(follow => follow.followingId);
+        
+        // Agregar el propio usuario a la lista de exclusión
+        excludeUserIds.push(userId);
       }
       
       // Construir condición where
@@ -842,7 +845,7 @@ class PostService {
         status: 'published'
       };
       
-      // Excluir posts de usuarios seguidos
+      // Excluir posts de usuarios seguidos Y propios posts
       if (excludeUserIds.length > 0) {
         whereCondition.userId = {
           [Op.notIn]: excludeUserIds
