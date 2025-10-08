@@ -20,16 +20,23 @@ import { apiClient } from '@/utils/apiClient'
 
 interface Post {
   id: string
-  content: string
-  imageUrl?: string
-  author: {
+  title?: string
+  description?: string
+  mediaUrl?: string
+  thumbnailUrl?: string
+  type: 'image' | 'video' | 'reel'
+  User?: {
     id: string
     username: string
-    profileImage?: string
+    fullName: string
+    avatar?: string
+    userType: string
   }
-  likes: number
-  comments: number
+  likesCount: number
+  commentsCount: number
+  viewsCount: number
   createdAt: string
+  publishedAt?: string
 }
 
 export default function HomePage() {
@@ -70,7 +77,8 @@ export default function HomePage() {
   const fetchPosts = async () => {
     try {
       const response = await apiClient.get('/api/posts')
-      setPosts(response.data?.data?.posts || [])
+      const postsData = response.data?.data?.posts || response.data?.data || []
+      setPosts(postsData)
     } catch (error) {
       console.error('Error al cargar posts:', error)
     } finally {
@@ -83,7 +91,7 @@ export default function HomePage() {
       await apiClient.post(`/api/posts/${postId}/like`)
       setPosts(posts.map(post => 
         post.id === postId 
-          ? { ...post, likes: post.likes + 1 }
+          ? { ...post, likesCount: post.likesCount + 1 }
           : post
       ))
     } catch (error) {
@@ -203,10 +211,10 @@ export default function HomePage() {
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-                      {post.author.profileImage ? (
+                      {post.User?.avatar ? (
                         <img
-                          src={post.author.profileImage}
-                          alt={post.author.username}
+                          src={post.User.avatar}
+                          alt={post.User.username}
                           className="w-10 h-10 rounded-full object-cover"
                         />
                       ) : (
@@ -214,9 +222,9 @@ export default function HomePage() {
                       )}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{post.author.username}</h3>
+                      <h3 className="font-semibold text-gray-900">{post.User?.username || 'Usuario'}</h3>
                       <p className="text-xs text-gray-500">
-                        {new Date(post.createdAt).toLocaleDateString('es-ES', {
+                        {new Date(post.publishedAt || post.createdAt).toLocaleDateString('es-ES', {
                           day: 'numeric',
                           month: 'short'
                         })}
@@ -229,15 +237,18 @@ export default function HomePage() {
                 </div>
 
                 {/* Post Content */}
-                {post.content && (
-                  <p className="px-4 pb-3 text-gray-900">{post.content}</p>
+                {post.title && (
+                  <h4 className="px-4 pb-2 font-semibold text-gray-900">{post.title}</h4>
+                )}
+                {post.description && (
+                  <p className="px-4 pb-3 text-gray-900">{post.description}</p>
                 )}
                 
-                {post.imageUrl && (
+                {post.mediaUrl && (
                   <div className="w-full">
                     <img
-                      src={post.imageUrl}
-                      alt="Post"
+                      src={post.mediaUrl}
+                      alt={post.title || 'Post'}
                       className="w-full object-cover max-h-96"
                     />
                   </div>
@@ -251,11 +262,11 @@ export default function HomePage() {
                       className="flex items-center space-x-1 text-gray-600 hover:text-red-500 transition-colors group"
                     >
                       <Heart className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                      <span className="text-sm font-medium">{post.likes}</span>
+                      <span className="text-sm font-medium">{post.likesCount}</span>
                     </button>
                     <button className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors group">
                       <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                      <span className="text-sm font-medium">{post.comments}</span>
+                      <span className="text-sm font-medium">{post.commentsCount}</span>
                     </button>
                     <button className="text-gray-600 hover:text-green-500 transition-colors group">
                       <Share2 className="w-6 h-6 group-hover:scale-110 transition-transform" />

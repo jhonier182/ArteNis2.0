@@ -14,7 +14,7 @@ export default function RegisterPage() {
     fullName: '',
     password: '',
     confirmPassword: '',
-    userType: 'artist'
+    userType: 'user'
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -174,9 +174,9 @@ export default function RegisterPage() {
               onChange={handleChange}
               className="block w-full py-3 px-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
             >
-              <option value="artist">🎨 Artista</option>
-              <option value="tattoo_artist">💉 Tatuador/a</option>
-              <option value="client">👤 Cliente</option>
+              <option value="user">👤 Usuario</option>
+              <option value="artist">🎨 Artista/Tatuador</option>
+              <option value="admin">⚙️ Administrador</option>
             </select>
           </div>
 
