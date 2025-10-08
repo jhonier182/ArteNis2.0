@@ -22,12 +22,20 @@ export default function PostDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isLiked, setIsLiked] = useState(false)
   const [likesCount, setLikesCount] = useState(0)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [isFollowLoading, setIsFollowLoading] = useState(false)
 
   useEffect(() => {
     if (id) {
       loadPost()
     }
   }, [id])
+
+  useEffect(() => {
+    if (post?.User?.id && isAuthenticated) {
+      checkIfFollowing()
+    }
+  }, [post?.User?.id, isAuthenticated])
 
   const loadPost = async () => {
     try {
@@ -43,6 +51,42 @@ export default function PostDetailPage() {
       router.push('/')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const checkIfFollowing = async () => {
+    try {
+      const response = await apiClient.get('/api/follow/following')
+      const followingUsers = response.data.data.followingUsers || []
+      const isUserFollowed = followingUsers.some((u: any) => u.id?.toString() === post.User.id?.toString())
+      setIsFollowing(isUserFollowed)
+    } catch (error) {
+      console.error('Error al verificar seguimiento:', error)
+    }
+  }
+
+  const handleFollow = async () => {
+    if (!isAuthenticated) {
+      alert('Debes iniciar sesión para seguir usuarios')
+      router.push('/login')
+      return
+    }
+
+    try {
+      setIsFollowLoading(true)
+      
+      if (isFollowing) {
+        await apiClient.delete(`/api/follow/${post.User.id}`)
+        setIsFollowing(false)
+      } else {
+        await apiClient.post('/api/follow', { userId: post.User.id })
+        setIsFollowing(true)
+      }
+    } catch (error: any) {
+      console.error('Error al cambiar seguimiento:', error)
+      alert(error.response?.data?.message || 'Error al actualizar seguimiento')
+    } finally {
+      setIsFollowLoading(false)
     }
   }
 
@@ -154,8 +198,24 @@ export default function PostDetailPage() {
           )}
 
           {post.User && user?.id?.toString() !== post.User.id?.toString() && (
-            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-full font-semibold transition-colors">
-              Seguir
+            <button 
+              onClick={handleFollow}
+              disabled={isFollowLoading}
+              className={`px-4 py-2 rounded-full font-semibold transition-all duration-300 ${
+                isFollowing
+                  ? 'bg-gray-800/80 text-white hover:bg-gray-700 border border-gray-700'
+                  : 'bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95'
+              }`}
+            >
+              {isFollowLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                </div>
+              ) : isFollowing ? (
+                '✓ Siguiendo'
+              ) : (
+                '+ Seguir'
+              )}
             </button>
           )}
         </div>
