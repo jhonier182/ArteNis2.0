@@ -29,14 +29,35 @@ export default function RegisterPage() {
     setIsLoading(true)
     setError('')
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden')
+    // Validación de username (3-50 caracteres, alfanumérico)
+    if (formData.username.length < 3 || formData.username.length > 50) {
+      setError('El nombre de usuario debe tener entre 3 y 50 caracteres')
       setIsLoading(false)
       return
     }
 
+    if (!/^[a-zA-Z0-9]+$/.test(formData.username)) {
+      setError('El nombre de usuario solo puede contener letras y números')
+      setIsLoading(false)
+      return
+    }
+
+    // Validación de fullName (2-255 caracteres)
+    if (formData.fullName.length < 2 || formData.fullName.length > 255) {
+      setError('El nombre completo debe tener entre 2 y 255 caracteres')
+      setIsLoading(false)
+      return
+    }
+
+    // Validación de contraseña
     if (formData.password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres')
+      setIsLoading(false)
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Las contraseñas no coinciden')
       setIsLoading(false)
       return
     }
@@ -115,8 +136,11 @@ export default function RegisterPage() {
                 value={formData.username}
                 onChange={handleChange}
                 required
+                minLength={3}
+                maxLength={50}
+                pattern="[a-zA-Z0-9]+"
                 className="block w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                placeholder="tuusuario"
+                placeholder="usuario123 (solo letras y números)"
               />
             </div>
           </div>
@@ -157,6 +181,8 @@ export default function RegisterPage() {
                 value={formData.fullName}
                 onChange={handleChange}
                 required
+                minLength={2}
+                maxLength={255}
                 className="block w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="Tu Nombre"
               />
@@ -176,7 +202,6 @@ export default function RegisterPage() {
             >
               <option value="user">👤 Usuario</option>
               <option value="artist">🎨 Artista/Tatuador</option>
-              <option value="admin">⚙️ Administrador</option>
             </select>
           </div>
 
@@ -196,6 +221,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
                 className="block w-full pl-11 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                minLength={6}
                 placeholder="Mínimo 6 caracteres"
               />
               <button

@@ -32,8 +32,12 @@ app.use(helmet({
   }
 }));
 
-// Configuración de CORS (permite Expo/Metro y LAN en desarrollo)
-const allowedOriginsProd = ['https://artenis.app', 'https://www.artenis.app'];
+// Configuración de CORS - Permitir frontend PWA y desarrollo
+const allowedOriginsProd = [
+	'https://artenis.app', 
+	'https://www.artenis.app'
+];
+
 const allowedOriginsDev = [
 	'http://localhost:3000',
 	'http://localhost:3001',
@@ -41,30 +45,54 @@ const allowedOriginsDev = [
 	'http://127.0.0.1:3000',
 	'http://127.0.0.1:3001',
 	'http://127.0.0.1:8081',
+	'http://192.168.1.4:3001', // Frontend PWA
 ];
 
 const corsOptions = {
 	origin: (origin, callback) => {
-		// Requests sin origen (Postman, apps nativas) -> permitir
+		// Requests sin origen (Postman, apps nativas, PWA instalada) -> permitir
 		if (!origin) return callback(null, true);
 
 		if (process.env.NODE_ENV === 'production') {
-			return callback(null, allowedOriginsProd.includes(origin));
+			// En producción: permitir orígenes específicos
+			if (allowedOriginsProd.includes(origin)) {
+				return callback(null, true);
+			}
+			// También permitir cualquier origen HTTPS en producción (para PWA)
+			if (origin.startsWith('https://')) {
+				return callback(null, true);
+			}
+			return callback(new Error(`Not allowed by CORS: ${origin}`));
 		}
 
-		// Desarrollo: permitir localhost/127.0.0.1, Expo (exp://, expo://) y redes LAN comunes
+		// Desarrollo: permitir localhost/127.0.0.1, Expo y redes LAN
 		const isLocalhost = allowedOriginsDev.includes(origin);
 		const isExpo = origin.startsWith('exp://') || origin.startsWith('expo://');
 		const isLan = /^http:\/\/(192\.168|10\.0\.|172\.(1[6-9]|2\d|3[0-1]))\.[0-9]+\.[0-9]+(?::[0-9]+)?$/.test(origin);
+		const isLocalFile = origin.startsWith('file://');
 
-		if (isLocalhost || isExpo || isLan) return callback(null, true);
+		if (isLocalhost || isExpo || isLan || isLocalFile) {
+			return callback(null, true);
+		}
 
-		return callback(new Error(`Not allowed by CORS: ${origin}`));
+		// En desarrollo, permitir cualquier origen HTTP/HTTPS
+		console.log(`⚠️ CORS: Permitiendo origen en desarrollo: ${origin}`);
+		return callback(null, true);
 	},
 	credentials: true,
-	methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-	allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+	methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+	allowedHeaders: [
+		'Content-Type', 
+		'Authorization', 
+		'X-Requested-With',
+		'Accept',
+		'Origin',
+		'Access-Control-Request-Method',
+		'Access-Control-Request-Headers'
+	],
+	exposedHeaders: ['Content-Length', 'Content-Range'],
 	optionsSuccessStatus: 204,
+	maxAge: 86400, // 24 horas de caché para preflight
 };
 
 app.use(cors(corsOptions));

@@ -6,19 +6,20 @@
 npm run dev
 ```
 
-Abre: http://localhost:3000
+Abre: http://localhost:3001
 
 ## Para Móvil (en la misma red WiFi)
 
-### 1. Encuentra tu IP:
-```powershell
-ipconfig
+### 1. Tu IP configurada:
 ```
-Busca "Dirección IPv4" → Ejemplo: 192.168.1.100
+IP: 192.168.1.4
+Frontend: Puerto 3001
+Backend: Puerto 3000
+```
 
 ### 2. Abre en el móvil:
 ```
-http://192.168.1.100:3000
+http://192.168.1.4:3001
 ```
 
 ### 3. Instalar la PWA:
