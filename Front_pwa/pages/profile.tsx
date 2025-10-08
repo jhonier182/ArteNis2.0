@@ -36,6 +36,8 @@ export default function ProfilePage() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
   const [userPosts, setUserPosts] = useState<any[]>([])
   const [loadingPosts, setLoadingPosts] = useState(true)
+  const [savedPosts, setSavedPosts] = useState<any[]>([])
+  const [loadingSavedPosts, setLoadingSavedPosts] = useState(true)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -44,8 +46,12 @@ export default function ProfilePage() {
   }, [isLoading, isAuthenticated, router])
 
   useEffect(() => {
-    if (isAuthenticated && user?.userType === 'artist') {
-      fetchUserPosts()
+    if (isAuthenticated) {
+      if (user?.userType === 'artist') {
+        fetchUserPosts()
+      } else {
+        fetchSavedPosts()
+      }
     }
   }, [isAuthenticated, user])
 
@@ -60,6 +66,22 @@ export default function ProfilePage() {
       setUserPosts([])
     } finally {
       setLoadingPosts(false)
+    }
+  }
+
+  const fetchSavedPosts = async () => {
+    try {
+      setLoadingSavedPosts(true)
+      const response = await apiClient.get('/api/boards/me/boards')
+      console.log('Publicaciones guardadas:', response.data)
+      // Extraer todas las publicaciones de todos los boards
+      const allPosts = response.data?.data?.boards?.flatMap((board: any) => board.Posts || []) || []
+      setSavedPosts(allPosts)
+    } catch (error) {
+      console.error('Error al cargar publicaciones guardadas:', error)
+      setSavedPosts([])
+    } finally {
+      setLoadingSavedPosts(false)
     }
   }
 
@@ -434,6 +456,14 @@ export default function ProfilePage() {
                 Ver todo
               </button>
             )}
+            {user.userType === 'user' && savedPosts.length > 6 && (
+              <button 
+                onClick={() => router.push('/collections')}
+                className="text-blue-500 text-sm font-medium hover:text-blue-400 transition-colors"
+              >
+                Ver todo
+              </button>
+            )}
           </div>
           
           {/* Posts Grid */}
@@ -493,23 +523,75 @@ export default function ProfilePage() {
               </div>
             )
           ) : (
-            /* Colecciones para usuario normal */
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {[1, 2, 3, 4].map((item) => (
-                <motion.div
-                  key={item}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: item * 0.1 }}
-                  className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
-                    <Bookmark className="w-12 h-12 text-gray-600" />
+            // Para usuarios normales - Mostrar publicaciones guardadas
+            loadingSavedPosts ? (
+              <div className="flex justify-center items-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : savedPosts.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {savedPosts.slice(0, 6).map((post, index) => (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    onClick={() => router.push(`/post/${post.id}`)}
+                    className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
+                  >
+                    {post.mediaUrl && (
+                      <img
+                        src={post.mediaUrl}
+                        alt={post.description || 'Post'}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-white text-sm">
+                          <div className="flex items-center gap-1">
+                            <Heart className="w-4 h-4" />
+                            <span>{post.likesCount || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MessageCircle className="w-4 h-4" />
+                            <span>{post.commentsCount || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Indicador de guardado */}
+                    <div className="absolute top-2 right-2">
+                      <Bookmark className="w-5 h-5 text-blue-500 fill-blue-500" />
+                    </div>
+                  </motion.div>
+                ))}
+                {savedPosts.length > 6 && (
+                  <div className="col-span-2 flex justify-center mt-4">
+                    <button
+                      onClick={() => router.push('/collections')}
+                      className="text-blue-500 text-sm font-medium hover:text-blue-400 transition-colors"
+                    >
+                      Ver todas las colecciones ({savedPosts.length})
+                    </button>
                   </div>
-                </motion.div>
-              ))}
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-10 px-4">
+                <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Bookmark className="w-10 h-10 text-gray-600" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No tienes publicaciones guardadas</h3>
+                <p className="text-gray-400 mb-4">Guarda publicaciones que te gusten para verlas aquí</p>
+                <button
+                  onClick={() => router.push('/')}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all"
+                >
+                  Explorar publicaciones
+                </button>
+              </div>
+            )
           )}
         </div>
       </div>

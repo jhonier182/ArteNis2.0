@@ -24,6 +24,8 @@ export default function PostDetailPage() {
   const [likesCount, setLikesCount] = useState(0)
   const [isFollowing, setIsFollowing] = useState(false)
   const [isFollowLoading, setIsFollowLoading] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -36,6 +38,12 @@ export default function PostDetailPage() {
       checkIfFollowing()
     }
   }, [post?.User?.id, isAuthenticated])
+
+  useEffect(() => {
+    if (post?.id && isAuthenticated) {
+      checkIfSaved()
+    }
+  }, [post?.id, isAuthenticated])
 
   const loadPost = async () => {
     try {
@@ -65,6 +73,19 @@ export default function PostDetailPage() {
     }
   }
 
+  const checkIfSaved = async () => {
+    try {
+      const response = await apiClient.get('/api/boards/me/boards')
+      const boards = response.data?.data?.boards || []
+      const isPostSaved = boards.some((board: any) => 
+        board.Posts?.some((savedPost: any) => savedPost.id === post.id)
+      )
+      setIsSaved(isPostSaved)
+    } catch (error) {
+      console.error('Error al verificar guardado:', error)
+    }
+  }
+
   const handleFollow = async () => {
     if (!isAuthenticated) {
       alert('Debes iniciar sesión para seguir usuarios')
@@ -87,6 +108,63 @@ export default function PostDetailPage() {
       alert(error.response?.data?.message || 'Error al actualizar seguimiento')
     } finally {
       setIsFollowLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    if (!isAuthenticated) {
+      alert('Debes iniciar sesión para guardar publicaciones')
+      router.push('/login')
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      
+      if (isSaved) {
+        // Remover de guardados
+        const response = await apiClient.get('/api/boards/me/boards')
+        const boards = response.data?.data?.boards || []
+        
+        for (const board of boards) {
+          const hasPost = board.Posts?.some((savedPost: any) => savedPost.id === post.id)
+          if (hasPost) {
+            await apiClient.delete(`/api/boards/${board.id}/posts/${post.id}`)
+            break
+          }
+        }
+        
+        setIsSaved(false)
+      } else {
+        // Agregar a guardados
+        let defaultBoard = null
+        
+        // Buscar un board por defecto o crear uno
+        const response = await apiClient.get('/api/boards/me/boards')
+        const boards = response.data?.data?.boards || []
+        
+        if (boards.length === 0) {
+          // Crear board por defecto
+          const createResponse = await apiClient.post('/api/boards', {
+            name: 'Mis Favoritos',
+            description: 'Publicaciones que me gustan'
+          })
+          defaultBoard = createResponse.data?.data?.board
+        } else {
+          // Usar el primer board disponible
+          defaultBoard = boards[0]
+        }
+        
+        if (defaultBoard) {
+          await apiClient.post(`/api/boards/${defaultBoard.id}/posts`, { postId: post.id })
+          setIsSaved(true)
+        }
+      }
+    } catch (error: any) {
+      console.error('Error al guardar post:', error)
+      alert(error.response?.data?.message || 'Error al guardar la publicación')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -245,8 +323,20 @@ export default function PostDetailPage() {
             </button>
           </div>
 
-          <button className="group">
-            <Bookmark className="w-6 h-6 group-hover:text-blue-500 transition-colors" />
+          <button 
+            onClick={handleSave}
+            disabled={isSaving}
+            className={`group transition-colors ${
+              isSaved ? 'text-blue-500' : 'text-gray-400 hover:text-blue-500'
+            }`}
+          >
+            {isSaving ? (
+              <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+            ) : (
+              <Bookmark className={`w-6 h-6 transition-colors ${
+                isSaved ? 'fill-blue-500 text-blue-500' : 'group-hover:text-blue-500'
+              }`} />
+            )}
           </button>
         </div>
 

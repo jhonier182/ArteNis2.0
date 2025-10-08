@@ -118,26 +118,56 @@ export default function HomePage() {
   }
 
   const handleSavePost = async (postId: string) => {
+    if (!isAuthenticated) {
+      alert('Debes iniciar sesión para guardar publicaciones')
+      router.push('/login')
+      return
+    }
+
     try {
-      // TODO: Implementar sistema de guardado con boards
-      // Por ahora, mostrar mensaje informativo
-      alert('Sistema de guardado en desarrollo. Próximamente podrás guardar publicaciones en tus colecciones.')
-      
-      /* IMPLEMENTACIÓN FUTURA:
       if (savedPosts.has(postId)) {
-        // Remover de guardados
-        await apiClient.delete(`/api/boards/${boardId}/posts/${postId}`)
+        // Remover de guardados - buscar el board que contiene este post
+        const response = await apiClient.get('/api/boards/me/boards')
+        const boards = response.data?.data?.boards || []
+        
+        for (const board of boards) {
+          const hasPost = board.Posts?.some((post: any) => post.id === postId)
+          if (hasPost) {
+            await apiClient.delete(`/api/boards/${board.id}/posts/${postId}`)
+            break
+          }
+        }
+        
         setSavedPosts(prev => {
           const newSet = new Set(prev)
           newSet.delete(postId)
           return newSet
         })
       } else {
-        // Guardar post - necesita boardId
-        await apiClient.post(`/api/boards/${boardId}/posts`, { postId })
-        setSavedPosts(prev => new Set(prev).add(postId))
+        // Agregar a guardados - usar el board por defecto o crear uno
+        let defaultBoard = null
+        
+        // Buscar un board por defecto o crear uno
+        const response = await apiClient.get('/api/boards/me/boards')
+        const boards = response.data?.data?.boards || []
+        
+        if (boards.length === 0) {
+          // Crear board por defecto
+          const createResponse = await apiClient.post('/api/boards', {
+            name: 'Mis Favoritos',
+            description: 'Publicaciones que me gustan'
+          })
+          defaultBoard = createResponse.data?.data?.board
+        } else {
+          // Usar el primer board disponible
+          defaultBoard = boards[0]
+        }
+        
+        if (defaultBoard) {
+          await apiClient.post(`/api/boards/${defaultBoard.id}/posts`, { postId })
+          setSavedPosts(prev => new Set([...prev, postId]))
+        }
       }
-      */
     } catch (error: any) {
       console.error('Error al guardar post:', error)
       alert(error.response?.data?.message || 'Error al guardar la publicación')
