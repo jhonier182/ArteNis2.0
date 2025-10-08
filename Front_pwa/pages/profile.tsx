@@ -13,14 +13,17 @@ import {
   Grid,
   Bookmark,
   ChevronLeft,
-  MoreVertical
+  MoreVertical,
+  Camera
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
+import EditProfileModal from '@/components/EditProfileModal'
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, isLoading, logout } = useUser()
+  const { user, isAuthenticated, isLoading, logout, setUser } = useUser()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('collections')
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -31,6 +34,12 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     await logout()
     router.push('/login')
+  }
+
+  const handleAvatarUpdated = (newAvatarUrl: string) => {
+    if (user) {
+      setUser({ ...user, avatar: newAvatarUrl })
+    }
   }
 
   if (isLoading) {
@@ -90,7 +99,7 @@ export default function ProfilePage() {
           animate={{ scale: 1, opacity: 1 }}
           className="flex justify-center mb-6"
         >
-          <div className="relative">
+          <div className="relative group">
             <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
               <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
                 {user.avatar ? (
@@ -106,6 +115,14 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
+            
+            {/* Edit Button */}
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="absolute bottom-0 right-0 p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg opacity-0 group-hover:opacity-100"
+            >
+              <Camera className="w-5 h-5 text-white" />
+            </button>
           </div>
         </motion.div>
 
@@ -246,6 +263,15 @@ export default function ProfilePage() {
           </button>
         </div>
       </nav>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        currentAvatar={user.avatar}
+        onAvatarUpdated={handleAvatarUpdated}
+        userId={user.id}
+      />
 
       {/* Settings/Logout Modal - Trigger from header MoreVertical */}
       <style jsx global>{`
