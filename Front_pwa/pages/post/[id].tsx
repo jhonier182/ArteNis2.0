@@ -116,34 +116,48 @@ export default function PostDetailPage() {
       <div className="container-mobile px-4 py-4">
         {/* Author */}
         <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => router.push(`/user/${post.User?.id}`)}
-            className="flex items-center space-x-3 group"
-          >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-              {post.User?.avatar ? (
-                <img
-                  src={post.User.avatar}
-                  alt={post.User.username}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                <span className="text-sm font-bold text-white">
-                  {post.User?.username?.charAt(0).toUpperCase()}
-                </span>
-              )}
+          {post.User ? (
+            <button
+              onClick={() => router.push(`/user/${post.User.id}`)}
+              className="flex items-center space-x-3 group"
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                {post.User.avatar ? (
+                  <img
+                    src={post.User.avatar}
+                    alt={post.User.username}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-sm font-bold text-white">
+                    {post.User.username?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                )}
+              </div>
+              <div>
+                <p className="font-semibold group-hover:text-blue-500 transition-colors">
+                  {post.User.fullName || post.User.username || 'Usuario'}
+                </p>
+                <p className="text-sm text-gray-500">@{post.User.username || 'usuario'}</p>
+              </div>
+            </button>
+          ) : (
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-bold text-gray-400">?</span>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-400">Usuario desconocido</p>
+                <p className="text-sm text-gray-500">@desconocido</p>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold group-hover:text-blue-500 transition-colors">
-                {post.User?.fullName || post.User?.username}
-              </p>
-              <p className="text-sm text-gray-500">@{post.User?.username}</p>
-            </div>
-          </button>
+          )}
 
-          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-full font-semibold transition-colors">
-            Seguir
-          </button>
+          {post.User && (
+            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-full font-semibold transition-colors">
+              Seguir
+            </button>
+          )}
         </div>
 
         {/* Actions */}

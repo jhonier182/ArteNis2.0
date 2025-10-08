@@ -221,7 +221,8 @@ class PostService {
           {
             model: User,
             as: 'author',
-            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
+            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType'],
+            required: false // No fallar si el usuario no existe
           },
           {
             model: Comment,
@@ -253,7 +254,15 @@ class PostService {
       }
 
       // Transformar post al formato del frontend
-      const transformedPost = await this.transformPostForFrontend(post, userId);
+      const postData = post.toJSON();
+      
+      // Asegurar que User tenga el mismo valor que author para compatibilidad
+      if (postData.author) {
+        postData.User = postData.author;
+      }
+      
+      const transformedPost = await this.transformPostForFrontend(postData, userId);
+      transformedPost.User = postData.author; // Agregar User para compatibilidad frontend
       
       return transformedPost;
     } catch (error) {
@@ -752,7 +761,8 @@ class PostService {
           {
             model: User,
             as: 'author',
-            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
+            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified'],
+            required: false // No fallar si el usuario no existe
           }
         ],
         order: [['createdAt', 'DESC']],
@@ -770,7 +780,18 @@ class PostService {
 
       // Transformar los posts para el frontend usando transformPostForFrontend
       const transformedPosts = await Promise.all(
-        rows.map(post => this.transformPostForFrontend(post, userId))
+        rows.map(post => {
+          const postData = post.toJSON();
+          // Agregar User para compatibilidad frontend
+          if (postData.author) {
+            postData.User = postData.author;
+          }
+          const transformed = this.transformPostForFrontend(postData, userId);
+          if (postData.author) {
+            transformed.User = postData.author;
+          }
+          return transformed;
+        })
       );
 
       // Marcar todos los posts como seguidos ya que son de usuarios que sigue
@@ -810,7 +831,8 @@ class PostService {
           {
             model: User,
             as: 'author',
-            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
+            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType'],
+            required: false // No fallar si el usuario no existe
           }
         ],
         where: {
@@ -825,8 +847,10 @@ class PostService {
       // Agregar campo isFollowing si hay usuario autenticado
       if (userId) {
         for (const post of posts.rows) {
-          const isFollowing = await Follow.isFollowing(userId, post.author.id);
-          post.author.isFollowing = isFollowing;
+          if (post.author) {
+            const isFollowing = await Follow.isFollowing(userId, post.author.id);
+            post.author.isFollowing = isFollowing;
+          }
           
           // Agregar campo isLiked para indicar si el usuario ya dio like
           const hasLiked = await Like.exists(userId, post.id);
@@ -837,7 +861,18 @@ class PostService {
 
       // Transformar posts al formato del frontend
       const transformedPosts = await Promise.all(
-        posts.rows.map(post => this.transformPostForFrontend(post, userId))
+        posts.rows.map(post => {
+          const postData = post.toJSON();
+          // Agregar User para compatibilidad frontend
+          if (postData.author) {
+            postData.User = postData.author;
+          }
+          const transformed = this.transformPostForFrontend(postData, userId);
+          if (postData.author) {
+            transformed.User = postData.author;
+          }
+          return transformed;
+        })
       );
       
       // Verificar que los posts transformados tengan isLiked
