@@ -16,12 +16,36 @@ type FilterType = 'none' | 'vivid' | 'bright' | 'dark' | 'vintage' | 'cool' | 'w
 export default function EditImagePage() {
   const router = useRouter()
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [draftData, setDraftData] = useState({
+    description: '',
+    styles: '',
+    clientTag: '',
+    visibility: 'public'
+  })
   const [brightness, setBrightness] = useState(50)
   const [contrast, setContrast] = useState(50)
   const [saturation, setSaturation] = useState(50)
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('none')
   const [rotation, setRotation] = useState(0)
   const [activeTab, setActiveTab] = useState<'adjust' | 'filters'>('adjust')
+
+  // Cargar imagen y datos del draft
+  useEffect(() => {
+    const draftImage = localStorage.getItem('draft_image')
+    const description = localStorage.getItem('draft_description') || ''
+    const styles = localStorage.getItem('draft_styles') || ''
+    const clientTag = localStorage.getItem('draft_client') || ''
+    const visibility = localStorage.getItem('draft_visibility') || 'public'
+
+    if (!draftImage) {
+      router.push('/create')
+      return
+    }
+
+    setImageUrl(draftImage)
+    setDraftData({ description, styles, clientTag, visibility })
+  }, [])
 
   const filters: { name: FilterType; label: string; preview: string }[] = [
     { name: 'none', label: 'Original', preview: 'brightness(100%)' },
@@ -51,11 +75,16 @@ export default function EditImagePage() {
       saturation,
       filter: selectedFilter,
       rotation,
-      description: router.query.description,
-      styles: router.query.styles,
-      clientTag: router.query.clientTag,
-      visibility: router.query.visibility
+      ...draftData
     })
+
+    // Limpiar localStorage
+    localStorage.removeItem('draft_image')
+    localStorage.removeItem('draft_filename')
+    localStorage.removeItem('draft_description')
+    localStorage.removeItem('draft_styles')
+    localStorage.removeItem('draft_client')
+    localStorage.removeItem('draft_visibility')
 
     alert('¡Publicación creada exitosamente!')
     router.push('/')
@@ -91,26 +120,33 @@ export default function EditImagePage() {
 
       {/* Preview Area */}
       <div className="flex-1 flex items-center justify-center p-4 bg-black/30">
-        <div 
-          className="relative max-w-full max-h-[60vh] overflow-hidden rounded-2xl"
-          style={{
-            transform: `rotate(${rotation}deg)`,
-            transition: 'transform 0.3s ease'
-          }}
-        >
-          <img
-            src="/api/placeholder/400/600"
-            alt="Preview"
+        {imageUrl ? (
+          <div 
+            className="relative max-w-full max-h-[60vh] overflow-hidden rounded-2xl"
             style={{
-              filter: getFilterStyle(),
-              transition: 'filter 0.2s ease',
-              maxWidth: '100%',
-              maxHeight: '60vh',
-              objectFit: 'contain'
+              transform: `rotate(${rotation}deg)`,
+              transition: 'transform 0.3s ease'
             }}
-          />
-          <canvas ref={canvasRef} className="hidden" />
-        </div>
+          >
+            <img
+              src={imageUrl}
+              alt="Preview"
+              style={{
+                filter: getFilterStyle(),
+                transition: 'filter 0.2s ease',
+                maxWidth: '100%',
+                maxHeight: '60vh',
+                objectFit: 'contain'
+              }}
+            />
+            <canvas ref={canvasRef} className="hidden" />
+          </div>
+        ) : (
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando imagen...</p>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -255,12 +291,14 @@ export default function EditImagePage() {
                           : 'border-transparent'
                       }`}
                     >
-                      <img
-                        src="/api/placeholder/80/80"
-                        alt={filter.label}
-                        className="w-full h-full object-cover"
-                        style={{ filter: filter.preview }}
-                      />
+                      {imageUrl && (
+                        <img
+                          src={imageUrl}
+                          alt={filter.label}
+                          className="w-full h-full object-cover"
+                          style={{ filter: filter.preview }}
+                        />
+                      )}
                       {selectedFilter === filter.name && (
                         <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
                           <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">

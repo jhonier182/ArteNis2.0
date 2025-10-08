@@ -87,16 +87,21 @@ export default function CreatePostPage() {
       return
     }
     
-    // Navegar a la pantalla de edición con los datos
-    router.push({
-      pathname: '/create/edit',
-      query: { 
-        description,
-        styles: selectedStyles.join(','),
-        clientTag,
-        visibility
-      }
-    })
+    // Guardar la imagen en localStorage como base64
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const imageData = e.target?.result as string
+      localStorage.setItem('draft_image', imageData)
+      localStorage.setItem('draft_filename', selectedFile.name)
+      localStorage.setItem('draft_description', description)
+      localStorage.setItem('draft_styles', selectedStyles.join(','))
+      localStorage.setItem('draft_client', clientTag)
+      localStorage.setItem('draft_visibility', visibility)
+      
+      // Navegar a la pantalla de edición
+      router.push('/create/edit')
+    }
+    reader.readAsDataURL(selectedFile)
   }
 
   return (
