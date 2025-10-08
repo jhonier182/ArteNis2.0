@@ -199,16 +199,15 @@ export default function EditImagePage() {
 
         // Solo aplicar ajustes si se están usando
         if (useManualAdjustments) {
-          // Ajustes manuales avanzados
-          const brightnessFactor = brightness / 50 // 0-2
-          const contrastFactor = contrast / 50 // 0-2
-          const saturationFactor = saturation / 50 // 0-2
-          const exposureFactor = exposure / 50 // 0-2
-          const highlightsFactor = highlights / 50 // 0-2
-          const shadowsFactor = shadows / 50 // 0-2
-          const warmthFactor = (warmth - 50) / 50 // -1 a +1
-          const tintFactor = (tint - 50) / 50 // -1 a +1
-          const sharpnessFactor = (sharpness - 50) / 100 // -0.5 a +0.5
+          // Ajustes manuales - factores normalizados para coincidir con CSS
+          const brightnessFactor = brightness / 100 // 0-2, normalizado
+          const contrastFactor = contrast / 100 // 0-2, normalizado
+          const saturationFactor = saturation / 100 // 0-2, normalizado
+          const exposureFactor = exposure / 100 // 0-2, normalizado
+          const highlightsFactor = highlights / 100 // 0-2, normalizado
+          const shadowsFactor = shadows / 100 // 0-2, normalizado
+          const warmthFactor = (warmth - 50) / 100 // -0.5 a +0.5
+          const tintFactor = (tint - 50) / 100 // -0.5 a +0.5
           const vignetteFactor = vignette / 100 // 0 a 1
 
           for (let i = 0; i < data.length; i += 4) {
@@ -216,52 +215,52 @@ export default function EditImagePage() {
             let g = data[i + 1]
             let b = data[i + 2]
 
-            // Aplicar exposición (brillo general)
+            // Aplicar exposición (brillo general) - multiplicativo
             r *= exposureFactor
             g *= exposureFactor
             b *= exposureFactor
 
-            // Aplicar brillo
+            // Aplicar brillo - multiplicativo
             r *= brightnessFactor
             g *= brightnessFactor
             b *= brightnessFactor
 
-            // Aplicar highlights (tonos claros)
+            // Aplicar highlights (tonos claros) - solo afecta zonas brillantes
             const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
-            if (luminance > 128) {
-              const highlightAdjust = (luminance - 128) / 127
+            if (luminance > 128 && highlightsFactor !== 1) {
+              const highlightAdjust = (luminance - 128) / 127 * 0.3 // Reducir intensidad
               r += (255 - r) * highlightAdjust * (highlightsFactor - 1)
               g += (255 - g) * highlightAdjust * (highlightsFactor - 1)
               b += (255 - b) * highlightAdjust * (highlightsFactor - 1)
             }
 
-            // Aplicar shadows (tonos oscuros)
-            if (luminance < 128) {
-              const shadowAdjust = (128 - luminance) / 128
+            // Aplicar shadows (tonos oscuros) - solo afecta zonas oscuras
+            if (luminance < 128 && shadowsFactor !== 1) {
+              const shadowAdjust = (128 - luminance) / 128 * 0.3 // Reducir intensidad
               r = r * (1 + shadowAdjust * (shadowsFactor - 1))
               g = g * (1 + shadowAdjust * (shadowsFactor - 1))
               b = b * (1 + shadowAdjust * (shadowsFactor - 1))
             }
 
-            // Aplicar contraste
+            // Aplicar contraste - igual que CSS
             r = ((r / 255 - 0.5) * contrastFactor + 0.5) * 255
             g = ((g / 255 - 0.5) * contrastFactor + 0.5) * 255
             b = ((b / 255 - 0.5) * contrastFactor + 0.5) * 255
 
-            // Aplicar saturación
+            // Aplicar saturación - igual que CSS
             const gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
             r = gray + (r - gray) * saturationFactor
             g = gray + (g - gray) * saturationFactor
             b = gray + (b - gray) * saturationFactor
 
-            // Aplicar warmth (calidez/temperatura)
-            r += warmthFactor * 30
-            b -= warmthFactor * 30
+            // Aplicar warmth (temperatura) - ajuste suave
+            r += warmthFactor * 15 // Reducido de 30 a 15
+            b -= warmthFactor * 15
 
-            // Aplicar tint (tono verde/magenta)
-            g += tintFactor * 20
-            r -= tintFactor * 10
-            b -= tintFactor * 10
+            // Aplicar tint (tono) - ajuste suave
+            g += tintFactor * 10 // Reducido de 20 a 10
+            r -= tintFactor * 5 // Reducido de 10 a 5
+            b -= tintFactor * 5
 
             // Clamp valores entre 0-255
             data[i] = Math.min(255, Math.max(0, r))
