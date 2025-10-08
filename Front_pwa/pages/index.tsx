@@ -255,7 +255,7 @@ export default function HomePage() {
                       )}
                       
                       {/* Author */}
-                      <Link href={`/profile/${post.User?.id}`} className="flex items-center space-x-2 group">
+                      <Link href={`/user/${post.User?.id}`} className="flex items-center space-x-2 group">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
                           {post.User?.avatar ? (
                             <img
@@ -303,7 +303,7 @@ export default function HomePage() {
           </button>
           
           <button
-            onClick={() => router.push('/explore')}
+            onClick={() => router.push('/search')}
             className="flex flex-col items-center py-2 px-3 text-gray-400"
           >
             <Search className="w-6 h-6 mb-1" />
