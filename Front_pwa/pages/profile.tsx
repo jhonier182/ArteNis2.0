@@ -361,7 +361,12 @@ export default function ProfilePage() {
             <h3 className="text-lg font-bold">
               {user.userType === 'artist' ? 'Portafolio' : 'Publicaciones Guardadas'}
             </h3>
-            <button className="text-blue-500 text-sm font-medium">Ver todo</button>
+            <button 
+              onClick={() => router.push('/collections')}
+              className="text-blue-500 text-sm font-medium hover:text-blue-400 transition-colors"
+            >
+              Ver todo
+            </button>
           </div>
           
           {/* Collection Grid */}

@@ -43,6 +43,8 @@ export default function PublicProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
   const [isFollowLoading, setIsFollowLoading] = useState(false)
+  const [userPosts, setUserPosts] = useState<any[]>([])
+  const [loadingPosts, setLoadingPosts] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -60,12 +62,28 @@ export default function PublicProfilePage() {
       if (isAuthenticated) {
         checkIfFollowing()
       }
+
+      // Cargar publicaciones del usuario
+      loadUserPosts()
     } catch (error) {
       console.error('Error al cargar perfil:', error)
       alert('Error al cargar el perfil del usuario')
       router.push('/')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadUserPosts = async () => {
+    try {
+      setLoadingPosts(true)
+      const response = await apiClient.get(`/api/posts/user/${id}`)
+      setUserPosts(response.data.data.posts || [])
+    } catch (error) {
+      console.error('Error al cargar publicaciones:', error)
+      setUserPosts([])
+    } finally {
+      setLoadingPosts(false)
     }
   }
 
@@ -474,27 +492,66 @@ export default function PublicProfilePage() {
             <h3 className="text-lg font-bold">
               {isArtist ? 'Portafolio' : 'Publicaciones Guardadas'}
             </h3>
+            {userPosts.length > 0 && (
+              <span className="text-sm text-gray-400">{userPosts.length} publicaciones</span>
+            )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {[...Array(6)].map((_, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                className="aspect-square bg-gray-800 rounded-xl overflow-hidden relative group"
-              >
-                <img
-                  src={`https://source.unsplash.com/random/400x400?tattoo,art&${index}`}
-                  alt={`${isArtist ? 'Trabajo' : 'Guardado'} ${index + 1}`}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Bookmark className="w-8 h-8 text-white" />
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          
+          {loadingPosts ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : userPosts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {userPosts.map((post, index) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="aspect-square bg-gray-800 rounded-xl overflow-hidden relative group cursor-pointer"
+                  onClick={() => router.push(`/post/${post.id}`)}
+                >
+                  {post.mediaUrl ? (
+                    <img
+                      src={post.mediaUrl}
+                      alt={post.title || 'Post'}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+                      <Bookmark className="w-12 h-12 text-gray-600" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <div className="flex items-center gap-3 text-white text-sm">
+                        <div className="flex items-center gap-1">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                          </svg>
+                          <span>{post.likesCount || 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MessageCircle className="w-4 h-4" />
+                          <span>{post.commentsCount || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20">
+              <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Bookmark className="w-10 h-10 text-gray-600" />
+              </div>
+              <p className="text-gray-400">
+                {isArtist ? 'Aún no hay publicaciones' : 'No hay publicaciones guardadas'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

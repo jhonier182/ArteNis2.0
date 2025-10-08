@@ -44,6 +44,8 @@ export default function HomePage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loadingPosts, setLoadingPosts] = useState(true)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
+  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set())
+  const [feedFilter, setFeedFilter] = useState<'all' | 'following'>('all')
   const router = useRouter()
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function HomePage() {
     if (isAuthenticated) {
       fetchPosts()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, feedFilter])
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -74,13 +76,57 @@ export default function HomePage() {
 
   const fetchPosts = async () => {
     try {
-      const response = await apiClient.get('/api/posts')
+      setLoadingPosts(true)
+      const endpoint = feedFilter === 'following' ? '/api/posts/following' : '/api/posts'
+      const response = await apiClient.get(endpoint)
       const postsData = response.data?.data?.posts || response.data?.data || []
       setPosts(postsData)
+      
+      // Cargar posts guardados
+      loadSavedPosts()
     } catch (error) {
       console.error('Error al cargar posts:', error)
     } finally {
       setLoadingPosts(false)
+    }
+  }
+
+  const loadSavedPosts = async () => {
+    try {
+      const response = await apiClient.get('/api/boards/my-boards')
+      const boards = response.data.data?.boards || []
+      const savedPostIds = new Set<string>()
+      
+      boards.forEach((board: any) => {
+        board.Posts?.forEach((post: any) => {
+          savedPostIds.add(post.id.toString())
+        })
+      })
+      
+      setSavedPosts(savedPostIds)
+    } catch (error) {
+      console.error('Error al cargar posts guardados:', error)
+    }
+  }
+
+  const handleSavePost = async (postId: string) => {
+    try {
+      if (savedPosts.has(postId)) {
+        // Remover de guardados
+        await apiClient.delete(`/api/boards/posts/${postId}`)
+        setSavedPosts(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(postId)
+          return newSet
+        })
+      } else {
+        // Guardar post
+        await apiClient.post('/api/boards/posts', { postId: Number(postId) })
+        setSavedPosts(prev => new Set(prev).add(postId))
+      }
+    } catch (error: any) {
+      console.error('Error al guardar post:', error)
+      alert(error.response?.data?.message || 'Error al guardar la publicación')
     }
   }
 
@@ -135,7 +181,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0f1419]/95 backdrop-blur-sm border-b border-gray-800">
         <div className="container-mobile px-4 py-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
               InkEndin
             </h1>
@@ -148,6 +194,30 @@ export default function HomePage() {
                 <MessageCircle className="w-6 h-6" />
               </button>
             </div>
+          </div>
+          
+          {/* Feed Filter */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFeedFilter('all')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                feedFilter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              }`}
+            >
+              Para ti
+            </button>
+            <button
+              onClick={() => setFeedFilter('following')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                feedFilter === 'following'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              }`}
+            >
+              Siguiendo
+            </button>
           </div>
         </div>
       </header>
@@ -278,11 +348,17 @@ export default function HomePage() {
                         <button 
                           onClick={(e) => {
                             e.preventDefault()
-                            handleLike(post.id)
+                            handleSavePost(post.id)
                           }}
                           className="p-2 hover:bg-gray-800 rounded-full transition-colors"
                         >
-                          <Bookmark className="w-5 h-5 text-gray-400 hover:text-blue-500" />
+                          <Bookmark 
+                            className={`w-5 h-5 transition-colors ${
+                              savedPosts.has(post.id)
+                                ? 'fill-blue-500 text-blue-500'
+                                : 'text-gray-400 hover:text-blue-500'
+                            }`} 
+                          />
                         </button>
                       </Link>
                     </div>
