@@ -72,7 +72,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#0f1419] text-white pb-20">
       <Head>
-        <title>Perfil - ArteNis 2.0</title>
+        <title>Perfil - InkEndin</title>
       </Head>
 
       {/* Header */}

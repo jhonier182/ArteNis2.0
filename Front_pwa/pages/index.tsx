@@ -129,7 +129,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#0f1419] text-white pb-20">
       <Head>
-        <title>ArteNis 2.0 - Inicio</title>
+        <title>InkEndin - Inicio</title>
       </Head>
       
       {/* Header */}
@@ -137,7 +137,7 @@ export default function HomePage() {
         <div className="container-mobile px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-              ArteNis
+              InkEndin
             </h1>
             <div className="flex items-center space-x-3">
               <button className="p-2 hover:bg-gray-800 rounded-full transition-colors relative">
@@ -162,13 +162,13 @@ export default function HomePage() {
           <div className="container-mobile flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Download className="w-5 h-5" />
-              <span className="text-sm font-medium">Instala ArteNis en tu dispositivo</span>
+              <span className="text-sm font-medium">Instala InkEndin en tu dispositivo</span>
             </div>
             <button
               onClick={handleInstallClick}
               className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors"
             >
-              Instalar
+              Instalar InkEndin
             </button>
           </div>
         </motion.div>
@@ -195,7 +195,7 @@ export default function HomePage() {
               href="/create"
               className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-full font-medium hover:from-blue-600 hover:to-purple-700 transition-all"
             >
-              <span>Crear publicación</span>
+              <span>Publicar tatuaje</span>
             </Link>
           </motion.div>
         ) : (

@@ -1,16 +1,16 @@
 {
-  "name": "ArteNis 2.0",
-  "short_name": "ArteNis",
-  "description": "Plataforma social para artistas y tatuadores",
+  "name": "InkEndin - Red Social de Tatuajes",
+  "short_name": "InkEndin",
+  "description": "Conecta con los mejores tatuadores y descubre arte increíble",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0ea5e9",
+  "background_color": "#0f1419",
+  "theme_color": "#8b5cf6",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "es",
   "dir": "ltr",
-  "categories": ["social", "art", "lifestyle"],
+  "categories": ["social", "art", "lifestyle", "tattoo"],
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -31,7 +31,7 @@
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Vista principal de ArteNis"
+      "label": "Feed principal de InkEndin"
     }
   ],
   "share_target": {

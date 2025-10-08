@@ -49,7 +49,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] relative overflow-hidden">
       <Head>
-        <title>Iniciar Sesión - ArteNis 2.0</title>
+        <title>Iniciar Sesión - InkEndin</title>
       </Head>
 
       {/* Animated Background */}
@@ -137,7 +137,7 @@ export default function LoginPage() {
               className="text-4xl md:text-5xl font-bold mb-2"
             >
               <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                ArteNis
+                InkEndin
               </span>
             </motion.h1>
             
@@ -147,7 +147,7 @@ export default function LoginPage() {
               transition={{ delay: 0.4 }}
               className="text-gray-400 text-lg"
             >
-              Tu red social de tatuajes
+              Conecta con los mejores tatuadores
             </motion.p>
           </div>
 

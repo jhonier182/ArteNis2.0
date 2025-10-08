@@ -135,7 +135,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] relative overflow-hidden">
       <Head>
-        <title>Registro - ArteNis 2.0</title>
+        <title>Registro - InkEndin</title>
       </Head>
 
       {/* Animated Background */}
@@ -223,7 +223,7 @@ export default function RegisterPage() {
               className="text-3xl md:text-4xl font-bold mb-2"
             >
               <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
-                Únete a ArteNis
+                Únete a InkEndin
               </span>
             </motion.h1>
             
@@ -233,7 +233,7 @@ export default function RegisterPage() {
               transition={{ delay: 0.4 }}
               className="text-gray-400"
             >
-              Crea tu cuenta y explora el mundo del tatuaje
+              Conecta con artistas del tatuaje de todo el mundo
             </motion.p>
           </div>
 

@@ -183,7 +183,7 @@ export default function SettingsModal({
               {/* Version Info */}
               <div className="px-6 py-4 border-t border-gray-800">
                 <p className="text-center text-xs text-gray-500">
-                  ArteNis 2.0 • Versión 1.0.0
+                  InkEndin • Versión 1.0.0
                 </p>
               </div>
             </div>
