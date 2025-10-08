@@ -199,68 +199,70 @@ export default function EditImagePage() {
 
         // Solo aplicar ajustes si se están usando
         if (useManualAdjustments) {
-          // Ajustes manuales - factores normalizados para coincidir con CSS
-          const brightnessFactor = brightness / 100 // 0-2, normalizado
-          const contrastFactor = contrast / 100 // 0-2, normalizado
-          const saturationFactor = saturation / 100 // 0-2, normalizado
-          const exposureFactor = exposure / 100 // 0-2, normalizado
-          const highlightsFactor = highlights / 100 // 0-2, normalizado
-          const shadowsFactor = shadows / 100 // 0-2, normalizado
-          const warmthFactor = (warmth - 50) / 100 // -0.5 a +0.5
-          const tintFactor = (tint - 50) / 100 // -0.5 a +0.5
-          const vignetteFactor = vignette / 100 // 0 a 1
-
+          // Ajustes manuales - factores exactos para coincidir con CSS
+          // Aplicamos en el orden correcto: exposición -> brillo -> contraste -> saturación
+          
           for (let i = 0; i < data.length; i += 4) {
             let r = data[i]
             let g = data[i + 1]
             let b = data[i + 2]
 
-            // Aplicar exposición (brillo general) - multiplicativo
-            r *= exposureFactor
-            g *= exposureFactor
-            b *= exposureFactor
+            // 1. Exposición y Brillo (aplicados por separado, no multiplicados entre sí)
+            const exposureFactor = exposure / 100 // 0 a 2
+            const brightnessFactor = brightness / 100 // 0 a 2
+            
+            r = r * exposureFactor * brightnessFactor
+            g = g * exposureFactor * brightnessFactor
+            b = b * exposureFactor * brightnessFactor
 
-            // Aplicar brillo - multiplicativo
-            r *= brightnessFactor
-            g *= brightnessFactor
-            b *= brightnessFactor
-
-            // Aplicar highlights (tonos claros) - solo afecta zonas brillantes
+            // 2. Highlights y Shadows (antes del contraste para más precisión)
             const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
-            if (luminance > 128 && highlightsFactor !== 1) {
-              const highlightAdjust = (luminance - 128) / 127 * 0.3 // Reducir intensidad
-              r += (255 - r) * highlightAdjust * (highlightsFactor - 1)
-              g += (255 - g) * highlightAdjust * (highlightsFactor - 1)
-              b += (255 - b) * highlightAdjust * (highlightsFactor - 1)
+            
+            // Highlights - solo zonas brillantes (luminancia > 128)
+            if (highlights !== 50 && luminance > 128) {
+              const highlightIntensity = (highlights - 50) / 200 // -0.25 a +0.25
+              const highlightWeight = (luminance - 128) / 127 // 0 a 1
+              const adjustment = highlightIntensity * highlightWeight * 50 // Ajuste suave
+              r += adjustment
+              g += adjustment
+              b += adjustment
             }
 
-            // Aplicar shadows (tonos oscuros) - solo afecta zonas oscuras
-            if (luminance < 128 && shadowsFactor !== 1) {
-              const shadowAdjust = (128 - luminance) / 128 * 0.3 // Reducir intensidad
-              r = r * (1 + shadowAdjust * (shadowsFactor - 1))
-              g = g * (1 + shadowAdjust * (shadowsFactor - 1))
-              b = b * (1 + shadowAdjust * (shadowsFactor - 1))
+            // Shadows - solo zonas oscuras (luminancia < 128)
+            if (shadows !== 50 && luminance < 128) {
+              const shadowIntensity = (shadows - 50) / 200 // -0.25 a +0.25
+              const shadowWeight = (128 - luminance) / 128 // 0 a 1
+              const adjustment = shadowIntensity * shadowWeight * 50 // Ajuste suave
+              r += adjustment
+              g += adjustment
+              b += adjustment
             }
 
-            // Aplicar contraste - igual que CSS
+            // 3. Contraste (igual que CSS)
+            const contrastFactor = contrast / 100
             r = ((r / 255 - 0.5) * contrastFactor + 0.5) * 255
             g = ((g / 255 - 0.5) * contrastFactor + 0.5) * 255
             b = ((b / 255 - 0.5) * contrastFactor + 0.5) * 255
 
-            // Aplicar saturación - igual que CSS
+            // 4. Saturación (igual que CSS)
+            const saturationFactor = saturation / 100
             const gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
             r = gray + (r - gray) * saturationFactor
             g = gray + (g - gray) * saturationFactor
             b = gray + (b - gray) * saturationFactor
 
-            // Aplicar warmth (temperatura) - ajuste suave
-            r += warmthFactor * 15 // Reducido de 30 a 15
-            b -= warmthFactor * 15
+            // 5. Warmth (temperatura de color) - muy sutil
+            if (warmth !== 50) {
+              const warmthAdjust = (warmth - 50) / 50 // -1 a +1
+              r += warmthAdjust * 8 // Muy reducido
+              b -= warmthAdjust * 8
+            }
 
-            // Aplicar tint (tono) - ajuste suave
-            g += tintFactor * 10 // Reducido de 20 a 10
-            r -= tintFactor * 5 // Reducido de 10 a 5
-            b -= tintFactor * 5
+            // 6. Tint (tono verde/magenta) - muy sutil
+            if (tint !== 50) {
+              const tintAdjust = (tint - 50) / 50 // -1 a +1
+              g += tintAdjust * 5 // Muy reducido
+            }
 
             // Clamp valores entre 0-255
             data[i] = Math.min(255, Math.max(0, r))
@@ -269,7 +271,8 @@ export default function EditImagePage() {
           }
 
           // Aplicar viñeta (efecto de oscurecimiento en los bordes)
-          if (vignetteFactor > 0) {
+          if (vignette > 0) {
+            const vignetteIntensity = vignette / 100
             const centerX = canvas.width / 2
             const centerY = canvas.height / 2
             const maxDist = Math.sqrt(centerX * centerX + centerY * centerY)
@@ -279,12 +282,12 @@ export default function EditImagePage() {
                 const dx = x - centerX
                 const dy = y - centerY
                 const dist = Math.sqrt(dx * dx + dy * dy)
-                const vignette = 1 - (dist / maxDist) * vignetteFactor
+                const vignetteFactor = 1 - (dist / maxDist) * vignetteIntensity
                 
                 const i = (y * canvas.width + x) * 4
-                data[i] *= vignette
-                data[i + 1] *= vignette
-                data[i + 2] *= vignette
+                data[i] *= vignetteFactor
+                data[i + 1] *= vignetteFactor
+                data[i + 2] *= vignetteFactor
               }
             }
           }
