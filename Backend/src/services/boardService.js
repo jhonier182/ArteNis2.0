@@ -49,6 +49,7 @@ class BoardService {
         where.isPublic = true;
       }
 
+      // Primero obtener los boards sin los posts
       const boards = await Board.findAndCountAll({
         where,
         include: [
@@ -56,13 +57,6 @@ class BoardService {
             model: User,
             as: 'owner',
             attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
-          },
-          {
-            model: Post,
-            as: 'posts',
-            through: { attributes: ['sortOrder', 'addedAt'] },
-            limit: 4, // Preview de 4 posts
-            order: [['createdAt', 'DESC']]
           }
         ],
         order: [['isPinned', 'DESC'], ['sortOrder', 'ASC'], ['createdAt', 'DESC']],
@@ -70,8 +64,23 @@ class BoardService {
         offset: parseInt(offset)
       });
 
+      // Luego cargar los posts para cada board (preview de 4)
+      const boardsWithPosts = await Promise.all(
+        boards.rows.map(async (board) => {
+          const posts = await board.getPosts({
+            limit: 4,
+            order: [['createdAt', 'DESC']],
+            through: { attributes: ['sortOrder', 'addedAt'] }
+          });
+          return {
+            ...board.toJSON(),
+            posts
+          };
+        })
+      );
+
       return {
-        boards: boards.rows,
+        boards: boardsWithPosts,
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(boards.count / limit),
