@@ -45,20 +45,24 @@ export default function HomePage() {
   const [loadingPosts, setLoadingPosts] = useState(true)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set())
-  const [feedFilter, setFeedFilter] = useState<'all' | 'following'>('all')
   const router = useRouter()
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login')
     }
-  }, [isLoading, isAuthenticated, router])
+    
+    // Si es tatuador, redirigir a su perfil
+    if (!isLoading && isAuthenticated && user?.userType === 'artist') {
+      router.push('/profile')
+    }
+  }, [isLoading, isAuthenticated, user, router])
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user?.userType !== 'artist') {
       fetchPosts()
     }
-  }, [isAuthenticated, feedFilter])
+  }, [isAuthenticated, user])
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -77,8 +81,8 @@ export default function HomePage() {
   const fetchPosts = async () => {
     try {
       setLoadingPosts(true)
-      const endpoint = feedFilter === 'following' ? '/api/posts/following' : '/api/posts'
-      const response = await apiClient.get(endpoint)
+      // Solo cargar posts de usuarios seguidos
+      const response = await apiClient.get('/api/posts/following')
       const postsData = response.data?.data?.posts || response.data?.data || []
       setPosts(postsData)
       
@@ -176,8 +180,8 @@ export default function HomePage() {
     )
   }
 
-  if (!isAuthenticated) {
-    return null
+  if (!isAuthenticated || user?.userType === 'artist') {
+    return null // Redirección manejada por useEffect
   }
 
   return (
@@ -186,49 +190,25 @@ export default function HomePage() {
         <title>InkEndin - Inicio</title>
       </Head>
       
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0f1419]/95 backdrop-blur-sm border-b border-gray-800">
-        <div className="container-mobile px-4 py-3">
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-              InkEndin
-            </h1>
-            <div className="flex items-center space-x-3">
-              <button className="p-2 hover:bg-gray-800 rounded-full transition-colors relative">
-                <TrendingUp className="w-6 h-6" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
-              </button>
-              <button className="p-2 hover:bg-gray-800 rounded-full transition-colors">
-                <MessageCircle className="w-6 h-6" />
-              </button>
+          {/* Header */}
+          <header className="sticky top-0 z-50 bg-[#0f1419]/95 backdrop-blur-sm border-b border-gray-800">
+            <div className="container-mobile px-4 py-3">
+              <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                  InkEndin
+                </h1>
+                <div className="flex items-center space-x-3">
+                  <button className="p-2 hover:bg-gray-800 rounded-full transition-colors relative">
+                    <TrendingUp className="w-6 h-6" />
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
+                  </button>
+                  <button className="p-2 hover:bg-gray-800 rounded-full transition-colors">
+                    <MessageCircle className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-          
-          {/* Feed Filter */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFeedFilter('all')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                feedFilter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-              }`}
-            >
-              Para ti
-            </button>
-            <button
-              onClick={() => setFeedFilter('following')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                feedFilter === 'following'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-              }`}
-            >
-              Siguiendo
-            </button>
-          </div>
-        </div>
-      </header>
+          </header>
 
       {/* Install PWA Banner */}
       {showInstallPrompt && (
@@ -258,25 +238,26 @@ export default function HomePage() {
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-        ) : posts.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-20 px-4"
-          >
-            <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Home className="w-12 h-12 text-gray-600" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">No hay publicaciones aún</h3>
-            <p className="text-gray-400 mb-6">Sé el primero en compartir tu arte</p>
-            <Link
-              href="/create"
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-full font-medium hover:from-blue-600 hover:to-purple-700 transition-all"
-            >
-              <span>Publicar tatuaje</span>
-            </Link>
-          </motion.div>
-        ) : (
+            ) : posts.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-20 px-4"
+              >
+                <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-12 h-12 text-gray-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No sigues a ningún tatuador</h3>
+                <p className="text-gray-400 mb-6">Descubre y sigue a tatuadores para ver sus publicaciones aquí</p>
+                <button
+                  onClick={() => router.push('/search')}
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-full font-medium hover:from-blue-600 hover:to-purple-700 transition-all"
+                >
+                  <Search className="w-5 h-5" />
+                  <span>Descubrir tatuadores</span>
+                </button>
+              </motion.div>
+            ) : (
           <div className="py-4">
             {/* Pinterest-style Masonry Grid */}
             <div className="columns-2 gap-3 px-3">

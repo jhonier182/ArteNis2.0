@@ -504,13 +504,17 @@ export default function SearchPage() {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#1a1f26] border-t border-gray-800 z-50">
         <div className="container-mobile flex justify-around items-center h-16">
-          <button
-            onClick={() => router.push('/')}
-            className="flex flex-col items-center py-2 px-3 text-gray-400"
-          >
-            <Home className="w-6 h-6 mb-1" />
-            <span className="text-xs">Inicio</span>
-          </button>
+          {/* Solo mostrar Inicio para usuarios normales */}
+          {user?.userType !== 'artist' && (
+            <button
+              onClick={() => router.push('/')}
+              className="flex flex-col items-center py-2 px-3 text-gray-400"
+            >
+              <Home className="w-6 h-6 mb-1" />
+              <span className="text-xs">Inicio</span>
+            </button>
+          )}
+          
           <button
             onClick={() => router.push('/search')}
             className="flex flex-col items-center py-2 px-3 text-blue-500"
@@ -518,24 +522,30 @@ export default function SearchPage() {
             <SearchIcon className="w-6 h-6 mb-1 fill-blue-500" />
             <span className="text-xs">Buscar</span>
           </button>
-          <button
-            onClick={() => router.push('/create')}
-            className="flex flex-col items-center py-2 px-3 text-gray-400"
-          >
-            <div className="w-6 h-6 mb-1 flex items-center justify-center">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center -mt-2">
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="12" y1="5" x2="12" y2="19"/>
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
+          
+          {/* Botón Publicar para tatuadores */}
+          {user?.userType === 'artist' && (
+            <button
+              onClick={() => router.push('/create')}
+              className="flex flex-col items-center py-2 px-3 text-gray-400"
+            >
+              <div className="w-6 h-6 mb-1 flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center -mt-2">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                </div>
               </div>
-            </div>
-            <span className="text-xs">Publicar</span>
-          </button>
+              <span className="text-xs">Publicar</span>
+            </button>
+          )}
+          
           <button className="flex flex-col items-center py-2 px-3 text-gray-400">
             <Bell className="w-6 h-6 mb-1" />
             <span className="text-xs">Notificaciones</span>
           </button>
+          
           <button
             onClick={() => router.push('/profile')}
             className="flex flex-col items-center py-2 px-3 text-gray-400"
