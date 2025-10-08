@@ -109,7 +109,7 @@ class PostService {
         status: 'published'
       };
 
-      // Solo mostrar posts de usuarios seguidos + propios posts
+      // EXCLUIR posts de usuarios seguidos Y propios posts (para "Descubrir")
       if (userId) {
         // Obtener IDs de usuarios seguidos
         const followingUsers = await Follow.findAll({
@@ -117,13 +117,14 @@ class PostService {
           attributes: ['followingId']
         });
 
-        const followingIds = followingUsers.map(follow => follow.followingId);
+        const excludeUserIds = followingUsers.map(follow => follow.followingId);
         
-        // Agregar el propio userId para ver sus propios posts
-        followingIds.push(userId);
+        // Agregar el propio userId para EXCLUIR sus propios posts
+        excludeUserIds.push(userId);
 
+        // Excluir posts de seguidos y propios
         where.userId = {
-          [Op.in]: followingIds
+          [Op.notIn]: excludeUserIds
         };
       }
 
