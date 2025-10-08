@@ -185,12 +185,23 @@ export default function ProfilePage() {
 
               {/* Info a la derecha */}
               <div className="flex-1 min-w-0">
-                <h2 className="text-xl font-bold mb-1 truncate">
-                  {user.fullName || user.username}
-                </h2>
-                <p className="text-sm text-gray-400 mb-2">
-                  Tatuador/a en {user.city || 'Madrid'}
-                </p>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl font-bold mb-1 truncate">
+                      {user.fullName || user.username}
+                    </h2>
+                    <p className="text-sm text-gray-400 mb-2">
+                      Tatuador/a en {user.city || 'Madrid'}
+                    </p>
+                  </div>
+                  {/* Seguidores pequeño */}
+                  <div className="text-center ml-3">
+                    <div className="text-lg font-bold">
+                      {stats.followers < 1000 ? stats.followers : `${(stats.followers / 1000).toFixed(1)}K`}
+                    </div>
+                    <div className="text-[10px] text-gray-500">Seguidores</div>
+                  </div>
+                </div>
                 
                 {/* Rating con estrellas */}
                 <div className="flex items-center gap-2 mb-3">
@@ -210,9 +221,6 @@ export default function ProfilePage() {
                   </div>
                   <span className="text-sm font-semibold text-white">
                     {stats.rating}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    ({stats.totalReviews})
                   </span>
                 </div>
 
@@ -282,28 +290,9 @@ export default function ProfilePage() {
         )}
 
 
-        {/* Stats - Solo para tatuadores */}
+        {/* Métricas Profesionales - Solo para tatuadores */}
         {user.userType === 'artist' && (
-          <div className="space-y-4 mb-8">
-            {/* Stats principales en 3 columnas */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold mb-1">
-                  {stats.followers < 1000 ? stats.followers : `${(stats.followers / 1000).toFixed(1)}K`}
-                </div>
-                <div className="text-xs text-gray-400">Seguidores</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold mb-1">{stats.rating}</div>
-                <div className="text-xs text-gray-400">Valoración</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold mb-1">{stats.collections}</div>
-                <div className="text-xs text-gray-400">Trabajos</div>
-              </div>
-            </div>
-
-            {/* Métricas profesionales en 2 columnas */}
+          <div className="mb-8">
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-[#1a1f26] rounded-xl py-3 px-4 flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
