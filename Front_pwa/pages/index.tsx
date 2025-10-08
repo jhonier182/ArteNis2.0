@@ -198,23 +198,10 @@ export default function HomePage() {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
                   InkEndin
                 </h1>
-                <div className="flex items-center space-x-2">
-                  <button className="p-2 hover:bg-gray-800 rounded-full transition-colors relative">
-                    <TrendingUp className="w-6 h-6" />
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
-                  </button>
-                  <button 
-                    onClick={() => router.push('/chat')}
-                    className="p-2 hover:bg-gray-800 rounded-full transition-colors relative"
-                  >
-                    <MessageCircle className="w-6 h-6" />
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
-                  </button>
-                  <button className="p-2 hover:bg-gray-800 rounded-full transition-colors relative">
-                    <Bell className="w-6 h-6" />
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                  </button>
-                </div>
+                <button className="p-2 hover:bg-gray-800 rounded-full transition-colors relative">
+                  <Bell className="w-6 h-6" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
               </div>
             </div>
           </header>
@@ -369,10 +356,13 @@ export default function HomePage() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#0f1419] border-t border-gray-800 z-50 safe-bottom">
-        <div className="container-mobile flex items-center justify-around py-2">
-          <button className="flex flex-col items-center py-2 px-3 text-blue-500">
-            <Home className="w-6 h-6 mb-1" fill="currentColor" />
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#1a1f26] border-t border-gray-800 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="container-mobile flex items-center justify-around h-16">
+          <button 
+            onClick={() => router.push('/')}
+            className="flex flex-col items-center py-2 px-3 text-blue-500"
+          >
+            <Home className="w-6 h-6 mb-1 fill-blue-500" />
             <span className="text-xs font-medium">Inicio</span>
           </button>
           
@@ -382,6 +372,15 @@ export default function HomePage() {
           >
             <Search className="w-6 h-6 mb-1" />
             <span className="text-xs">Buscar</span>
+          </button>
+          
+          <button
+            onClick={() => router.push('/chat')}
+            className="flex flex-col items-center py-2 px-3 text-gray-400 relative"
+          >
+            <MessageCircle className="w-6 h-6 mb-1" />
+            <span className="text-xs">Chat</span>
+            <span className="absolute top-1 right-2 w-2 h-2 bg-green-500 rounded-full"></span>
           </button>
           
           <button

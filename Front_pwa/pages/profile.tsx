@@ -526,7 +526,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#1a1f26] border-t border-gray-800 z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#1a1f26] border-t border-gray-800 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="container-mobile flex justify-around items-center h-16">
           {/* Solo mostrar Inicio para usuarios normales */}
           {user.userType !== 'artist' && (
@@ -564,6 +564,15 @@ export default function ProfilePage() {
               <span className="text-xs">Publicar</span>
             </button>
           )}
+          
+          <button
+            onClick={() => router.push('/chat')}
+            className="flex flex-col items-center py-2 px-3 text-gray-400 relative"
+          >
+            <MessageCircle className="w-6 h-6 mb-1" />
+            <span className="text-xs">Chat</span>
+            <span className="absolute top-1 right-2 w-2 h-2 bg-green-500 rounded-full"></span>
+          </button>
           
           <button className="flex flex-col items-center py-2 px-3 text-purple-500">
             <User className="w-6 h-6 mb-1 fill-purple-500" />
