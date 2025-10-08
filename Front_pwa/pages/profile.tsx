@@ -225,15 +225,15 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2">
+                <div className="flex gap-2.5">
                   <button 
                     onClick={() => setIsEditModalOpen(true)}
-                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+                    className="flex-1 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white py-2.5 rounded-xl text-sm font-bold hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-95"
                   >
-                    Editar perfil
+                    ✏️ Editar perfil
                   </button>
                   <button 
-                    className="flex-1 bg-gray-800 text-white py-2 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 bg-gradient-to-r from-gray-700 to-gray-800 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-gray-700 transition-all duration-300 flex items-center justify-center gap-2 border border-gray-700 hover:border-gray-600 hover:scale-[1.02] active:scale-95"
                   >
                     <Share2 className="w-4 h-4" />
                     Compartir

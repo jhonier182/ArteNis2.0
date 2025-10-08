@@ -197,86 +197,171 @@ export default function PublicProfilePage() {
 
       {/* Profile Content */}
       <div className="container-mobile px-6 pt-6">
-        {/* Avatar */}
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="flex justify-center mb-6"
-        >
-          <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
-            <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
-              {profileUser.avatar ? (
-                <img
-                  src={profileUser.avatar}
-                  alt={profileUser.username}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-                  <span className="text-4xl font-bold text-white">
-                    {profileUser.username.charAt(0).toUpperCase()}
+        {isArtist ? (
+          /* Layout para Tatuador: Foto pequeña a la izquierda */
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="flex gap-4 items-start">
+              {/* Avatar pequeño */}
+              <div className="flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-blue-600 p-0.5">
+                  <div className="w-full h-full rounded-full bg-[#0f1419] p-0.5">
+                    {profileUser.avatar ? (
+                      <img
+                        src={profileUser.avatar}
+                        alt={profileUser.username}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-400 to-blue-600 flex items-center justify-center">
+                        <span className="text-xl font-bold text-white">
+                          {profileUser.username.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Info a la derecha */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl font-bold mb-1 truncate">
+                      {profileUser.fullName || profileUser.username}
+                    </h2>
+                    <p className="text-sm text-gray-400 mb-2">
+                      Tatuador/a en {profileUser.city || 'Madrid'}
+                    </p>
+                  </div>
+                  {/* Seguidores pequeño */}
+                  <div className="text-center ml-3">
+                    <div className="text-lg font-bold">
+                      {stats.followers < 1000 ? stats.followers : `${(stats.followers / 1000).toFixed(1)}K`}
+                    </div>
+                    <div className="text-[10px] text-gray-500">Seguidores</div>
+                  </div>
+                </div>
+                
+                {/* Rating con estrellas */}
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-3.5 h-3.5 ${
+                          i < Math.floor(stats.rating)
+                            ? 'fill-yellow-500 text-yellow-500'
+                            : i < stats.rating
+                            ? 'fill-yellow-500/50 text-yellow-500'
+                            : 'text-gray-600'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm font-semibold text-white">
+                    {stats.rating}
                   </span>
                 </div>
+
+                {/* Action Buttons - Solo si NO es tu propio perfil */}
+                {currentUser?.id?.toString() !== profileUser.id?.toString() && (
+                  <div className="flex gap-2.5">
+                    <button 
+                      onClick={handleFollowToggle}
+                      disabled={isFollowLoading}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                        isFollowing
+                          ? 'bg-gray-800/80 text-white hover:bg-gray-700 border border-gray-700'
+                          : 'bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95'
+                      }`}
+                    >
+                      {isFollowLoading ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        </div>
+                      ) : isFollowing ? (
+                        '✓ Siguiendo'
+                      ) : (
+                        '+ Seguir'
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => router.push('/appointments/book')}
+                      className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-2.5 rounded-xl text-sm font-bold hover:shadow-xl hover:shadow-emerald-500/40 transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Cotización
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bio */}
+            {profileUser.bio && (
+              <p className="text-gray-300 text-sm mt-4 leading-relaxed">
+                {profileUser.bio}
+              </p>
+            )}
+          </motion.div>
+        ) : (
+          /* Layout para Usuario Normal: Foto grande centrada */
+          <>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="flex justify-center mb-6"
+            >
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
+                <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
+                  {profileUser.avatar ? (
+                    <img
+                      src={profileUser.avatar}
+                      alt={profileUser.username}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                      <span className="text-4xl font-bold text-white">
+                        {profileUser.username.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Name and Title */}
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold mb-1">
+                {profileUser.fullName || profileUser.username}
+              </h2>
+              <p className="text-gray-400">
+                Usuario en {profileUser.city || 'Madrid'}
+              </p>
+
+              {/* Bio */}
+              {profileUser.bio && (
+                <p className="text-gray-300 mt-3 max-w-md mx-auto">
+                  {profileUser.bio}
+                </p>
               )}
             </div>
-          </div>
-        </motion.div>
 
-        {/* Name and Title */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold mb-1">
-            {profileUser.fullName || profileUser.username}
-          </h2>
-          <p className="text-gray-400">
-            {isArtist ? 'Tatuador/a' : 'Usuario'} en {profileUser.city || 'Madrid'}
-          </p>
-          
-          {/* Rating con estrellas (solo para artistas) */}
-          {isArtist && (
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-4 h-4 ${
-                      i < Math.floor(stats.rating)
-                        ? 'fill-yellow-500 text-yellow-500'
-                        : i < stats.rating
-                        ? 'fill-yellow-500/50 text-yellow-500'
-                        : 'text-gray-600'
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-sm font-semibold text-white">
-                {stats.rating}
-              </span>
-              <span className="text-xs text-gray-500">
-                ({stats.totalReviews} valoraciones)
-              </span>
-            </div>
-          )}
-
-          {/* Bio */}
-          {profileUser.bio && (
-            <p className="text-gray-300 mt-3 max-w-md mx-auto">
-              {profileUser.bio}
-            </p>
-          )}
-        </div>
-
-        {/* Action Buttons - Solo si NO es tu propio perfil */}
-        {currentUser?.id?.toString() !== profileUser.id?.toString() && (
-          <div className="flex gap-3 mb-8">
-            {isArtist ? (
-              <>
+            {/* Action Buttons para Usuario Normal - Solo si NO es tu propio perfil */}
+            {currentUser?.id?.toString() !== profileUser.id?.toString() && (
+              <div className="flex gap-3 mb-8">
                 <button 
                   onClick={handleFollowToggle}
                   disabled={isFollowLoading}
-                  className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
+                  className={`flex-1 py-3 rounded-xl font-bold transition-all duration-300 ${
                     isFollowing
-                      ? 'bg-gray-800 text-white hover:bg-gray-700'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                      ? 'bg-gray-800/80 text-white hover:bg-gray-700 border border-gray-700'
+                      : 'bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95'
                   }`}
                 >
                   {isFollowLoading ? (
@@ -284,69 +369,20 @@ export default function PublicProfilePage() {
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     </div>
                   ) : isFollowing ? (
-                    'Siguiendo'
+                    '✓ Siguiendo'
                   ) : (
-                    'Seguir'
+                    '+ Seguir'
                   )}
                 </button>
-                <button 
-                  onClick={() => router.push('/appointments/book')}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  Solicitar cotización
-                </button>
-              </>
-            ) : (
-              <button 
-                onClick={handleFollowToggle}
-                disabled={isFollowLoading}
-                className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
-                  isFollowing
-                    ? 'bg-gray-800 text-white hover:bg-gray-700'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                {isFollowLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  </div>
-                ) : isFollowing ? (
-                  'Siguiendo'
-                ) : (
-                  'Seguir'
-                )}
-              </button>
+              </div>
             )}
-            <button className="flex-1 bg-gray-800 text-white py-3 rounded-xl font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
-              <MessageCircle className="w-5 h-5" />
-              Mensaje
-            </button>
-          </div>
+          </>
         )}
 
-        {/* Stats para Artistas */}
+        {/* Métricas Profesionales - Solo para Artistas */}
         {isArtist && (
-          <div className="space-y-4 mb-8">
-            {/* Stats principales en 3 columnas */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold mb-1">
-                  {stats.followers < 1000 ? stats.followers : `${(stats.followers / 1000).toFixed(1)}K`}
-                </div>
-                <div className="text-xs text-gray-400">Seguidores</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold mb-1">{stats.rating}</div>
-                <div className="text-xs text-gray-400">Valoración</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold mb-1">{stats.collections}</div>
-                <div className="text-xs text-gray-400">Trabajos</div>
-              </div>
-            </div>
-
-            {/* Métricas profesionales en 2 columnas */}
-            <div className="grid grid-cols-2 gap-3">
+          <div className="mb-8">
+            <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-[#1a1f26] rounded-xl py-3 px-4 flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -375,22 +411,40 @@ export default function PublicProfilePage() {
 
             {/* Info adicional del estudio */}
             {profileUser.studioName && (
-              <div className="bg-[#1a1f26] rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-gray-300 mb-2">Información del Estudio</h3>
-                <p className="text-white font-medium mb-1">{profileUser.studioName}</p>
-                {profileUser.studioAddress && (
-                  <p className="text-sm text-gray-400">{profileUser.studioAddress}</p>
-                )}
-                {profileUser.pricePerHour && (
-                  <p className="text-sm text-blue-400 mt-2">
-                    Desde ${profileUser.pricePerHour}/hora
-                  </p>
-                )}
-                {profileUser.experience && (
-                  <p className="text-sm text-gray-400 mt-1">
-                    {profileUser.experience} años de experiencia
-                  </p>
-                )}
+              <div className="bg-gradient-to-br from-[#1a1f26] to-[#15191f] rounded-2xl p-5 border border-gray-800/50">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                      <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-gray-400 mb-1">Estudio</h3>
+                    <p className="text-white font-bold mb-1 text-lg">{profileUser.studioName}</p>
+                    {profileUser.studioAddress && (
+                      <p className="text-sm text-gray-400 mb-2">{profileUser.studioAddress}</p>
+                    )}
+                    <div className="flex items-center gap-4 mt-3">
+                      {profileUser.pricePerHour && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                          <p className="text-sm text-blue-400 font-semibold">
+                            ${profileUser.pricePerHour}/hora
+                          </p>
+                        </div>
+                      )}
+                      {profileUser.experience && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+                          <p className="text-sm text-gray-300">
+                            {profileUser.experience} años exp.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -491,11 +545,13 @@ export default function PublicProfilePage() {
         {/* Portafolio / Publicaciones Guardadas */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold">
+            <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
               {isArtist ? 'Portafolio' : 'Publicaciones Guardadas'}
             </h3>
             {userPosts.length > 0 && (
-              <span className="text-sm text-gray-400">{userPosts.length} publicaciones</span>
+              <span className="text-sm text-gray-500 bg-gray-800 px-3 py-1 rounded-full">
+                {userPosts.length} {userPosts.length === 1 ? 'trabajo' : 'trabajos'}
+              </span>
             )}
           </div>
           
@@ -504,38 +560,38 @@ export default function PublicProfilePage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
           ) : userPosts.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               {userPosts.map((post, index) => (
                 <motion.div
                   key={post.id}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.05 }}
-                  className="aspect-square bg-gray-800 rounded-xl overflow-hidden relative group cursor-pointer"
+                  className="aspect-square bg-gray-900 rounded-lg overflow-hidden relative group cursor-pointer border border-gray-800/50 hover:border-blue-500/50 transition-all"
                   onClick={() => router.push(`/post/${post.id}`)}
                 >
                   {post.mediaUrl ? (
                     <img
                       src={post.mediaUrl}
                       alt={post.title || 'Post'}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
-                      <Bookmark className="w-12 h-12 text-gray-600" />
+                    <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                      <Bookmark className="w-12 h-12 text-gray-700" />
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <div className="flex items-center gap-3 text-white text-sm">
-                        <div className="flex items-center gap-1">
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute bottom-2 left-2 right-2">
+                      <div className="flex items-center gap-3 text-white text-sm font-medium">
+                        <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm">
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                           </svg>
                           <span>{post.likesCount || 0}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <MessageCircle className="w-4 h-4" />
+                        <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm">
+                          <MessageCircle className="w-3.5 h-3.5" />
                           <span>{post.commentsCount || 0}</span>
                         </div>
                       </div>
@@ -545,12 +601,15 @@ export default function PublicProfilePage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-20">
-              <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Bookmark className="w-10 h-10 text-gray-600" />
+            <div className="text-center py-16 bg-gradient-to-br from-gray-900/50 to-gray-800/30 rounded-2xl border border-gray-800/50">
+              <div className="w-16 h-16 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Bookmark className="w-8 h-8 text-gray-600" />
               </div>
-              <p className="text-gray-400">
+              <p className="text-gray-400 font-medium">
                 {isArtist ? 'Aún no hay publicaciones' : 'No hay publicaciones guardadas'}
+              </p>
+              <p className="text-gray-600 text-sm mt-2">
+                {isArtist ? 'Los trabajos aparecerán aquí' : 'Guarda publicaciones para verlas aquí'}
               </p>
             </div>
           )}
