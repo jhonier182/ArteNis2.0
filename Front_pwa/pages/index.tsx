@@ -278,101 +278,44 @@ export default function HomePage() {
               </motion.div>
             ) : (
           <div className="py-4">
-            {/* Pinterest-style Masonry Grid */}
-            <div className="columns-2 gap-3 px-3">
+            {/* Grid limpio solo con imágenes */}
+            <div className="columns-2 gap-2 px-2">
               {posts.map((post, index) => (
                 <motion.div
                   key={post.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="break-inside-avoid mb-3"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.03 }}
+                  className="break-inside-avoid mb-2"
                 >
-                  <div className="bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 hover:border-gray-700 transition-colors">
-                    {/* Post Image */}
-                    {post.mediaUrl && (
-                      <div className="relative group cursor-pointer">
-                        <img
-                          src={post.mediaUrl}
-                          alt={post.title || 'Post'}
-                          className="w-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleLike(post.id)
-                                }}
-                                className={`flex items-center space-x-1 transition-colors ${
-                                  post.isLiked ? 'text-red-500' : 'text-white'
-                                }`}
-                              >
-                                <Heart className={`w-5 h-5 ${post.isLiked ? 'fill-red-500' : ''}`} />
-                                <span className="text-sm font-medium">{post.likesCount}</span>
-                              </button>
-                              <div className="flex items-center space-x-1 text-white">
-                                <MessageCircle className="w-5 h-5" />
-                                <span className="text-sm font-medium">{post.commentsCount}</span>
-                              </div>
+                  {post.mediaUrl && (
+                    <div 
+                      className="relative group cursor-pointer rounded-lg overflow-hidden"
+                      onClick={() => router.push(`/post/${post.id}`)}
+                    >
+                      <img
+                        src={post.mediaUrl}
+                        alt={post.title || 'Post'}
+                        className="w-full object-cover"
+                      />
+                      {/* Overlay sutil al hover */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200">
+                        {/* Información mínima en hover */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-3">
+                          <div className="flex items-center gap-3 text-white text-sm font-medium">
+                            <div className="flex items-center gap-1">
+                              <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                              <span>{post.likesCount}</span>
                             </div>
-                            <button className="text-white">
-                              <Share2 className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <MessageCircle className="w-4 h-4" />
+                              <span>{post.commentsCount}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    )}
-
-                    {/* Post Info */}
-                    <div className="p-3">
-                      {post.title && (
-                        <h3 className="font-semibold mb-1 line-clamp-2">{post.title}</h3>
-                      )}
-                      {post.description && (
-                        <p className="text-sm text-gray-400 mb-3 line-clamp-2">{post.description}</p>
-                      )}
-                      
-                      {/* Author */}
-                      <Link href={`/user/${post.User?.id}`} className="flex items-center space-x-2 group">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-                          {post.User?.avatar ? (
-                            <img
-                              src={post.User.avatar}
-                              alt={post.User.username}
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <User className="w-4 h-4 text-white" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium group-hover:text-blue-500 transition-colors truncate">
-                            {post.User?.username || 'Usuario'}
-                          </p>
-                          {post.User?.userType === 'artist' && (
-                            <p className="text-xs text-gray-500">Artista</p>
-                          )}
-                        </div>
-                        <button 
-                          onClick={(e) => {
-                            e.preventDefault()
-                            handleSavePost(post.id)
-                          }}
-                          className="p-2 hover:bg-gray-800 rounded-full transition-colors"
-                        >
-                          <Bookmark 
-                            className={`w-5 h-5 transition-colors ${
-                              savedPosts.has(post.id)
-                                ? 'fill-blue-500 text-blue-500'
-                                : 'text-gray-400 hover:text-blue-500'
-                            }`} 
-                          />
-                        </button>
-                      </Link>
                     </div>
-                  </div>
+                  )}
                 </motion.div>
               ))}
             </div>
