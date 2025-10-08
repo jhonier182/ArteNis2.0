@@ -13,9 +13,12 @@ import {
   Globe,
   Tag,
   Type,
-  Sparkles
+  Sparkles,
+  Edit3,
+  Send
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
+import { apiClient } from '@/utils/apiClient'
 
 export default function CreatePostPage() {
   const router = useRouter()
@@ -30,6 +33,7 @@ export default function CreatePostPage() {
   const [clientTag, setClientTag] = useState('')
   const [visibility, setVisibility] = useState<'public' | 'private'>('public')
   const [showStylePicker, setShowStylePicker] = useState(false)
+  const [isPublishing, setIsPublishing] = useState(false)
 
   const tattooStyles = [
     'Realismo', 'Tradicional', 'Japonés', 'Acuarela',
@@ -94,7 +98,7 @@ export default function CreatePostPage() {
     }
   }
 
-  const handleNext = () => {
+  const handleEdit = () => {
     if (!selectedFile) {
       alert('Por favor selecciona una imagen o video')
       return
@@ -117,6 +121,58 @@ export default function CreatePostPage() {
     reader.readAsDataURL(selectedFile)
   }
 
+  const handlePublish = async () => {
+    if (!selectedFile) {
+      alert('Por favor selecciona una imagen o video')
+      return
+    }
+
+    try {
+      setIsPublishing(true)
+
+      // Subir imagen a Cloudinary
+      const formData = new FormData()
+      formData.append('image', selectedFile)
+
+      const uploadResponse = await apiClient.post('/api/posts/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      const { url: imageUrl, publicId: cloudinaryPublicId } = uploadResponse.data.data
+
+      // Crear el post
+      const postData = {
+        imageUrl,
+        cloudinaryPublicId,
+        description,
+        type: selectedFile.type.startsWith('video/') ? 'video' : 'image',
+        hashtags: selectedStyles,
+        visibility,
+        clientTag: clientTag || undefined
+      }
+
+      await apiClient.post('/api/posts', postData)
+
+      // Limpiar y redirigir
+      localStorage.removeItem('draft_image')
+      localStorage.removeItem('draft_filename')
+      localStorage.removeItem('draft_description')
+      localStorage.removeItem('draft_styles')
+      localStorage.removeItem('draft_client')
+      localStorage.removeItem('draft_visibility')
+
+      alert('¡Publicación creada exitosamente!')
+      router.push('/profile')
+    } catch (error: any) {
+      console.error('Error al publicar:', error)
+      alert(error.response?.data?.message || 'Error al crear la publicación')
+    } finally {
+      setIsPublishing(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white">
       <Head>
@@ -124,7 +180,7 @@ export default function CreatePostPage() {
       </Head>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0a0e1a] border-b border-gray-800">
+      <header className="sticky top-0 z-50 bg-[#0a0e1a]/95 backdrop-blur-sm border-b border-gray-800">
         <div className="container-mobile px-4 py-4">
           <div className="flex items-center justify-between">
             <button
@@ -134,15 +190,37 @@ export default function CreatePostPage() {
               <X className="w-6 h-6" />
             </button>
             <h1 className="text-lg font-bold">Nueva Publicación</h1>
-            {selectedFile && (
-              <button
-                onClick={handleNext}
-                className="text-blue-500 font-semibold"
-              >
-                Siguiente
-              </button>
+            {selectedFile ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleEdit}
+                  disabled={isPublishing}
+                  className="flex items-center gap-1.5 bg-gray-800 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Editar
+                </button>
+                <button
+                  onClick={handlePublish}
+                  disabled={isPublishing}
+                  className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all disabled:opacity-50"
+                >
+                  {isPublishing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span className="text-xs">Publicando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Publicar
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="w-20" />
             )}
-            {!selectedFile && <div className="w-20" />}
           </div>
         </div>
       </header>
@@ -312,7 +390,7 @@ export default function CreatePostPage() {
             </div>
 
             {/* Visibilidad */}
-            <div>
+            <div className="pb-20">
               <label className="block text-sm font-medium text-gray-400 mb-3">
                 Visibilidad
               </label>
