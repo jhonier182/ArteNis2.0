@@ -27,10 +27,18 @@ export default function EditImagePage() {
   const [brightness, setBrightness] = useState(50)
   const [contrast, setContrast] = useState(50)
   const [saturation, setSaturation] = useState(50)
+  const [exposure, setExposure] = useState(50)
+  const [highlights, setHighlights] = useState(50)
+  const [shadows, setShadows] = useState(50)
+  const [warmth, setWarmth] = useState(50)
+  const [tint, setTint] = useState(50)
+  const [sharpness, setSharpness] = useState(50)
+  const [vignette, setVignette] = useState(0)
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('none')
   const [rotation, setRotation] = useState(0)
   const [activeTab, setActiveTab] = useState<'adjust' | 'filters'>('adjust')
   const [isPublishing, setIsPublishing] = useState(false)
+  const [useManualAdjustments, setUseManualAdjustments] = useState(false)
 
   // Cargar imagen y datos del draft
   useEffect(() => {
@@ -60,9 +68,84 @@ export default function EditImagePage() {
   ]
 
   const getFilterStyle = () => {
-    const adjustments = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`
-    const filterEffect = filters.find(f => f.name === selectedFilter)?.preview || ''
-    return `${adjustments} ${filterEffect}`
+    if (useManualAdjustments) {
+      // Solo ajustes manuales con todos los efectos
+      const hueRotate = (warmth - 50) * 0.6 // -30 a +30 grados
+      const hueRotateTint = (tint - 50) * 1.2 // Para ajuste de tono
+      
+      // Combinar todos los filtros CSS
+      const filters = []
+      
+      // Exposición (simular con brightness inicial)
+      if (exposure !== 50) {
+        filters.push(`brightness(${exposure}%)`)
+      }
+      
+      // Brillo
+      filters.push(`brightness(${brightness}%)`)
+      
+      // Contraste  
+      filters.push(`contrast(${contrast}%)`)
+      
+      // Saturación
+      filters.push(`saturate(${saturation}%)`)
+      
+      // Warmth y Tint combinados en hue-rotate
+      if (warmth !== 50 || tint !== 50) {
+        filters.push(`hue-rotate(${hueRotate + hueRotateTint}deg)`)
+      }
+      
+      // Nitidez (aproximación con blur inverso)
+      if (sharpness > 50) {
+        // No hay forma perfecta de hacer sharpness con CSS, se aplicará en canvas
+      } else if (sharpness < 50) {
+        const blurAmount = (50 - sharpness) / 25 // 0-2px
+        filters.push(`blur(${blurAmount}px)`)
+      }
+      
+      return filters.join(' ')
+    } else {
+      // Solo filtros preestablecidos
+      const filterEffect = filters.find(f => f.name === selectedFilter)?.preview || ''
+      return filterEffect
+    }
+  }
+
+  const handleManualAdjustmentChange = (
+    type: 'brightness' | 'contrast' | 'saturation' | 'exposure' | 'highlights' | 'shadows' | 'warmth' | 'tint' | 'sharpness' | 'vignette', 
+    value: number
+  ) => {
+    setUseManualAdjustments(true)
+    setSelectedFilter('none')
+    
+    if (type === 'brightness') setBrightness(value)
+    else if (type === 'contrast') setContrast(value)
+    else if (type === 'saturation') setSaturation(value)
+    else if (type === 'exposure') setExposure(value)
+    else if (type === 'highlights') setHighlights(value)
+    else if (type === 'shadows') setShadows(value)
+    else if (type === 'warmth') setWarmth(value)
+    else if (type === 'tint') setTint(value)
+    else if (type === 'sharpness') setSharpness(value)
+    else if (type === 'vignette') setVignette(value)
+  }
+
+  const handleFilterSelect = (filter: FilterType) => {
+    setSelectedFilter(filter)
+    if (filter !== 'none') {
+      setUseManualAdjustments(false)
+      // Reset todos los ajustes manuales
+      setBrightness(50)
+      setContrast(50)
+      setSaturation(50)
+      setExposure(50)
+      setHighlights(50)
+      setShadows(50)
+      setWarmth(50)
+      setTint(50)
+      setSharpness(50)
+      setVignette(0)
+    }
   }
 
   const handleRotate = () => {
@@ -114,64 +197,137 @@ export default function EditImagePage() {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
         const data = imageData.data
 
-        // Calcular factores
-        const brightnessFactor = brightness / 50 // 0-2
-        const contrastFactor = contrast / 50 // 0-2
-        const saturationFactor = saturation / 50 // 0-2
+        // Solo aplicar ajustes si se están usando
+        if (useManualAdjustments) {
+          // Ajustes manuales avanzados
+          const brightnessFactor = brightness / 50 // 0-2
+          const contrastFactor = contrast / 50 // 0-2
+          const saturationFactor = saturation / 50 // 0-2
+          const exposureFactor = exposure / 50 // 0-2
+          const highlightsFactor = highlights / 50 // 0-2
+          const shadowsFactor = shadows / 50 // 0-2
+          const warmthFactor = (warmth - 50) / 50 // -1 a +1
+          const tintFactor = (tint - 50) / 50 // -1 a +1
+          const sharpnessFactor = (sharpness - 50) / 100 // -0.5 a +0.5
+          const vignetteFactor = vignette / 100 // 0 a 1
 
-        for (let i = 0; i < data.length; i += 4) {
-          let r = data[i]
-          let g = data[i + 1]
-          let b = data[i + 2]
+          for (let i = 0; i < data.length; i += 4) {
+            let r = data[i]
+            let g = data[i + 1]
+            let b = data[i + 2]
 
-          // Aplicar brillo
-          r *= brightnessFactor
-          g *= brightnessFactor
-          b *= brightnessFactor
+            // Aplicar exposición (brillo general)
+            r *= exposureFactor
+            g *= exposureFactor
+            b *= exposureFactor
 
-          // Aplicar contraste
-          r = ((r / 255 - 0.5) * contrastFactor + 0.5) * 255
-          g = ((g / 255 - 0.5) * contrastFactor + 0.5) * 255
-          b = ((b / 255 - 0.5) * contrastFactor + 0.5) * 255
+            // Aplicar brillo
+            r *= brightnessFactor
+            g *= brightnessFactor
+            b *= brightnessFactor
 
-          // Aplicar saturación
-          const gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
-          r = gray + (r - gray) * saturationFactor
-          g = gray + (g - gray) * saturationFactor
-          b = gray + (b - gray) * saturationFactor
+            // Aplicar highlights (tonos claros)
+            const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+            if (luminance > 128) {
+              const highlightAdjust = (luminance - 128) / 127
+              r += (255 - r) * highlightAdjust * (highlightsFactor - 1)
+              g += (255 - g) * highlightAdjust * (highlightsFactor - 1)
+              b += (255 - b) * highlightAdjust * (highlightsFactor - 1)
+            }
 
-          // Aplicar filtros preestablecidos
-          if (selectedFilter === 'vivid') {
-            r = r * 1.2
-            g = g * 1.2
-            b = b * 1.2
-          } else if (selectedFilter === 'bright') {
-            r = r * 1.3
-            g = g * 1.3
-            b = b * 1.3
-          } else if (selectedFilter === 'dark') {
-            r = r * 0.7
-            g = g * 0.7
-            b = b * 0.7
-          } else if (selectedFilter === 'vintage') {
-            const sepiaR = r * 0.393 + g * 0.769 + b * 0.189
-            const sepiaG = r * 0.349 + g * 0.686 + b * 0.168
-            const sepiaB = r * 0.272 + g * 0.534 + b * 0.131
-            r = sepiaR * 0.6 + r * 0.4
-            g = sepiaG * 0.6 + g * 0.4
-            b = sepiaB * 0.6 + b * 0.4
-          } else if (selectedFilter === 'cool') {
-            b = b * 1.2
-            r = r * 0.9
-          } else if (selectedFilter === 'warm') {
-            r = r * 1.2
-            b = b * 0.9
+            // Aplicar shadows (tonos oscuros)
+            if (luminance < 128) {
+              const shadowAdjust = (128 - luminance) / 128
+              r = r * (1 + shadowAdjust * (shadowsFactor - 1))
+              g = g * (1 + shadowAdjust * (shadowsFactor - 1))
+              b = b * (1 + shadowAdjust * (shadowsFactor - 1))
+            }
+
+            // Aplicar contraste
+            r = ((r / 255 - 0.5) * contrastFactor + 0.5) * 255
+            g = ((g / 255 - 0.5) * contrastFactor + 0.5) * 255
+            b = ((b / 255 - 0.5) * contrastFactor + 0.5) * 255
+
+            // Aplicar saturación
+            const gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+            r = gray + (r - gray) * saturationFactor
+            g = gray + (g - gray) * saturationFactor
+            b = gray + (b - gray) * saturationFactor
+
+            // Aplicar warmth (calidez/temperatura)
+            r += warmthFactor * 30
+            b -= warmthFactor * 30
+
+            // Aplicar tint (tono verde/magenta)
+            g += tintFactor * 20
+            r -= tintFactor * 10
+            b -= tintFactor * 10
+
+            // Clamp valores entre 0-255
+            data[i] = Math.min(255, Math.max(0, r))
+            data[i + 1] = Math.min(255, Math.max(0, g))
+            data[i + 2] = Math.min(255, Math.max(0, b))
           }
 
-          // Clamp valores entre 0-255
-          data[i] = Math.min(255, Math.max(0, r))
-          data[i + 1] = Math.min(255, Math.max(0, g))
-          data[i + 2] = Math.min(255, Math.max(0, b))
+          // Aplicar viñeta (efecto de oscurecimiento en los bordes)
+          if (vignetteFactor > 0) {
+            const centerX = canvas.width / 2
+            const centerY = canvas.height / 2
+            const maxDist = Math.sqrt(centerX * centerX + centerY * centerY)
+
+            for (let y = 0; y < canvas.height; y++) {
+              for (let x = 0; x < canvas.width; x++) {
+                const dx = x - centerX
+                const dy = y - centerY
+                const dist = Math.sqrt(dx * dx + dy * dy)
+                const vignette = 1 - (dist / maxDist) * vignetteFactor
+                
+                const i = (y * canvas.width + x) * 4
+                data[i] *= vignette
+                data[i + 1] *= vignette
+                data[i + 2] *= vignette
+              }
+            }
+          }
+        } else if (selectedFilter !== 'none') {
+          // Filtros preestablecidos
+          for (let i = 0; i < data.length; i += 4) {
+            let r = data[i]
+            let g = data[i + 1]
+            let b = data[i + 2]
+
+            if (selectedFilter === 'vivid') {
+              r = r * 1.2
+              g = g * 1.2
+              b = b * 1.2
+            } else if (selectedFilter === 'bright') {
+              r = r * 1.3
+              g = g * 1.3
+              b = b * 1.3
+            } else if (selectedFilter === 'dark') {
+              r = r * 0.7
+              g = g * 0.7
+              b = b * 0.7
+            } else if (selectedFilter === 'vintage') {
+              const sepiaR = r * 0.393 + g * 0.769 + b * 0.189
+              const sepiaG = r * 0.349 + g * 0.686 + b * 0.168
+              const sepiaB = r * 0.272 + g * 0.534 + b * 0.131
+              r = sepiaR * 0.6 + r * 0.4
+              g = sepiaG * 0.6 + g * 0.4
+              b = sepiaB * 0.6 + b * 0.4
+            } else if (selectedFilter === 'cool') {
+              b = b * 1.2
+              r = r * 0.9
+            } else if (selectedFilter === 'warm') {
+              r = r * 1.2
+              b = b * 0.9
+            }
+
+            // Clamp valores entre 0-255
+            data[i] = Math.min(255, Math.max(0, r))
+            data[i + 1] = Math.min(255, Math.max(0, g))
+            data[i + 2] = Math.min(255, Math.max(0, b))
+          }
         }
 
         ctx.putImageData(imageData, 0, 0)
@@ -308,6 +464,16 @@ export default function EditImagePage() {
                 objectFit: 'contain'
               }}
             />
+            {/* Viñeta overlay */}
+            {vignette > 0 && (
+              <div 
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: `radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,${vignette / 100}) 100%)`,
+                  transition: 'background 0.2s ease'
+                }}
+              />
+            )}
             <canvas ref={canvasRef} className="hidden" />
           </div>
         ) : (
@@ -374,7 +540,7 @@ export default function EditImagePage() {
                   min="0"
                   max="200"
                   value={brightness}
-                  onChange={(e) => setBrightness(Number(e.target.value))}
+                  onChange={(e) => handleManualAdjustmentChange('brightness', Number(e.target.value))}
                   className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
                 />
               </div>
@@ -390,7 +556,7 @@ export default function EditImagePage() {
                   min="0"
                   max="200"
                   value={contrast}
-                  onChange={(e) => setContrast(Number(e.target.value))}
+                  onChange={(e) => handleManualAdjustmentChange('contrast', Number(e.target.value))}
                   className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
                 />
               </div>
@@ -406,7 +572,119 @@ export default function EditImagePage() {
                   min="0"
                   max="200"
                   value={saturation}
-                  onChange={(e) => setSaturation(Number(e.target.value))}
+                  onChange={(e) => handleManualAdjustmentChange('saturation', Number(e.target.value))}
+                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                />
+              </div>
+
+              {/* Exposición */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-300">Exposición</label>
+                  <span className="text-sm text-gray-500">{exposure}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="200"
+                  value={exposure}
+                  onChange={(e) => handleManualAdjustmentChange('exposure', Number(e.target.value))}
+                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                />
+              </div>
+
+              {/* Highlights */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-300">Altas luces</label>
+                  <span className="text-sm text-gray-500">{highlights}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="200"
+                  value={highlights}
+                  onChange={(e) => handleManualAdjustmentChange('highlights', Number(e.target.value))}
+                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                />
+              </div>
+
+              {/* Shadows */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-300">Sombras</label>
+                  <span className="text-sm text-gray-500">{shadows}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="200"
+                  value={shadows}
+                  onChange={(e) => handleManualAdjustmentChange('shadows', Number(e.target.value))}
+                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                />
+              </div>
+
+              {/* Warmth */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-300">Calidez</label>
+                  <span className="text-sm text-gray-500">{warmth - 50 > 0 ? '+' : ''}{warmth - 50}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={warmth}
+                  onChange={(e) => handleManualAdjustmentChange('warmth', Number(e.target.value))}
+                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                />
+              </div>
+
+              {/* Tint */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-300">Tono</label>
+                  <span className="text-sm text-gray-500">{tint - 50 > 0 ? '+' : ''}{tint - 50}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={tint}
+                  onChange={(e) => handleManualAdjustmentChange('tint', Number(e.target.value))}
+                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                />
+              </div>
+
+              {/* Sharpness */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-300">Nitidez</label>
+                  <span className="text-sm text-gray-500">{sharpness}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={sharpness}
+                  onChange={(e) => handleManualAdjustmentChange('sharpness', Number(e.target.value))}
+                  className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
+                />
+              </div>
+
+              {/* Vignette */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-300">Viñeta</label>
+                  <span className="text-sm text-gray-500">{vignette}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={vignette}
+                  onChange={(e) => handleManualAdjustmentChange('vignette', Number(e.target.value))}
                   className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-blue"
                 />
               </div>
@@ -432,11 +710,19 @@ export default function EditImagePage() {
                   setBrightness(50)
                   setContrast(50)
                   setSaturation(50)
+                  setExposure(50)
+                  setHighlights(50)
+                  setShadows(50)
+                  setWarmth(50)
+                  setTint(50)
+                  setSharpness(50)
+                  setVignette(0)
                   setRotation(0)
+                  setUseManualAdjustments(false)
                 }}
-                className="w-full text-gray-400 text-sm py-2 hover:text-white transition-colors"
+                className="w-full bg-red-600/20 text-red-400 text-sm py-3 rounded-xl hover:bg-red-600/30 transition-colors font-medium"
               >
-                Restablecer ajustes
+                🔄 Restablecer todos los ajustes
               </button>
             </motion.div>
           ) : (
@@ -450,7 +736,7 @@ export default function EditImagePage() {
                 {filters.map((filter) => (
                   <button
                     key={filter.name}
-                    onClick={() => setSelectedFilter(filter.name)}
+                    onClick={() => handleFilterSelect(filter.name)}
                     className="flex-shrink-0 w-20"
                   >
                     <div
