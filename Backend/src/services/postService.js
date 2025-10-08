@@ -109,6 +109,24 @@ class PostService {
         status: 'published'
       };
 
+      // Solo mostrar posts de usuarios seguidos + propios posts
+      if (userId) {
+        // Obtener IDs de usuarios seguidos
+        const followingUsers = await Follow.findAll({
+          where: { followerId: userId },
+          attributes: ['followingId']
+        });
+
+        const followingIds = followingUsers.map(follow => follow.followingId);
+        
+        // Agregar el propio userId para ver sus propios posts
+        followingIds.push(userId);
+
+        where.userId = {
+          [Op.in]: followingIds
+        };
+      }
+
       // Filtros
       if (type !== 'all') {
         where.type = type;
