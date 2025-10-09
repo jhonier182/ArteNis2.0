@@ -108,14 +108,5 @@ export const isDebugMode = () => {
   return APP_CONFIG.DEBUG;
 };
 
-export const logConfig = () => {
-  if (isDebugMode()) {
-    console.log('🔧 Configuración de la aplicación:', {
-      API: API_CONFIG,
-      APP: APP_CONFIG,
-      ENV: ENV_CONFIG,
-    });
-  }
-};
 
 export default CONFIG;

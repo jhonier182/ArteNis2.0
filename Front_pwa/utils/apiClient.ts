@@ -35,15 +35,6 @@ class ApiClient {
     });
 
     this.setupInterceptors();
-    
-    // Log de configuración en modo debug
-    if (APP_CONFIG.DEBUG) {
-      console.log('🔧 ApiClient configurado:', {
-        baseURL: API_CONFIG.BASE_URL,
-        timeout: API_CONFIG.TIMEOUT,
-        debugMode: APP_CONFIG.DEBUG
-      });
-    }
   }
 
   private setupInterceptors() {
@@ -55,22 +46,10 @@ class ApiClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
         
-        // Log de requests en modo debug
-        if (APP_CONFIG.DEBUG) {
-          console.log('🚀 Request:', {
-            method: config.method?.toUpperCase(),
-            url: config.url,
-            baseURL: config.baseURL,
-            hasToken: !!token
-          });
-        }
         
         return config;
       },
       (error) => {
-        if (APP_CONFIG.DEBUG) {
-          console.error('❌ Request Error:', error);
-        }
         return Promise.reject(error);
       }
     );
@@ -78,26 +57,9 @@ class ApiClient {
     // Interceptor para manejar respuestas y renovar tokens
     this.client.interceptors.response.use(
       (response) => {
-        // Log de respuestas exitosas en modo debug
-        if (APP_CONFIG.DEBUG) {
-          console.log('✅ Response:', {
-            status: response.status,
-            url: response.config.url,
-            method: response.config.method?.toUpperCase()
-          });
-        }
         return response;
       },
       async (error) => {
-        // Log de errores en modo debug
-        if (APP_CONFIG.DEBUG) {
-          console.error('❌ Response Error:', {
-            status: error.response?.status,
-            url: error.config?.url,
-            method: error.config?.method?.toUpperCase(),
-            message: error.message
-          });
-        }
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
