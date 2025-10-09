@@ -135,7 +135,7 @@ export default function Search() {
       const following = response.data.data.following || []
       setFollowingUsers(following.map((follow: any) => follow.id))
     } catch (error) {
-      console.error('Error loading following users:', error)
+      // Error loading following users
     }
   }
 
@@ -188,7 +188,7 @@ export default function Search() {
       const finalPosts = filteredPosts.slice(0, 20) // Limitar a 20 posts total
       setPublicPosts(finalPosts)
     } catch (error) {
-      console.error('Error loading public posts:', error)
+      // Error loading public posts
     } finally {
       setLoadingPosts(false)
     }
@@ -201,8 +201,7 @@ export default function Search() {
       setFollowingUsers(prev => [...prev, userId])
       // Recargar las publicaciones para ocultar las del usuario recién seguido
       loadPublicPosts()
-    } catch (error) {
-      console.error('Error following user:', error)
+    } catch (error) {      // Error following user
     }
   }
 
