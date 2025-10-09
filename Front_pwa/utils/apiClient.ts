@@ -1,6 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.0.8:3000';
+import { API_CONFIG, APP_CONFIG } from './config';
 
 // Helper functions for localStorage
 const getStorageItem = (key: string): string | null => {
@@ -28,14 +27,23 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_BASE_URL,
-      timeout: 10000,
+      baseURL: API_CONFIG.BASE_URL,
+      timeout: API_CONFIG.TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
     this.setupInterceptors();
+    
+    // Log de configuración en modo debug
+    if (APP_CONFIG.DEBUG) {
+      console.log('🔧 ApiClient configurado:', {
+        baseURL: API_CONFIG.BASE_URL,
+        timeout: API_CONFIG.TIMEOUT,
+        debugMode: APP_CONFIG.DEBUG
+      });
+    }
   }
 
   private setupInterceptors() {
@@ -46,17 +54,50 @@ class ApiClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        
+        // Log de requests en modo debug
+        if (APP_CONFIG.DEBUG) {
+          console.log('🚀 Request:', {
+            method: config.method?.toUpperCase(),
+            url: config.url,
+            baseURL: config.baseURL,
+            hasToken: !!token
+          });
+        }
+        
         return config;
       },
       (error) => {
+        if (APP_CONFIG.DEBUG) {
+          console.error('❌ Request Error:', error);
+        }
         return Promise.reject(error);
       }
     );
 
     // Interceptor para manejar respuestas y renovar tokens
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        // Log de respuestas exitosas en modo debug
+        if (APP_CONFIG.DEBUG) {
+          console.log('✅ Response:', {
+            status: response.status,
+            url: response.config.url,
+            method: response.config.method?.toUpperCase()
+          });
+        }
+        return response;
+      },
       async (error) => {
+        // Log de errores en modo debug
+        if (APP_CONFIG.DEBUG) {
+          console.error('❌ Response Error:', {
+            status: error.response?.status,
+            url: error.config?.url,
+            method: error.config?.method?.toUpperCase(),
+            message: error.message
+          });
+        }
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -79,7 +120,7 @@ class ApiClient {
               throw new Error('No refresh token available');
             }
 
-            const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
+            const response = await axios.post(`${API_CONFIG.BASE_URL}/api/auth/refresh`, {
               refreshToken
             });
 

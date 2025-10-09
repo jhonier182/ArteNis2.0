@@ -46,6 +46,7 @@ const allowedOriginsDev = [
 	'http://127.0.0.1:3001',
 	'http://127.0.0.1:8081',
 	'http://192.168.1.4:3001', // Frontend PWA
+	'http://192.168.1.3:3001', // Frontend PWA - IP actual
 ];
 
 const corsOptions = {
