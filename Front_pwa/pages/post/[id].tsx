@@ -275,6 +275,10 @@ export default function PostDetailPage() {
           <video
             src={post.mediaUrl}
             controls
+            autoPlay
+            muted
+            loop
+            playsInline
             className="w-full max-h-[70vh] object-contain"
             poster={post.thumbnailUrl}
           />
