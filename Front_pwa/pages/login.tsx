@@ -47,7 +47,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] relative overflow-hidden">
+    <div className="h-screen bg-[#0a0a0a] relative overflow-hidden">
       <Head>
         <title>Iniciar Sesión - InkEndin</title>
       </Head>
@@ -107,7 +107,7 @@ export default function LoginPage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="relative z-10 h-full flex items-center justify-center px-4 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -340,6 +340,29 @@ export default function LoginPage() {
         }
         .animate-gradient-reverse {
           animation: gradient-reverse 8s ease-in-out infinite;
+        }
+        
+        /* Fix for mobile viewport height */
+        html, body {
+          height: 100%;
+          overflow: hidden;
+        }
+        
+        @media (max-width: 768px) {
+          .h-screen {
+            height: 100vh !important;
+            height: 100dvh !important;
+            min-height: 100vh !important;
+            min-height: 100dvh !important;
+          }
+          
+          /* Prevent body scroll on mobile */
+          body {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+          }
         }
       `}</style>
     </div>
