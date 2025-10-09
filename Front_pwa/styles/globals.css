@@ -157,16 +157,46 @@ html {
     background-color: #0f1419 !important;
   }
   
-  /* Ocultar la barra de herramientas de iOS */
-  body::before {
-    content: '';
+  /* Mejorar la barra de navegación en iOS */
+  .bottom-nav-ios {
+    padding-bottom: env(safe-area-inset-bottom);
+    background-color: rgba(26, 31, 38, 0.95);
+    border-top: 1px solid #374151;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: env(safe-area-inset-bottom);
-    background-color: #0f1419;
-    z-index: 10000;
+    z-index: 1000;
+  }
+  
+  .bottom-nav-ios .nav-button {
+    min-height: 44px; /* Tamaño mínimo recomendado para iOS */
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  .bottom-nav-ios .nav-button:active {
+    transform: scale(0.95);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  /* Mejorar la apariencia en modo oscuro de iOS */
+  @media (prefers-color-scheme: dark) {
+    .bottom-nav-ios {
+      background-color: rgba(26, 31, 38, 0.98);
+      border-top-color: #4b5563;
+    }
+  }
+  
+  /* Asegurar que los botones sean fáciles de tocar en iOS */
+  .bottom-nav-ios .nav-button {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 }
 

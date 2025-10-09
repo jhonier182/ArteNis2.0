@@ -437,61 +437,61 @@ export default function CreatePostPage() {
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#0a0e1a] border-t border-gray-800 z-50 safe-bottom">
-        <div className="container-mobile flex items-center justify-around py-2">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#0a0e1a] border-t border-gray-800 z-50 safe-bottom bottom-nav-ios">
+        <div className="flex items-center justify-around h-20 px-2">
           <button
             onClick={() => router.push('/')}
-            className="flex flex-col items-center py-2 px-3 text-gray-400"
+            className="nav-button flex flex-col items-center justify-center py-2 px-3 text-gray-400 hover:text-white transition-colors min-w-0 flex-1"
           >
             <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="currentColor">
               <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
             </svg>
-            <span className="text-xs">Inicio</span>
+            <span className="text-xs font-medium truncate">Inicio</span>
           </button>
           
           <button 
             onClick={() => router.push('/search')}
-            className="flex flex-col items-center py-2 px-3 text-gray-400"
+            className="nav-button flex flex-col items-center justify-center py-2 px-3 text-gray-400 hover:text-white transition-colors min-w-0 flex-1"
           >
             <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8"/>
               <path d="m21 21-4.35-4.35"/>
             </svg>
-            <span className="text-xs">Buscar</span>
+            <span className="text-xs font-medium truncate">Buscar</span>
           </button>
           
-          <button className="flex flex-col items-center py-2 px-3 text-blue-500">
+          <button className="nav-button flex flex-col items-center justify-center py-2 px-3 text-blue-500 min-w-0 flex-1">
             <div className="w-6 h-6 mb-1 flex items-center justify-center">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center -mt-2">
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <div className="w-7 h-7 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="12" y1="5" x2="12" y2="19"/>
                   <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
               </div>
             </div>
-            <span className="text-xs font-medium">Publicar</span>
+            <span className="text-xs font-medium truncate">Publicar</span>
           </button>
           
           <button 
             onClick={() => router.push('/notifications')}
-            className="flex flex-col items-center py-2 px-3 text-gray-400"
+            className="nav-button flex flex-col items-center justify-center py-2 px-3 text-gray-400 hover:text-white transition-colors min-w-0 flex-1"
           >
             <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
-            <span className="text-xs">Notificaciones</span>
+            <span className="text-xs font-medium truncate">Notificaciones</span>
           </button>
           
           <button
             onClick={() => router.push('/profile')}
-            className="flex flex-col items-center py-2 px-3 text-gray-400"
+            className="nav-button flex flex-col items-center justify-center py-2 px-3 text-gray-400 hover:text-white transition-colors min-w-0 flex-1"
           >
             <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
               <circle cx="12" cy="7" r="4"/>
             </svg>
-            <span className="text-xs">Perfil</span>
+            <span className="text-xs font-medium truncate">Perfil</span>
           </button>
         </div>
       </nav>

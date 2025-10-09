@@ -235,11 +235,16 @@ export default function PublicProfilePage() {
                     </p>
                   </div>
                   {/* Seguidores pequeño */}
-                  <div className="text-center ml-3">
-                    <div className="text-lg font-bold">
-                      {stats.followers < 1000 ? stats.followers : `${(stats.followers / 1000).toFixed(1)}K`}
+                  <div className="text-center ml-3 flex items-center gap-2">
+                    <div>
+                      <div className="text-lg font-bold">
+                        {stats.followers < 1000 ? stats.followers : `${(stats.followers / 1000).toFixed(1)}K`}
+                      </div>
+                      <div className="text-[10px] text-gray-500">Seguidores</div>
                     </div>
-                    <div className="text-[10px] text-gray-500">Seguidores</div>
+                    <button className="p-1 hover:bg-gray-800 rounded-full transition-colors">
+                      <Share2 className="w-4 h-4 text-gray-400 hover:text-white" />
+                    </button>
                   </div>
                 </div>
                 

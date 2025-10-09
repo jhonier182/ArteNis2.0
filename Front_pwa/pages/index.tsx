@@ -361,39 +361,39 @@ export default function HomePage() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#1a1f26] border-t border-gray-800 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="container-mobile flex items-center justify-around h-16">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#1a1f26] border-t border-gray-800 z-50 safe-bottom bottom-nav-ios">
+        <div className="flex items-center justify-around h-20 px-2">
           <button 
             onClick={() => router.push('/')}
-            className="flex flex-col items-center py-2 px-3 text-blue-500"
+            className="nav-button flex flex-col items-center justify-center py-2 px-3 text-blue-500 min-w-0 flex-1"
           >
             <Home className="w-6 h-6 mb-1 fill-blue-500" />
-            <span className="text-xs font-medium">Inicio</span>
+            <span className="text-xs font-medium truncate">Inicio</span>
           </button>
           
           <button
             onClick={() => router.push('/search')}
-            className="flex flex-col items-center py-2 px-3 text-gray-400"
+            className="nav-button flex flex-col items-center justify-center py-2 px-3 text-gray-400 hover:text-white transition-colors min-w-0 flex-1"
           >
             <Search className="w-6 h-6 mb-1" />
-            <span className="text-xs">Buscar</span>
+            <span className="text-xs font-medium truncate">Buscar</span>
           </button>
           
           <button
             onClick={() => router.push('/chat')}
-            className="flex flex-col items-center py-2 px-3 text-gray-400 relative"
+            className="nav-button flex flex-col items-center justify-center py-2 px-3 text-gray-400 hover:text-white transition-colors min-w-0 flex-1 relative"
           >
             <MessageCircle className="w-6 h-6 mb-1" />
-            <span className="text-xs">Chat</span>
+            <span className="text-xs font-medium truncate">Chat</span>
             <span className="absolute top-1 right-2 w-2 h-2 bg-green-500 rounded-full"></span>
           </button>
           
           <button
             onClick={() => router.push('/profile')}
-            className="flex flex-col items-center py-2 px-3 text-gray-400"
+            className="nav-button flex flex-col items-center justify-center py-2 px-3 text-gray-400 hover:text-white transition-colors min-w-0 flex-1"
           >
             <User className="w-6 h-6 mb-1" />
-            <span className="text-xs">Perfil</span>
+            <span className="text-xs font-medium truncate">Perfil</span>
           </button>
         </div>
       </nav>
