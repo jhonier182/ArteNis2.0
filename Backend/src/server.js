@@ -4,6 +4,7 @@ const { connectDB, closeDB } = require('./config/db');
 const logger = require('./utils/logger');
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // Función principal para inicializar el servidor
 const startServer = async () => {
@@ -14,8 +15,12 @@ const startServer = async () => {
     await connectDB();
     
     // Iniciar servidor
-    const server = app.listen(PORT, () => {
-      console.log(`✅ Servidor ArteNis iniciado en http://localhost:${PORT}`);
+    const server = app.listen(PORT, HOST, () => {
+      console.log(`✅ Servidor ArteNis iniciado en http://${HOST}:${PORT}`);
+      console.log(`🌐 Accesible desde: http://localhost:${PORT}`);
+      if (HOST === '0.0.0.0') {
+        console.log(`📱 Accesible desde la red local en el puerto ${PORT}`);
+      }
     });
 
     // Manejo elegante del cierre del servidor

@@ -38,6 +38,11 @@ const allowedOriginsProd = [
 	'https://www.artenis.app'
 ];
 
+// Obtener orígenes permitidos desde variables de entorno
+const corsOrigins = process.env.CORS_ORIGINS ? 
+	process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()) : 
+	[];
+
 const allowedOriginsDev = [
 	'http://localhost:3000',
 	'http://localhost:3001',
@@ -45,8 +50,7 @@ const allowedOriginsDev = [
 	'http://127.0.0.1:3000',
 	'http://127.0.0.1:3001',
 	'http://127.0.0.1:8081',
-	'http://192.168.1.4:3001', // Frontend PWA
-	'http://192.168.1.3:3001', // Frontend PWA - IP actual
+	...corsOrigins, // Agregar orígenes desde variables de entorno
 ];
 
 const corsOptions = {

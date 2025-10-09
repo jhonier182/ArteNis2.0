@@ -7,7 +7,7 @@
 // CONFIGURACIÓN DE API
 // ===========================================
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.3:3000',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
   TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '10000', 10),
   ENDPOINTS: {
     AUTH: '/api/auth',
@@ -36,9 +36,7 @@ export const APP_CONFIG = {
 export const IMAGE_CONFIG = {
   DOMAINS: process.env.NEXT_PUBLIC_IMAGE_DOMAINS?.split(',') || [
     'localhost',
-    '192.168.1.4',
-    '192.168.0.8',
-    '192.168.1.3'
+    '127.0.0.1'
   ],
   CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '',
 } as const;
