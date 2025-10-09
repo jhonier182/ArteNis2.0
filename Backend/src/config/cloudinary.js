@@ -75,6 +75,42 @@ const uploadPostImage = async (imageBuffer, userId, postId) => {
   }
 };
 
+// Función para subir video de post
+const uploadPostVideo = async (videoBuffer, userId, postId, mimeType) => {
+  try {
+    // Determinar el formato basado en el mime type
+    let format = 'mp4';
+    if (mimeType.includes('mov')) format = 'mov';
+    if (mimeType.includes('avi')) format = 'avi';
+    if (mimeType.includes('quicktime')) format = 'mov';
+
+    const result = await cloudinary.uploader.upload(
+      `data:${mimeType};base64,${videoBuffer.toString('base64')}`,
+      {
+        folder: 'posts/videos',
+        public_id: `video_${userId}_${postId}_${Date.now()}`,
+        resource_type: 'video',
+        transformation: [
+          { width: 1080, height: 1080, crop: 'limit' },
+          { quality: 'auto', fetch_format: 'auto' }
+        ],
+        eager: [
+          { width: 300, height: 300, crop: 'fill', format: 'jpg' } // Generar thumbnail
+        ]
+      }
+    );
+
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+      thumbnailUrl: result.eager?.[0]?.secure_url || null
+    };
+  } catch (error) {
+    console.error('Error uploading post video to Cloudinary:', error);
+    throw new Error('Error al subir el video del post');
+  }
+};
+
 // Función para eliminar imagen de post
 const deletePostImage = async (publicId) => {
   try {
@@ -105,6 +141,7 @@ module.exports = {
   uploadAvatar,
   deleteAvatar,
   uploadPostImage,
+  uploadPostVideo,
   deletePostImage,
   getOptimizedUrl
 };

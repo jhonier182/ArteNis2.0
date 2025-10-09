@@ -1,14 +1,14 @@
 const PostService = require('../services/postService');
-const { uploadPostImage } = require('../config/cloudinary');
+const { uploadPostImage, uploadPostVideo } = require('../config/cloudinary');
 
 class PostController {
-  // Subir imagen para post
-  static async uploadPostImage(req, res, next) {
+  // Subir imagen o video para post
+  static async uploadPostMedia(req, res, next) {
     try {
       if (!req.file) {
         return res.status(400).json({
           success: false,
-          message: 'Se requiere un archivo de imagen',
+          message: 'Se requiere un archivo de imagen o video',
           debug: {
             bodyKeys: Object.keys(req.body),
             files: req.files,
@@ -21,19 +21,34 @@ class PostController {
       // Generar ID único para el post
       const postId = Date.now().toString();
       
-      // Subir imagen a Cloudinary
-      const result = await uploadPostImage(
-        req.file.buffer,
-        req.user.id,
-        postId
-      );
+      const isVideo = req.file.mimetype.startsWith('video/');
+      
+      let result;
+      if (isVideo) {
+        // Subir video a Cloudinary
+        result = await uploadPostVideo(
+          req.file.buffer,
+          req.user.id,
+          postId,
+          req.file.mimetype
+        );
+      } else {
+        // Subir imagen a Cloudinary
+        result = await uploadPostImage(
+          req.file.buffer,
+          req.user.id,
+          postId
+        );
+      }
 
       res.status(200).json({
         success: true,
-        message: 'Imagen subida exitosamente',
+        message: isVideo ? 'Video subido exitosamente' : 'Imagen subida exitosamente',
         data: {
           url: result.url,
-          publicId: result.publicId
+          publicId: result.publicId,
+          thumbnailUrl: result.thumbnailUrl || null,
+          type: isVideo ? 'video' : 'image'
         }
       });
     } catch (error) {
@@ -44,12 +59,19 @@ class PostController {
   // Crear nueva publicación
   static async createPost(req, res, next) {
     try {
-      const { imageUrl, cloudinaryPublicId, description, hashtags, type } = req.body;
+      const { 
+        imageUrl, 
+        cloudinaryPublicId, 
+        description, 
+        hashtags, 
+        type, 
+        thumbnailUrl 
+      } = req.body;
 
       if (!imageUrl || !cloudinaryPublicId) {
         return res.status(400).json({
           success: false,
-          message: 'Se requiere la URL de la imagen y el ID de Cloudinary'
+          message: 'Se requiere la URL del media y el ID de Cloudinary'
         });
       }
 
@@ -58,7 +80,8 @@ class PostController {
         {
           description,
           hashtags,
-          type
+          type,
+          thumbnailUrl
         },
         imageUrl,
         cloudinaryPublicId

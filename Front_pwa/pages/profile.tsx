@@ -473,11 +473,31 @@ export default function ProfilePage() {
                       className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
                     >
                       {post.mediaUrl && (
-                        <img
-                          src={post.mediaUrl}
-                          alt={post.description || 'Post'}
-                          className="w-full h-full object-cover"
-                        />
+                        <>
+                          {post.type === 'video' ? (
+                            <div className="relative w-full h-full">
+                              <img
+                                src={post.thumbnailUrl || post.mediaUrl}
+                                alt={post.description || 'Post'}
+                                className="w-full h-full object-cover"
+                              />
+                              {/* Overlay con icono de play para videos */}
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                                  <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <img
+                              src={post.mediaUrl}
+                              alt={post.description || 'Post'}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">

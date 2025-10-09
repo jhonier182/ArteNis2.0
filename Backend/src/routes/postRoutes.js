@@ -58,12 +58,12 @@ router.get('/user/:userId',
 
 // Rutas protegidas (requieren autenticación)
 
-// POST /api/posts/upload - Subir imagen para post
+// POST /api/posts/upload - Subir imagen o video para post
 router.post('/upload',
   verifyToken,
   upload.single('image'),
   handleMulterError,
-  PostController.uploadPostImage
+  PostController.uploadPostMedia
 );
 
 // POST /api/posts - Crear nueva publicación

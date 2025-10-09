@@ -90,6 +90,10 @@ export default function CreatePostPage() {
     setPreviewUrl(url)
   }
 
+  const handleVideoSelect = () => {
+    fileInputRef.current?.click()
+  }
+
   const handleStyleToggle = (style: string) => {
     if (selectedStyles.includes(style)) {
       setSelectedStyles(selectedStyles.filter(s => s !== style))
@@ -150,7 +154,8 @@ export default function CreatePostPage() {
         type: selectedFile.type.startsWith('video/') ? 'video' : 'image',
         hashtags: selectedStyles,
         visibility,
-        clientTag: clientTag || undefined
+        clientTag: clientTag || undefined,
+        thumbnailUrl: uploadResponse.data.data.thumbnailUrl || undefined
       }
 
       await apiClient.post('/api/posts', postData)
@@ -251,7 +256,10 @@ export default function CreatePostPage() {
                 <span className="font-semibold">Tomar foto</span>
               </button>
 
-              <button className="w-full bg-gray-800 text-white p-6 rounded-2xl hover:bg-gray-700 transition-all flex items-center justify-center gap-3">
+              <button 
+                onClick={handleVideoSelect}
+                className="w-full bg-gray-800 text-white p-6 rounded-2xl hover:bg-gray-700 transition-all flex items-center justify-center gap-3"
+              >
                 <Video className="w-6 h-6" />
                 <span className="font-semibold">Seleccionar video</span>
               </button>
@@ -261,7 +269,7 @@ export default function CreatePostPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,video/*"
               onChange={handleFileSelect}
               className="hidden"
             />
@@ -298,11 +306,20 @@ export default function CreatePostPage() {
           >
             {/* Preview */}
             <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-900">
-              <img
-                src={previewUrl || ''}
-                alt="Preview"
-                className="w-full h-full object-cover"
-              />
+              {selectedFile?.type.startsWith('video/') ? (
+                <video
+                  src={previewUrl || ''}
+                  className="w-full h-full object-cover"
+                  controls
+                  muted
+                />
+              ) : (
+                <img
+                  src={previewUrl || ''}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+              )}
               <button
                 onClick={() => {
                   setSelectedFile(null)

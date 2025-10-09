@@ -574,11 +574,31 @@ export default function PublicProfilePage() {
                     onClick={() => router.push(`/post/${post.id}`)}
                   >
                     {post.mediaUrl ? (
-                      <img
-                        src={post.mediaUrl}
-                        alt={post.title || 'Post'}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
+                      <>
+                        {post.type === 'video' ? (
+                          <div className="relative w-full h-full">
+                            <img
+                              src={post.thumbnailUrl || post.mediaUrl}
+                              alt={post.title || 'Post'}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                            {/* Overlay con icono de play para videos */}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                                <svg className="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z"/>
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={post.mediaUrl}
+                            alt={post.title || 'Post'}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                        )}
+                      </>
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
                         <Bookmark className="w-12 h-12 text-gray-700" />

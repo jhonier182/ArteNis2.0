@@ -57,6 +57,7 @@ class PostService {
         description: postData.description || '',
         type: postData.type || 'image',
         mediaUrl,
+        thumbnailUrl: postData.thumbnailUrl || null, // Agregar thumbnail para videos
         cloudinaryPublicId,
         tags: postData.hashtags || [],
         style: postData.style || null,

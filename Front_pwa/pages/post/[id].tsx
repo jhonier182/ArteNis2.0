@@ -269,13 +269,22 @@ export default function PostDetailPage() {
         </div>
       </header>
 
-      {/* Post Image */}
+      {/* Post Media */}
       <div className="w-full bg-black">
-        <img
-          src={post.mediaUrl}
-          alt={post.title || 'Post'}
-          className="w-full max-h-[70vh] object-contain"
-        />
+        {post.type === 'video' ? (
+          <video
+            src={post.mediaUrl}
+            controls
+            className="w-full max-h-[70vh] object-contain"
+            poster={post.thumbnailUrl}
+          />
+        ) : (
+          <img
+            src={post.mediaUrl}
+            alt={post.title || 'Post'}
+            className="w-full max-h-[70vh] object-contain"
+          />
+        )}
       </div>
 
       {/* Post Info */}

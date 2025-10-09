@@ -21,6 +21,8 @@ interface Post {
   id: string
   title?: string
   mediaUrl?: string
+  thumbnailUrl?: string
+  type?: 'image' | 'video' | 'reel'
   likesCount: number
   commentsCount: number
   createdAt: string
@@ -301,17 +303,41 @@ export default function Search() {
                       transition={{ delay: index * 0.05 }}
                       className="relative overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
                     >
-                      {/* Solo la imagen completa */}
+                      {/* Media completo */}
                       <button
                         onClick={() => router.push(`/post/${post.id}`)}
-                        className="w-full h-full block"
+                        className="w-full h-full block relative group"
                       >
                         {post.mediaUrl ? (
-                          <img
-                            src={post.mediaUrl}
-                            alt={post.title || 'Post'}
-                            className="w-full h-full object-cover"
-                          />
+                          <>
+                            {post.type === 'video' ? (
+                              <video
+                                src={post.mediaUrl}
+                                className="w-full h-full object-cover"
+                                muted
+                                loop
+                                playsInline
+                                onMouseEnter={(e) => e.currentTarget.play()}
+                                onMouseLeave={(e) => e.currentTarget.pause()}
+                              />
+                            ) : (
+                              <img
+                                src={post.mediaUrl}
+                                alt={post.title || 'Post'}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                            {/* Overlay con icono de play para videos */}
+                            {post.type === 'video' && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                                  <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                  </svg>
+                                </div>
+                              </div>
+                            )}
+                          </>
                         ) : (
                           <div className="w-full h-full bg-gray-700 flex items-center justify-center">
                             <User className="w-8 h-8 text-gray-400" />
