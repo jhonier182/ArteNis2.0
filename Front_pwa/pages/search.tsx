@@ -142,10 +142,8 @@ export default function Search() {
   const loadPublicPosts = async () => {
     setLoadingPosts(true)
     try {
-      console.log('🔍 Cargando publicaciones...')
       const response = await apiClient.get('/api/search/posts?limit=50')
       let posts = response.data.data.posts || []
-      console.log('📊 Posts recibidos:', posts.length)
       
       // Normalizar la estructura de datos (el backend devuelve 'author' en lugar de 'User')
       posts = posts.map((post: any) => ({
@@ -155,8 +153,6 @@ export default function Search() {
       
       // Filtrar publicaciones propias del usuario y de usuarios que ya sigue
       if (user?.id) {
-        console.log('👤 Usuario logueado, filtrando posts...')
-        console.log('👥 Usuarios seguidos:', followingUsers)
         posts = posts.filter((post: Post) => {
           const postUserId = post.User?.id
           // Excluir publicaciones propias
@@ -165,7 +161,6 @@ export default function Search() {
           if (followingUsers.includes(postUserId)) return false
           return true
         })
-        console.log('✅ Posts después del filtrado:', posts.length)
       }
       
       // Agrupar por usuario y tomar solo las 2 más recientes de cada uno
@@ -191,7 +186,6 @@ export default function Search() {
       filteredPosts.sort((a: Post, b: Post) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       
       const finalPosts = filteredPosts.slice(0, 20) // Limitar a 20 posts total
-      console.log('🎯 Posts finales a mostrar:', finalPosts.length)
       setPublicPosts(finalPosts)
     } catch (error) {
       console.error('Error loading public posts:', error)
@@ -262,122 +256,69 @@ export default function Search() {
 
       {/* Main Content */}
       <main className="container-mobile max-w-md mx-auto px-4 py-6">
-        {!searchQuery ? (
-          <div>
-            {/* Búsquedas recientes */}
-            {recentSearches.length > 0 && (
+              {!searchQuery ? (
+                <div>
+                  {/* Búsquedas recientes */}
+                  {recentSearches.length > 0 && (
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-base font-semibold text-gray-300">Recientes</h2>
-                  <button
-                    onClick={clearRecentSearches}
+                        <button
+                          onClick={clearRecentSearches}
                     className="text-xs text-blue-500 hover:text-blue-400 transition-colors"
-                  >
+                        >
                     Borrar
-                  </button>
-                </div>
+                        </button>
+                      </div>
                 <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-                  {recentSearches.map((search, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSearchQuery(search)}
+                        {recentSearches.map((search, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setSearchQuery(search)}
                       className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-full hover:bg-gray-700 transition-colors whitespace-nowrap flex-shrink-0"
                     >
                       <SearchIcon className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-white">{search}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
             {/* Publicaciones Públicas */}
-            <div>
+                  <div>
               <h2 className="text-base font-semibold text-gray-300 mb-3">Descubre Arte</h2>
               {loadingPosts ? (
                 <div className="flex justify-center items-center py-10">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               ) : publicPosts.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 auto-rows-[200px]">
                   {publicPosts.filter(post => post && post.id).map((post, index) => (
                     <motion.div
                       key={post.id}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: index * 0.05 }}
-                      className="bg-gray-800 rounded-xl overflow-hidden hover:bg-gray-700 transition-all group"
+                      className="relative overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
                     >
-                      {/* Imagen del post */}
+                      {/* Solo la imagen completa */}
                       <button
                         onClick={() => router.push(`/post/${post.id}`)}
-                        className="w-full aspect-square relative overflow-hidden"
+                        className="w-full h-full block"
                       >
                         {post.mediaUrl ? (
                           <img
                             src={post.mediaUrl}
                             alt={post.title || 'Post'}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover"
                           />
                         ) : (
                           <div className="w-full h-full bg-gray-700 flex items-center justify-center">
                             <User className="w-8 h-8 text-gray-400" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-white text-xs">
-                              <div className="flex items-center gap-1">
-                                <Heart className="w-3 h-3" />
-                                <span>{post.likesCount}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <MessageCircle className="w-3 h-3" />
-                                <span>{post.commentsCount}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
                       </button>
-
-                      {/* Información del usuario */}
-                      <div className="p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-                            {post.User?.avatar ? (
-                              <img
-                                src={post.User.avatar}
-                                alt={post.User.username || 'Usuario'}
-                                className="w-6 h-6 rounded-full object-cover"
-                              />
-                            ) : (
-                              <User className="w-3 h-3 text-white" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-white truncate">
-                              {post.User?.fullName || post.User?.username || 'Usuario'}
-                            </p>
-                            <p className="text-xs text-gray-400 truncate">
-                              @{post.User?.username || 'usuario'}
-                            </p>
-                          </div>
-                          {post.User?.userType === 'artist' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                if (post.User?.id) {
-                                  handleFollowUser(post.User.id)
-                                }
-                              }}
-                              className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-full transition-colors"
-                            >
-                              <UserPlus className="w-3 h-3" />
-                              <span>Seguir</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -389,68 +330,68 @@ export default function Search() {
                   <p className="text-gray-400 text-sm">No hay publicaciones disponibles</p>
                 </div>
               )}
-            </div>
-          </div>
-        ) : (
-          <div>
-            {isSearching ? (
-              <div className="flex justify-center items-center py-20">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : searchResults.length > 0 ? (
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {isSearching ? (
+                    <div className="flex justify-center items-center py-20">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : searchResults.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-xs text-gray-500 mb-3">
                   {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} encontrado{searchResults.length !== 1 ? 's' : ''}
-                </p>
-                {searchResults.map((user, index) => (
-                  <motion.button
-                    key={user.id}
-                    onClick={() => handleSelectUser(user.id)}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                      </p>
+                      {searchResults.map((user, index) => (
+                        <motion.button
+                          key={user.id}
+                          onClick={() => handleSelectUser(user.id)}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
                     className="w-full flex items-center gap-3 p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition-all group"
-                  >
+                        >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-                      {user.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt={user.username}
+                            {user.avatar ? (
+                              <img
+                                src={user.avatar}
+                                alt={user.username}
                           className="w-10 h-10 rounded-full object-cover"
-                        />
-                      ) : (
+                              />
+                            ) : (
                         <User className="w-5 h-5 text-white" />
-                      )}
-                    </div>
-                    <div className="flex-1 text-left min-w-0">
-                      <div className="flex items-center gap-2">
+                            )}
+                          </div>
+                          <div className="flex-1 text-left min-w-0">
+                            <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-white truncate">{user.fullName || user.username}</p>
-                        {user.userType === 'artist' && (
+                              {user.userType === 'artist' && (
                           <Star className="w-3 h-3 text-yellow-500 flex-shrink-0" />
-                        )}
-                      </div>
+                              )}
+                            </div>
                       <p className="text-xs text-gray-500 truncate">@{user.username}</p>
-                      {user.city && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <MapPin className="w-3 h-3 text-gray-500" />
-                          <p className="text-xs text-gray-500">{user.city}</p>
-                        </div>
-                      )}
+                            {user.city && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <MapPin className="w-3 h-3 text-gray-500" />
+                                <p className="text-xs text-gray-500">{user.city}</p>
+                              </div>
+                            )}
+                          </div>
+                        </motion.button>
+                      ))}
                     </div>
-                  </motion.button>
-                ))}
-              </div>
-            ) : (
+                  ) : (
               <div className="text-center py-20 px-4">
-                <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <SearchIcon className="w-10 h-10 text-gray-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">No se encontraron resultados</h3>
+                      <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <SearchIcon className="w-10 h-10 text-gray-600" />
+                      </div>
+                      <h3 className="text-xl font-semibold mb-2">No se encontraron resultados</h3>
                 <p className="text-gray-400">Intenta con otro nombre o término de búsqueda</p>
-              </div>
-            )}
-          </div>
-        )}
+                    </div>
+                  )}
+                </div>
+              )}
       </main>
     </div>
   )
