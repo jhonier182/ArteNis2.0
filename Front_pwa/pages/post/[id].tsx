@@ -8,11 +8,11 @@ import {
   MessageCircle,
   Share2,
   Bookmark,
-  MoreVertical,
   Send
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
+import PostMenu from '@/components/PostMenu'
 
 export default function PostDetailPage() {
   const router = useRouter()
@@ -26,6 +26,7 @@ export default function PostDetailPage() {
   const [isFollowLoading, setIsFollowLoading] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -44,6 +45,7 @@ export default function PostDetailPage() {
       checkIfSaved()
     }
   }, [post?.id, isAuthenticated])
+
 
   const loadPost = async () => {
     try {
@@ -189,6 +191,44 @@ export default function PostDetailPage() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!isAuthenticated) {
+      alert('Debes iniciar sesión para eliminar publicaciones')
+      return
+    }
+
+    // Verificar que el usuario sea el dueño de la publicación
+    if (user?.id?.toString() !== post?.User?.id?.toString()) {
+      alert('No tienes permisos para eliminar esta publicación')
+      return
+    }
+
+    const confirmed = window.confirm('¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.')
+    if (!confirmed) return
+
+    try {
+      setIsDeleting(true)
+      await apiClient.delete(`/api/posts/${id}`)
+      alert('Publicación eliminada exitosamente')
+      router.push('/')
+    } catch (error: any) {
+      console.error('Error al eliminar post:', error)
+      alert(error.response?.data?.message || 'Error al eliminar la publicación')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleEdit = () => {
+    alert('Función de editar próximamente')
+  }
+
+  const handleShare = () => {
+    alert('Función de compartir próximamente')
+  }
+
+  const isOwner = user?.id?.toString() === post?.User?.id?.toString()
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
@@ -218,9 +258,13 @@ export default function PostDetailPage() {
               <ChevronLeft className="w-6 h-6" />
             </button>
             <h1 className="text-lg font-bold">Publicación</h1>
-            <button className="p-2 hover:bg-gray-800 rounded-full transition-colors">
-              <MoreVertical className="w-6 h-6" />
-            </button>
+            <PostMenu
+              isOwner={isOwner}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onShare={handleShare}
+              isDeleting={isDeleting}
+            />
           </div>
         </div>
       </header>
