@@ -8,9 +8,30 @@ import {
   User,
   MapPin,
   Star,
-  ChevronLeft
+  ChevronLeft,
+  Heart,
+  MessageCircle,
+  UserPlus
 } from 'lucide-react'
 import { apiClient } from '@/utils/apiClient'
+import { useUser } from '@/context/UserContext'
+
+// Tipos para los posts
+interface Post {
+  id: string
+  title?: string
+  mediaUrl?: string
+  likesCount: number
+  commentsCount: number
+  createdAt: string
+  User: {
+    id: string
+    username: string
+    fullName?: string
+    avatar?: string
+    userType: 'artist' | 'user'
+  }
+}
 
 // Tipos para los usuarios
 interface User {
@@ -24,10 +45,14 @@ interface User {
 
 export default function Search() {
   const router = useRouter()
+  const { user } = useUser()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const [publicPosts, setPublicPosts] = useState<Post[]>([])
+  const [loadingPosts, setLoadingPosts] = useState(false)
+  const [followingUsers, setFollowingUsers] = useState<string[]>([])
 
   // Cargar búsquedas recientes del localStorage
   useEffect(() => {
@@ -36,6 +61,16 @@ export default function Search() {
       setRecentSearches(JSON.parse(saved))
     }
   }, [])
+
+  // Cargar usuarios seguidos al montar el componente
+  useEffect(() => {
+    loadFollowingUsers()
+  }, [user?.id])
+
+  // Cargar publicaciones públicas cuando cambien los usuarios seguidos
+  useEffect(() => {
+    loadPublicPosts()
+  }, [user?.id, followingUsers])
 
   // Búsqueda reactiva con debounce
   useEffect(() => {
@@ -92,11 +127,90 @@ export default function Search() {
     localStorage.removeItem('recentSearches')
   }
 
-  const trendingTopics = [
-    { icon: User, label: 'Tatuadores', query: 'tatuador' },
-    { icon: Star, label: 'Artistas', query: 'artista' },
-    { icon: MapPin, label: 'Local', query: 'local' },
-  ]
+  const loadFollowingUsers = async () => {
+    if (!user?.id) return
+    
+    try {
+      const response = await apiClient.get('/api/follow/following')
+      const following = response.data.data.following || []
+      setFollowingUsers(following.map((follow: any) => follow.id))
+    } catch (error) {
+      console.error('Error loading following users:', error)
+    }
+  }
+
+  const loadPublicPosts = async () => {
+    setLoadingPosts(true)
+    try {
+      console.log('🔍 Cargando publicaciones...')
+      const response = await apiClient.get('/api/search/posts?limit=50')
+      let posts = response.data.data.posts || []
+      console.log('📊 Posts recibidos:', posts.length)
+      
+      // Normalizar la estructura de datos (el backend devuelve 'author' en lugar de 'User')
+      posts = posts.map((post: any) => ({
+        ...post,
+        User: post.author || post.User
+      }))
+      
+      // Filtrar publicaciones propias del usuario y de usuarios que ya sigue
+      if (user?.id) {
+        console.log('👤 Usuario logueado, filtrando posts...')
+        console.log('👥 Usuarios seguidos:', followingUsers)
+        posts = posts.filter((post: Post) => {
+          const postUserId = post.User?.id
+          // Excluir publicaciones propias
+          if (postUserId === user.id) return false
+          // Excluir publicaciones de usuarios que ya sigue
+          if (followingUsers.includes(postUserId)) return false
+          return true
+        })
+        console.log('✅ Posts después del filtrado:', posts.length)
+      }
+      
+      // Agrupar por usuario y tomar solo las 2 más recientes de cada uno
+      const userPostsMap = new Map<string, Post[]>()
+      posts.forEach((post: Post) => {
+        const userId = post.User?.id
+        if (userId) {
+          if (!userPostsMap.has(userId)) {
+            userPostsMap.set(userId, [])
+          }
+          userPostsMap.get(userId)!.push(post)
+        }
+      })
+      
+      // Tomar solo las 2 más recientes de cada usuario
+      const filteredPosts: Post[] = []
+      userPostsMap.forEach((userPosts: Post[]) => {
+        const sortedPosts = userPosts.sort((a: Post, b: Post) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        filteredPosts.push(...sortedPosts.slice(0, 2))
+      })
+      
+      // Ordenar por fecha de creación (más recientes primero)
+      filteredPosts.sort((a: Post, b: Post) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      
+      const finalPosts = filteredPosts.slice(0, 20) // Limitar a 20 posts total
+      console.log('🎯 Posts finales a mostrar:', finalPosts.length)
+      setPublicPosts(finalPosts)
+    } catch (error) {
+      console.error('Error loading public posts:', error)
+    } finally {
+      setLoadingPosts(false)
+    }
+  }
+
+  const handleFollowUser = async (userId: string) => {
+    try {
+      await apiClient.post('/api/follow', { userId })
+      // Actualizar la lista de usuarios seguidos
+      setFollowingUsers(prev => [...prev, userId])
+      // Recargar las publicaciones para ocultar las del usuario recién seguido
+      loadPublicPosts()
+    } catch (error) {
+      console.error('Error following user:', error)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#0f1419] text-white pb-20">
@@ -177,29 +291,104 @@ export default function Search() {
               </div>
             )}
 
-            {/* Trending Topics */}
+            {/* Publicaciones Públicas */}
             <div>
-              <h2 className="text-base font-semibold text-gray-300 mb-3">Tendencias</h2>
-              <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-                {trendingTopics.map((topic, index) => (
-                  <motion.button
-                    key={index}
-                    onClick={() => setSearchQuery(topic.query)}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="flex flex-col items-center gap-2 p-4 bg-gray-800 rounded-2xl hover:bg-gray-700 transition-all whitespace-nowrap flex-shrink-0 min-w-[100px]"
-                  >
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-full flex items-center justify-center">
-                      <topic.icon className="w-6 h-6 text-blue-400" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-white">{topic.label}</p>
-                      <p className="text-xs text-gray-400">#{topic.query}</p>
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
+              <h2 className="text-base font-semibold text-gray-300 mb-3">Descubre Arte</h2>
+              {loadingPosts ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : publicPosts.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {publicPosts.filter(post => post && post.id).map((post, index) => (
+                    <motion.div
+                      key={post.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="bg-gray-800 rounded-xl overflow-hidden hover:bg-gray-700 transition-all group"
+                    >
+                      {/* Imagen del post */}
+                      <button
+                        onClick={() => router.push(`/post/${post.id}`)}
+                        className="w-full aspect-square relative overflow-hidden"
+                      >
+                        {post.mediaUrl ? (
+                          <img
+                            src={post.mediaUrl}
+                            alt={post.title || 'Post'}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                            <User className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-white text-xs">
+                              <div className="flex items-center gap-1">
+                                <Heart className="w-3 h-3" />
+                                <span>{post.likesCount}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <MessageCircle className="w-3 h-3" />
+                                <span>{post.commentsCount}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Información del usuario */}
+                      <div className="p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                            {post.User?.avatar ? (
+                              <img
+                                src={post.User.avatar}
+                                alt={post.User.username || 'Usuario'}
+                                className="w-6 h-6 rounded-full object-cover"
+                              />
+                            ) : (
+                              <User className="w-3 h-3 text-white" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-white truncate">
+                              {post.User?.fullName || post.User?.username || 'Usuario'}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate">
+                              @{post.User?.username || 'usuario'}
+                            </p>
+                          </div>
+                          {post.User?.userType === 'artist' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (post.User?.id) {
+                                  handleFollowUser(post.User.id)
+                                }
+                              }}
+                              className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-full transition-colors"
+                            >
+                              <UserPlus className="w-3 h-3" />
+                              <span>Seguir</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <User className="w-8 h-8 text-gray-600" />
+                  </div>
+                  <p className="text-gray-400 text-sm">No hay publicaciones disponibles</p>
+                </div>
+              )}
             </div>
           </div>
         ) : (
