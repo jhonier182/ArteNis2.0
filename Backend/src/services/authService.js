@@ -3,6 +3,60 @@ const crypto = require('crypto');
 const { User, RefreshToken } = require('../models');
 
 class AuthService {
+  // Generar nombre de usuario automáticamente
+  static generateUsername(fullName) {
+    // Convertir a minúsculas, eliminar acentos y caracteres especiales
+    const cleanName = fullName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+      .replace(/[^a-z0-9\s]/g, '') // Solo letras, números y espacios
+      .trim();
+    
+    // Dividir en palabras y tomar las primeras dos
+    const words = cleanName.split(/\s+/).filter(word => word.length > 0);
+    let baseUsername = '';
+    
+    if (words.length >= 2) {
+      // Tomar primera letra del primer nombre y apellido completo
+      baseUsername = words[0].charAt(0) + words[words.length - 1];
+    } else if (words.length === 1) {
+      // Si solo hay una palabra, usar las primeras 6 letras
+      baseUsername = words[0].substring(0, 6);
+    } else {
+      // Fallback si no hay palabras válidas
+      baseUsername = 'user';
+    }
+    
+    // Asegurar que tenga al menos 3 caracteres
+    if (baseUsername.length < 3) {
+      baseUsername = baseUsername + '123';
+    }
+    
+    return baseUsername;
+  }
+
+  // Verificar si un username existe y generar uno único
+  static async generateUniqueUsername(fullName) {
+    let baseUsername = this.generateUsername(fullName);
+    let username = baseUsername;
+    let counter = 1;
+    
+    // Verificar si el username ya existe
+    while (await User.findOne({ where: { username } })) {
+      username = `${baseUsername}${counter}`;
+      counter++;
+      
+      // Prevenir bucles infinitos
+      if (counter > 999) {
+        username = `${baseUsername}${Date.now()}`;
+        break;
+      }
+    }
+    
+    return username;
+  }
+
   // Generar JWT token
   static generateToken(user) {
     return jwt.sign(
@@ -58,15 +112,18 @@ class AuthService {
   // Registrar nuevo usuario
   static async register(userData) {
     try {
-      // Verificar si el usuario ya existe
-      const existingUser = await User.findByEmailOrUsername(userData.email);
+      // Verificar si el email ya existe
+      const existingUser = await User.findOne({ where: { email: userData.email } });
       if (existingUser) {
-        throw new Error('El email o nombre de usuario ya está en uso');
+        throw new Error('El email ya está en uso');
       }
+
+      // Generar nombre de usuario automáticamente
+      const username = await this.generateUniqueUsername(userData.fullName);
 
       // Crear nuevo usuario
       const user = await User.create({
-        username: userData.username,
+        username: username,
         email: userData.email,
         password: userData.password,
         fullName: userData.fullName,

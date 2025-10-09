@@ -12,9 +12,7 @@ import {
   UserPlus, 
   Sparkles,
   Check,
-  X as XIcon,
-  Palette,
-  Users as UsersIcon
+  X as XIcon
 } from 'lucide-react'
 import { apiClient } from '@/utils/apiClient'
 
@@ -23,12 +21,10 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
-    username: '',
     email: '',
     fullName: '',
     password: '',
     confirmPassword: '',
-    userType: 'user' as 'user' | 'artist',
   })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -57,16 +53,6 @@ export default function RegisterPage() {
   }
 
   const validateForm = () => {
-    if (formData.username.length < 3 || formData.username.length > 50) {
-      setError('El nombre de usuario debe tener entre 3 y 50 caracteres')
-      return false
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      setError('El nombre de usuario solo puede contener letras, números y guiones bajos')
-      return false
-    }
-
     if (formData.fullName.length < 2 || formData.fullName.length > 255) {
       setError('El nombre completo debe tener entre 2 y 255 caracteres')
       return false
@@ -95,11 +81,11 @@ export default function RegisterPage() {
 
     try {
       await apiClient.post('/api/auth/register', {
-        username: formData.username,
         email: formData.email,
         fullName: formData.fullName,
         password: formData.password,
-        userType: formData.userType,
+        userType: 'user', // Por defecto se crea como usuario
+        // El username se generará automáticamente en el backend
       })
       
       router.push('/login?registered=true')
@@ -193,15 +179,15 @@ export default function RegisterPage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="relative z-10 h-full flex items-start justify-center px-4 pt-16 pb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="w-full max-w-2xl"
+          className="w-full max-w-md"
         >
           {/* Logo & Title */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -223,7 +209,7 @@ export default function RegisterPage() {
               className="text-3xl md:text-4xl font-bold mb-2"
             >
               <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
-                Únete a InkEndin
+                Inkedin
               </span>
             </motion.h1>
             
@@ -233,7 +219,7 @@ export default function RegisterPage() {
               transition={{ delay: 0.4 }}
               className="text-gray-400"
             >
-              Conecta con artistas del tatuaje de todo el mundo
+              Únete a la comunidad de tatuajes más grande
             </motion.p>
           </div>
 
@@ -242,7 +228,7 @@ export default function RegisterPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-[#1a1a1a]/80 backdrop-blur-xl rounded-3xl p-8 border border-gray-800/50 shadow-2xl"
+            className="bg-[#1a1a1a]/80 backdrop-blur-xl rounded-3xl p-6 border border-gray-800/50 shadow-2xl"
           >
             {error && (
               <motion.div
@@ -254,123 +240,25 @@ export default function RegisterPage() {
               </motion.div>
             )}
 
-            {/* User Type Selection */}
-            <div className="mb-8">
-              <p className="text-sm font-medium text-gray-300 mb-4 text-center">
-                ¿Cómo quieres unirte?
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, userType: 'user' })}
-                  className={`relative p-6 rounded-2xl border-2 transition-all ${
-                    formData.userType === 'user'
-                      ? 'border-blue-500 bg-blue-500/10'
-                      : 'border-gray-800 bg-[#0f0f0f] hover:border-gray-700'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-3">
-                    <div className={`p-3 rounded-xl ${
-                      formData.userType === 'user' ? 'bg-blue-500/20' : 'bg-gray-800'
-                    }`}>
-                      <UsersIcon className={`w-6 h-6 ${
-                        formData.userType === 'user' ? 'text-blue-400' : 'text-gray-400'
-                      }`} />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-semibold text-white">Usuario</p>
-                      <p className="text-xs text-gray-400 mt-1">Explora y guarda tatuajes</p>
-                    </div>
-                  </div>
-                  {formData.userType === 'user' && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center"
-                    >
-                      <Check className="w-4 h-4 text-white" />
-                    </motion.div>
-                  )}
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, userType: 'artist' })}
-                  className={`relative p-6 rounded-2xl border-2 transition-all ${
-                    formData.userType === 'artist'
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-gray-800 bg-[#0f0f0f] hover:border-gray-700'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-3">
-                    <div className={`p-3 rounded-xl ${
-                      formData.userType === 'artist' ? 'bg-purple-500/20' : 'bg-gray-800'
-                    }`}>
-                      <Palette className={`w-6 h-6 ${
-                        formData.userType === 'artist' ? 'text-purple-400' : 'text-gray-400'
-                      }`} />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-semibold text-white">Artista</p>
-                      <p className="text-xs text-gray-400 mt-1">Comparte tu arte</p>
-                    </div>
-                  </div>
-                  {formData.userType === 'artist' && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center"
-                    >
-                      <Check className="w-4 h-4 text-white" />
-                    </motion.div>
-                  )}
-                </motion.button>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Username & Full Name */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
-                    Usuario
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                    <input
-                      type="text"
-                      id="username"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleChange}
-                      placeholder="usuario123"
-                      className="w-full pl-12 pr-4 py-3.5 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-2">
-                    Nombre Completo
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                    <input
-                      type="text"
-                      id="fullName"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      placeholder="Juan Pérez"
-                      className="w-full pl-12 pr-4 py-3.5 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      required
-                    />
-                  </div>
+          
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Full Name */}
+              <div>
+                <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-2">
+                  Nombre Completo
+                </label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input
+                    type="text"
+                    id="fullName"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    placeholder="Juan Pérez"
+                    className="w-full pl-12 pr-4 py-3 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    required
+                  />
                 </div>
               </div>
 
@@ -408,7 +296,7 @@ export default function RegisterPage() {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full pl-12 pr-12 py-3.5 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full pl-12 pr-12 py-3 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                   <button
@@ -481,7 +369,7 @@ export default function RegisterPage() {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full pl-12 pr-12 py-3.5 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full pl-12 pr-12 py-3 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                   <button
@@ -519,7 +407,7 @@ export default function RegisterPage() {
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white py-4 rounded-xl font-semibold text-lg hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative overflow-hidden group mt-6"
+                className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 text-white py-3 rounded-xl font-semibold text-base hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative overflow-hidden group mt-4"
               >
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
@@ -544,7 +432,7 @@ export default function RegisterPage() {
             </form>
 
             {/* Terms */}
-            <p className="text-xs text-gray-500 text-center mt-6">
+            <p className="text-xs text-gray-500 text-center mt-4">
               Al registrarte, aceptas nuestros{' '}
               <Link href="/terms" className="text-purple-400 hover:text-purple-300">
                 Términos de Servicio
@@ -561,7 +449,7 @@ export default function RegisterPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
-            className="text-center mt-6"
+            className="text-center mt-4"
           >
             <p className="text-gray-400">
               ¿Ya tienes cuenta?{' '}
