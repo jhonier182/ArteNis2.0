@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
+import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
+import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
 
 interface Post {
   id: string
@@ -43,11 +45,22 @@ interface Post {
 
 export default function HomePage() {
   const { user, isAuthenticated, isLoading } = useUser()
-  const [posts, setPosts] = useState<Post[]>([])
-  const [loadingPosts, setLoadingPosts] = useState(true)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set())
   const router = useRouter()
+
+  // Hook de scroll infinito para posts de usuarios seguidos
+  const {
+    data: posts,
+    loading: loadingPosts,
+    hasMore,
+    error,
+    loadMore,
+    reset: resetPosts,
+    setData: setPosts
+  } = useInfinitePosts<Post>('/api/posts/following', {}, {
+    enabled: isAuthenticated && user?.userType !== 'artist'
+  })
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -62,7 +75,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (isAuthenticated && user?.userType !== 'artist') {
-      fetchPosts()
+      loadSavedPosts()
     }
   }, [isAuthenticated, user])
 
@@ -80,22 +93,6 @@ export default function HomePage() {
     }
   }, [])
 
-  const fetchPosts = async () => {
-    try {
-      setLoadingPosts(true)
-      // Solo cargar posts de usuarios seguidos
-      const response = await apiClient.get('/api/posts/following')
-      const postsData = response.data?.data?.posts || response.data?.data || []
-      setPosts(postsData)
-      
-      // Cargar posts guardados
-      loadSavedPosts()
-    } catch (error) {
-      console.error('Error al cargar posts:', error)
-    } finally {
-      setLoadingPosts(false)
-    }
-  }
 
   const loadSavedPosts = async () => {
     try {
@@ -177,7 +174,7 @@ export default function HomePage() {
   const handleLike = async (postId: string) => {
     try {
       // Actualización optimista - actualizar UI inmediatamente
-      setPosts(prevPosts => prevPosts.map(post => {
+      const updatedPosts = posts.map((post: Post) => {
         if (post.id === postId) {
           const isCurrentlyLiked = post.isLiked || false
           return {
@@ -187,7 +184,8 @@ export default function HomePage() {
           }
         }
         return post
-      }))
+      })
+      setPosts(updatedPosts)
 
       // Hacer la petición al backend
       await apiClient.post(`/api/posts/${postId}/like`)
@@ -195,7 +193,7 @@ export default function HomePage() {
       console.error('Error al dar like:', error)
       
       // Revertir cambios en caso de error
-      setPosts(prevPosts => prevPosts.map(post => {
+      const revertedPosts = posts.map((post: Post) => {
         if (post.id === postId) {
           const isCurrentlyLiked = post.isLiked || false
           return {
@@ -205,7 +203,8 @@ export default function HomePage() {
           }
         }
         return post
-      }))
+      })
+      setPosts(revertedPosts)
     }
   }
 
@@ -349,6 +348,14 @@ export default function HomePage() {
                 </motion.div>
               ))}
             </div>
+            
+            {/* Indicador de scroll infinito */}
+            <InfiniteScrollTrigger
+              loading={loadingPosts}
+              hasMore={hasMore}
+              error={error}
+              onRetry={loadMore}
+            />
           </div>
         )}
       </main>

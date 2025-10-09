@@ -22,6 +22,8 @@ import {
 } from 'lucide-react'
 import { apiClient } from '@/utils/apiClient'
 import { useUser } from '@/context/UserContext'
+import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
+import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
 
 interface SearchUser {
   id: number
@@ -60,9 +62,19 @@ export default function SearchPage() {
   const [isSearching, setIsSearching] = useState(false)
   const [activeTab, setActiveTab] = useState<'posts' | 'artists'>('posts')
   const [recentSearches, setRecentSearches] = useState<string[]>([])
-  const [posts, setPosts] = useState<Post[]>([])
-  const [loadingPosts, setLoadingPosts] = useState(true)
   const [selectedFilter, setSelectedFilter] = useState<'trending' | 'recent' | 'popular'>('trending')
+
+  // Hook de scroll infinito para posts
+  const {
+    data: posts,
+    loading: loadingPosts,
+    hasMore,
+    error,
+    loadMore,
+    reset: resetPosts
+  } = useInfinitePosts<Post>('/api/posts', { filter: selectedFilter }, {
+    enabled: true
+  })
 
   useEffect(() => {
     // Cargar búsquedas recientes del localStorage
@@ -71,9 +83,9 @@ export default function SearchPage() {
       setRecentSearches(JSON.parse(recent))
     }
     
-    // Cargar posts de usuarios que NO sigue
-    fetchPosts()
-  }, [selectedFilter])
+    // Resetear posts cuando cambia el filtro
+    resetPosts()
+  }, [selectedFilter, resetPosts])
 
   useEffect(() => {
     if (searchQuery.length >= 2 && activeTab === 'artists') {
@@ -86,23 +98,6 @@ export default function SearchPage() {
     }
   }, [searchQuery, activeTab])
   
-  const fetchPosts = async () => {
-    try {
-      setLoadingPosts(true)
-      // Obtener posts de usuarios que NO sigue (esto viene del endpoint /api/posts que ya filtra)
-      const response = await apiClient.get('/api/posts', {
-        params: {
-          filter: selectedFilter // trending, recent, popular
-        }
-      })
-      const postsData = response.data?.data?.posts || response.data?.data || []
-      setPosts(postsData)
-    } catch (error) {
-      console.error('Error al cargar posts:', error)
-    } finally {
-      setLoadingPosts(false)
-    }
-  }
 
   const handleSearch = async () => {
     try {
@@ -345,6 +340,14 @@ export default function SearchPage() {
                       </motion.div>
                     ))}
                   </div>
+                  
+                  {/* Indicador de scroll infinito */}
+                  <InfiniteScrollTrigger
+                    loading={loadingPosts}
+                    hasMore={hasMore}
+                    error={error}
+                    onRetry={loadMore}
+                  />
                 </div>
               ) : (
                 <div className="text-center py-20 px-4">

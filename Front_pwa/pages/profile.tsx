@@ -27,6 +27,8 @@ import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
 import EditProfileModal from '@/components/EditProfileModal'
 import SettingsModal from '@/components/SettingsModal'
+import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
+import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, setUser } = useUser()
@@ -34,10 +36,21 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('collections')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
-  const [userPosts, setUserPosts] = useState<any[]>([])
-  const [loadingPosts, setLoadingPosts] = useState(true)
   const [savedPosts, setSavedPosts] = useState<any[]>([])
   const [loadingSavedPosts, setLoadingSavedPosts] = useState(true)
+
+  // Hook de scroll infinito para posts del usuario (solo para tatuadores)
+  const {
+    data: userPosts,
+    loading: loadingPosts,
+    hasMore,
+    error,
+    loadMore,
+    reset: resetPosts,
+    setData: setUserPosts
+  } = useInfinitePosts<any>(`/api/posts/user/${user?.id}`, {}, {
+    enabled: isAuthenticated && user?.userType === 'artist'
+  })
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -47,27 +60,12 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (user?.userType === 'artist') {
-        fetchUserPosts()
-      } else {
+      if (user?.userType !== 'artist') {
         fetchSavedPosts()
       }
     }
   }, [isAuthenticated, user])
 
-  const fetchUserPosts = async () => {
-    try {
-      setLoadingPosts(true)
-      const response = await apiClient.get(`/api/posts/user/${user?.id}`)
-      console.log('Posts del usuario:', response.data)
-      setUserPosts(response.data?.data?.posts || [])
-    } catch (error) {
-      console.error('Error al cargar posts del usuario:', error)
-      setUserPosts([])
-    } finally {
-      setLoadingPosts(false)
-    }
-  }
 
   const fetchSavedPosts = async () => {
     try {
@@ -473,39 +471,49 @@ export default function ProfilePage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             ) : userPosts.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {userPosts.slice(0, 6).map((post, index) => (
-                  <motion.div
-                    key={post.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    onClick={() => router.push(`/post/${post.id}`)}
-                    className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
-                  >
-                    {post.mediaUrl && (
-                      <img
-                        src={post.mediaUrl}
-                        alt={post.description || 'Post'}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                        <div className="flex items-center gap-3 text-white text-sm">
-                          <div className="flex items-center gap-1">
-                            <Heart className="w-4 h-4" />
-                            <span>{post.likesCount || 0}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MessageCircle className="w-4 h-4" />
-                            <span>{post.commentsCount || 0}</span>
+              <div className="mb-6">
+                <div className="grid grid-cols-2 gap-3">
+                  {userPosts.map((post, index) => (
+                    <motion.div
+                      key={post.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      onClick={() => router.push(`/post/${post.id}`)}
+                      className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
+                    >
+                      {post.mediaUrl && (
+                        <img
+                          src={post.mediaUrl}
+                          alt={post.description || 'Post'}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                          <div className="flex items-center gap-3 text-white text-sm">
+                            <div className="flex items-center gap-1">
+                              <Heart className="w-4 h-4" />
+                              <span>{post.likesCount || 0}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MessageCircle className="w-4 h-4" />
+                              <span>{post.commentsCount || 0}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))}
+                </div>
+                
+                {/* Indicador de scroll infinito */}
+                <InfiniteScrollTrigger
+                  loading={loadingPosts}
+                  hasMore={hasMore}
+                  error={error}
+                  onRetry={loadMore}
+                />
               </div>
             ) : (
               <div className="text-center py-10 px-4">
