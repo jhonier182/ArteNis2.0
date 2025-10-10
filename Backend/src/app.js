@@ -11,6 +11,55 @@ const { performanceMonitor, eventLoopMonitor } = require('./middlewares/performa
 const logger = require('./utils/logger');
 const { sequelize } = require('./config/db');
 
+// Middleware simple para log de tiempo de respuesta con análisis de velocidad
+const responseTimeLogger = (req, res, next) => {
+  const startTime = Date.now();
+  
+  res.on('finish', () => {
+    const responseTime = Date.now() - startTime;
+    
+    // Determinar color según código de estado
+    let statusColor = '🟢'; // Verde por defecto
+    if (res.statusCode >= 400) {
+      statusColor = '🔴'; // Rojo para errores
+    } else if (res.statusCode >= 300) {
+      statusColor = '🟡'; // Amarillo para redirecciones
+    }
+    
+    // Determinar velocidad de respuesta
+    let speedIndicator = '';
+    if (responseTime < 100) {
+      speedIndicator = '⚡'; // Excelente (< 100ms)
+    } else if (responseTime < 500) {
+      speedIndicator = '✅'; // Buena (100-500ms)
+    } else if (responseTime < 1000) {
+      speedIndicator = '⚠️'; // Lenta (500ms-1s)
+    } else if (responseTime < 3000) {
+      speedIndicator = '🐌'; // Muy lenta (1-3s)
+    } else {
+      speedIndicator = '🚨'; // Crítica (> 3s)
+    }
+    
+    // Crear mensaje con análisis de velocidad
+    let speedText = '';
+    if (responseTime < 100) {
+      speedText = 'EXCELENTE';
+    } else if (responseTime < 500) {
+      speedText = 'BUENA';
+    } else if (responseTime < 1000) {
+      speedText = 'LENTA';
+    } else if (responseTime < 3000) {
+      speedText = 'MUY LENTA';
+    } else {
+      speedText = 'CRÍTICA';
+    }
+    
+    console.log(`${statusColor} ${speedIndicator} ${req.method} ${req.url} - ${responseTime}ms - ${res.statusCode} (${speedText})`);
+  });
+  
+  next();
+};
+
 // Importar rutas
 const postRoutes = require('./routes/postRoutes');
 const boardRoutes = require('./routes/boardRoutes');
@@ -142,6 +191,9 @@ app.use(compression({
   chunkSize: 16 * 1024, // 16KB chunks
   memLevel: 8 // Uso de memoria moderado
 }));
+
+// Middleware de logging simple para tiempo de respuesta
+app.use(responseTimeLogger);
 
 // Middleware de monitoreo de rendimiento
 app.use(performanceMonitor);
