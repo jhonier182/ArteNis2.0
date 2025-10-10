@@ -28,19 +28,18 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
     setTimeout(() => onClose(id), 500)
   }
 
-  const getIcon = () => {
-    switch (type) {
-      case 'success':
-        return <CheckCircle className="w-6 h-6 text-green-500" />
-      case 'error':
-        return <XCircle className="w-6 h-6 text-red-500" />
-      case 'warning':
-        return <AlertCircle className="w-6 h-6 text-yellow-500" />
-      case 'info':
-        return <Info className="w-6 h-6 text-blue-500" />
-      default:
-        return <CheckCircle className="w-6 h-6 text-green-500" />
+  const getEmoji = () => {
+    const emojis = {
+      success: ['🎉', '✨', '🎊', '🌟', '💫', '🔥', '💯', '✅'],
+      error: ['😞', '😢', '💔', '😰', '😓', '😵', '❌', '🚫'],
+      warning: ['⚠️', '🚨', '⚡', '🔥', '💥', '😱', '😨', '⚠️'],
+      info: ['💡', '🔍', '📝', '📋', '📊', '📈', 'ℹ️', '💭']
     }
+    
+    const typeEmojis = emojis[type] || emojis.success
+    const randomEmoji = typeEmojis[Math.floor(Math.random() * typeEmojis.length)]
+    
+    return randomEmoji
   }
 
   const getBackgroundColor = () => {
@@ -122,12 +121,150 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
           <div className="relative p-4">
             <div className="flex items-start gap-3">
               <motion.div 
-                className="flex-shrink-0 mt-0.5"
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
+                className="flex-shrink-0 mt-0.5 text-3xl"
+                initial={{ scale: 0, rotate: -180, opacity: 0 }}
+                animate={{ 
+                  scale: 1, 
+                  rotate: 0,
+                  opacity: 1,
+                  y: [0, -8, 0],
+                  x: [0, 2, -2, 0]
+                }}
+                transition={{ 
+                  delay: 0.2, 
+                  type: "spring", 
+                  stiffness: 400,
+                  damping: 20,
+                  y: {
+                    duration: 3,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    ease: "easeInOut"
+                  },
+                  x: {
+                    duration: 4,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    ease: "easeInOut"
+                  }
+                }}
+                whileHover={{
+                  scale: 1.3,
+                  rotate: [0, -15, 15, -10, 10, 0],
+                  y: -10,
+                  transition: { 
+                    duration: 0.8,
+                    type: "spring",
+                    stiffness: 300
+                  }
+                }}
+                whileTap={{
+                  scale: 0.9,
+                  rotate: 360,
+                  transition: { duration: 0.3 }
+                }}
               >
-                {getIcon()}
+                {getEmoji()}
+                
+                {/* Efectos de partículas para success */}
+                {type === 'success' && (
+                  <>
+                    <motion.span
+                      className="absolute -top-1 -right-1 text-lg"
+                      animate={{
+                        scale: [1, 1.5, 1],
+                        opacity: [0, 1, 0],
+                        rotate: [0, 180, 360]
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        delay: 0.5
+                      }}
+                    >
+                      ✨
+                    </motion.span>
+                    <motion.span
+                      className="absolute -bottom-1 -left-1 text-sm"
+                      animate={{
+                        scale: [1, 1.3, 1],
+                        opacity: [0, 1, 0],
+                        rotate: [0, -180, -360]
+                      }}
+                      transition={{
+                        duration: 2.5,
+                        repeat: Infinity,
+                        delay: 1
+                      }}
+                    >
+                      ⭐
+                    </motion.span>
+                  </>
+                )}
+                
+                {/* Efectos de partículas para error */}
+                {type === 'error' && (
+                  <>
+                    <motion.span
+                      className="absolute -top-1 -right-1 text-sm"
+                      animate={{
+                        scale: [1, 1.2, 1],
+                        opacity: [0, 1, 0],
+                        x: [0, 10, -10, 0],
+                        y: [0, -10, 10, 0]
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        delay: 0.3
+                      }}
+                    >
+                      💥
+                    </motion.span>
+                  </>
+                )}
+                
+                {/* Efectos de partículas para warning */}
+                {type === 'warning' && (
+                  <>
+                    <motion.span
+                      className="absolute -top-1 -right-1 text-sm"
+                      animate={{
+                        scale: [1, 1.4, 1],
+                        opacity: [0, 1, 0],
+                        rotate: [0, 360]
+                      }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        delay: 0.2
+                      }}
+                    >
+                      ⚡
+                    </motion.span>
+                  </>
+                )}
+                
+                {/* Efectos de partículas para info */}
+                {type === 'info' && (
+                  <>
+                    <motion.span
+                      className="absolute -top-1 -right-1 text-sm"
+                      animate={{
+                        scale: [1, 1.3, 1],
+                        opacity: [0, 1, 0],
+                        y: [0, -5, 0]
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        delay: 0.4
+                      }}
+                    >
+                      💭
+                    </motion.span>
+                  </>
+                )}
               </motion.div>
               
               <div className="flex-1 min-w-0">
