@@ -7,9 +7,6 @@ import {
   Image as ImageIcon,
   Camera,
   Video,
-  ChevronRight,
-  Users,
-  Tag,
   Sparkles,
   Edit3,
   Send,
@@ -19,6 +16,8 @@ import {
 import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
 import { useAlert, AlertContainer } from '@/components/Alert'
+import { StyleFilter, VisibilityFilter, ClientTagFilter } from '@/components/PostFilters'
+import { usePostFilters, FILTER_CONSTRAINTS } from '@/hooks/usePostFilters'
 
 export default function CreatePostPage() {
   const router = useRouter()
@@ -30,21 +29,25 @@ export default function CreatePostPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [description, setDescription] = useState('')
-  const [selectedStyles, setSelectedStyles] = useState<string[]>([])
   const [clientTag, setClientTag] = useState('')
-  const [visibility, setVisibility] = useState<'public' | 'private'>('public')
-  const [showStylePicker, setShowStylePicker] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const [showAISuggestions, setShowAISuggestions] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
   const [currentStep, setCurrentStep] = useState<'select' | 'edit'>('select')
 
-  const tattooStyles = [
-    'Realismo', 'Tradicional', 'Japonés', 'Acuarela',
-    'Geométrico', 'Minimalista', 'Blackwork', 'Dotwork',
-    'Tribal', 'Neo-tradicional', 'Ilustrativo', 'Lettering'
-  ]
+  // Usar el hook de filtros para manejar estilos y visibilidad
+  const {
+    filters,
+    toggleStyle,
+    updateFilter
+  } = usePostFilters({
+    styles: [],
+    visibility: 'public',
+    type: 'all',
+    dateRange: 'all',
+    sortBy: 'newest'
+  })
 
   // Drag and drop functions
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -105,14 +108,6 @@ export default function CreatePostPage() {
     setCurrentStep('edit')
   }
 
-  const handleStyleToggle = (style: string) => {
-    setSelectedStyles(prev =>
-      prev.includes(style)
-        ? prev.filter(s => s !== style)
-        : [...prev, style]
-    )
-  }
-
   const handleEdit = () => {
     if (!selectedFile) {
       error('Archivo requerido', 'Por favor selecciona una imagen o video')
@@ -124,9 +119,9 @@ export default function CreatePostPage() {
       localStorage.setItem('draft_image', imageData)
       localStorage.setItem('draft_filename', selectedFile.name)
       localStorage.setItem('draft_description', description)
-      localStorage.setItem('draft_styles', selectedStyles.join(','))
+      localStorage.setItem('draft_styles', filters.styles.join(','))
       localStorage.setItem('draft_client', clientTag)
-      localStorage.setItem('draft_visibility', visibility)
+      localStorage.setItem('draft_visibility', filters.visibility)
       router.push('/create/edit')
     }
     reader.readAsDataURL(selectedFile)
@@ -150,8 +145,8 @@ export default function CreatePostPage() {
         cloudinaryPublicId,
         description,
         type: selectedFile.type.startsWith('video/') ? 'video' : 'image',
-        hashtags: selectedStyles,
-        visibility,
+        hashtags: filters.styles,
+        visibility: filters.visibility,
         clientTag: clientTag || undefined,
         thumbnailUrl: uploadResponse.data.data.thumbnailUrl || undefined
       }
@@ -448,107 +443,23 @@ export default function CreatePostPage() {
                 </AnimatePresence>
               </div>
 
-              {/* Estilos de tatuaje */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-semibold text-gray-300">Estilos de tatuaje</label>
-                  {selectedStyles.length > 0 && (
-                    <span className="text-xs text-blue-400 font-medium">
-                      {selectedStyles.length} seleccionado{selectedStyles.length > 1 ? 's' : ''}
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowStylePicker(!showStylePicker)}
-                  className="w-full flex items-center justify-between p-3 sm:p-4 bg-[#0f1419] border border-gray-800 rounded-2xl hover:border-gray-700 transition-all group"
-                >
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl flex items-center justify-center">
-                      <Tag className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-white">Seleccionar estilos</p>
-                      {selectedStyles.length > 0 ? (
-                        <p className="text-xs text-gray-400">{selectedStyles.slice(0, 2).join(', ')}{selectedStyles.length > 2 && ` +${selectedStyles.length - 2} más`}</p>
-                      ) : (
-                        <p className="text-xs text-gray-500">Toca para seleccionar</p>
-                      )}
-                    </div>
-                  </div>
-                  <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform group-hover:text-white ${showStylePicker ? 'rotate-90' : ''}`} />
-                </button>
-                <AnimatePresence>
-                  {showStylePicker && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-3 space-y-2"
-                    >
-                      <div className="flex flex-wrap gap-2">
-                        {tattooStyles.map((style) => (
-                          <motion.button
-                            key={style}
-                            onClick={() => handleStyleToggle(style)}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                              selectedStyles.includes(style)
-                                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
-                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-300'
-                            }`}
-                          >
-                            {style}
-                          </motion.button>
-                        ))}
-                      </div>
-                      <div className="pt-2 border-t border-gray-800">
-                        <p className="text-xs text-gray-500 mb-2">Estilos populares:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {['Realismo', 'Tradicional', 'Japonés'].map((popularStyle) => (
-                            <button
-                              key={popularStyle}
-                              onClick={() => handleStyleToggle(popularStyle)}
-                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                                selectedStyles.includes(popularStyle)
-                                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white'
-                                  : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700'
-                              }`}
-                            >
-                              {popularStyle}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+               {/* Estilos de tatuaje */}
+               <StyleFilter
+                 selectedStyles={filters.styles}
+                 onStyleToggle={toggleStyle}
+               />
 
-              {/* Etiquetar cliente */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-semibold text-gray-300">Etiquetar cliente</label>
-                  <span className="text-xs text-gray-500">Opcional</span>
-                </div>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 rounded-xl flex items-center justify-center">
-                    <Users className="w-5 h-5 text-emerald-400" />
-                  </div>
-                  <input
-                    type="text"
-                    value={clientTag}
-                    onChange={(e) => setClientTag(e.target.value)}
-                    placeholder="@usuario"
-                    className="w-full pl-14 sm:pl-16 pr-4 py-3 sm:py-4 bg-[#0f1419] border border-gray-800 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all"
-                  />
-                  {clientTag && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                    </div>
-                  )}
-                </div>
-              </div>
+               {/* Etiquetar cliente */}
+               <ClientTagFilter
+                 clientTag={clientTag}
+                 onClientTagChange={setClientTag}
+               />
+
+               {/* Visibilidad */}
+               <VisibilityFilter
+                 visibility={filters.visibility}
+                 onVisibilityChange={(visibility) => updateFilter('visibility', visibility)}
+               />
             </motion.div>
           )}
 
