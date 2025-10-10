@@ -84,13 +84,7 @@ export default function SettingsModal({
       onClick: handleEditProfile,
       color: 'text-blue-500'
     },
-    {
-      icon: Bell,
-      label: 'Notificaciones',
-      description: 'Configurar alertas',
-      onClick: () => console.log('Notificaciones'),
-      color: 'text-purple-500'
-    },
+   
     {
       icon: Lock,
       label: 'Privacidad',
@@ -104,13 +98,6 @@ export default function SettingsModal({
       description: 'Cambiar contraseña',
       onClick: () => console.log('Seguridad'),
       color: 'text-yellow-500'
-    },
-    {
-      icon: Moon,
-      label: 'Apariencia',
-      description: 'Tema oscuro activado',
-      onClick: () => console.log('Apariencia'),
-      color: 'text-indigo-500'
     },
     {
       icon: Globe,
@@ -147,7 +134,8 @@ export default function SettingsModal({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[90vh] overflow-hidden"
+            // Aquí cambiamos bottom-0 por bottom-10 para subir la ventana
+            className="fixed inset-x-0 bottom-10 z-50 max-h-[90vh] overflow-hidden"
           >
             <div className="bg-[#1a1f26] rounded-t-3xl shadow-2xl border-t border-gray-800">
               {/* Header */}
@@ -276,7 +264,8 @@ export default function SettingsModal({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:max-w-sm z-[60]"
+            // Sube la ventana de confirmación también un poco
+            className="fixed inset-x-4 top-[40%] -translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:max-w-sm z-[60]"
           >
             <div className="bg-[#1a1f26] rounded-3xl shadow-2xl overflow-hidden border border-gray-800 p-6">
               <div className="text-center mb-6">
