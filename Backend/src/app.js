@@ -7,6 +7,7 @@ const path = require('path');
 // Middlewares locales
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { devRateLimit, strictRateLimit } = require('./middlewares/devRateLimit');
+const { performanceMonitor, eventLoopMonitor } = require('./middlewares/performanceMonitor');
 const logger = require('./utils/logger');
 const { sequelize } = require('./config/db');
 
@@ -125,8 +126,26 @@ if (process.env.NODE_ENV === 'production') {
   app.use('/api', devRateLimit);
 }
 
-// Middleware de compresión
-app.use(compression());
+// Middleware de compresión optimizado
+app.use(compression({
+  level: 6, // Nivel de compresión balanceado (1-9)
+  threshold: 1024, // Comprimir archivos mayores a 1KB
+  filter: (req, res) => {
+    // No comprimir si ya está comprimido
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Usar compresión estándar
+    return compression.filter(req, res);
+  },
+  // Configuraciones adicionales
+  chunkSize: 16 * 1024, // 16KB chunks
+  memLevel: 8 // Uso de memoria moderado
+}));
+
+// Middleware de monitoreo de rendimiento
+app.use(performanceMonitor);
+app.use(eventLoopMonitor);
 
 // Parseo de JSON y URL encoded
 app.use(express.json({ limit: '10mb' }));
@@ -181,6 +200,59 @@ app.get('/health', async (req, res) => {
       success: false,
       message: 'Error en health check',
       timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
+});
+
+// Ruta para métricas de rendimiento
+app.get('/metrics', (req, res) => {
+  try {
+    const { getPerformanceMetrics, generatePerformanceReport } = require('./middlewares/performanceMonitor');
+    
+    if (req.query.format === 'detailed') {
+      res.json({
+        success: true,
+        data: getPerformanceMetrics()
+      });
+    } else {
+      res.json({
+        success: true,
+        data: generatePerformanceReport()
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error obteniendo métricas',
+      error: error.message
+    });
+  }
+});
+
+// Ruta para estadísticas del cluster
+app.get('/cluster', (req, res) => {
+  try {
+    const { getClusterStats, restartWorkers } = require('./config/cluster');
+    
+    if (req.query.action === 'restart') {
+      const result = restartWorkers();
+      res.json({
+        success: true,
+        message: 'Workers reiniciados',
+        data: result
+      });
+    } else {
+      const stats = getClusterStats();
+      res.json({
+        success: true,
+        data: stats
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error obteniendo estadísticas del cluster',
       error: error.message
     });
   }

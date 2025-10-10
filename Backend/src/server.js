@@ -2,9 +2,13 @@ require('dotenv').config();
 const app = require('./app');
 const { connectDB, closeDB } = require('./config/db');
 const logger = require('./utils/logger');
+const { startCluster } = require('./config/cluster');
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
+
+// Verificar si se debe usar clustering
+const useClustering = process.env.USE_CLUSTERING === 'true' || process.env.NODE_ENV === 'production';
 
 // Función principal para inicializar el servidor
 const startServer = async () => {
@@ -14,6 +18,22 @@ const startServer = async () => {
     // Conectar a la base de datos
     await connectDB();
     
+    // Optimizar base de datos
+    const { 
+      createOptimizedIndexes, 
+      analyzeSlowQueries, 
+      optimizeMySQLConfig,
+      createMaterializedViews 
+    } = require('./config/dbOptimization');
+    
+    // Ejecutar optimizaciones en paralelo
+    await Promise.allSettled([
+      createOptimizedIndexes(),
+      analyzeSlowQueries(),
+      optimizeMySQLConfig(),
+      createMaterializedViews()
+    ]);
+    
     // Iniciar servidor
     const server = app.listen(PORT, HOST, () => {
       console.log(`✅ Servidor ArteNis iniciado en http://${HOST}:${PORT}`);
@@ -21,6 +41,7 @@ const startServer = async () => {
       if (HOST === '0.0.0.0') {
         console.log(`📱 Accesible desde la red local en el puerto ${PORT}`);
       }
+      console.log(`🔄 Modo: ${useClustering ? 'Clustering' : 'Single Process'}`);
     });
 
     // Manejo elegante del cierre del servidor
@@ -83,5 +104,9 @@ if (missingVars.length > 0) {
   process.exit(1);
 }
 
-// Iniciar el servidor
-startServer();
+// Iniciar el servidor con o sin clustering
+if (useClustering) {
+  startCluster();
+} else {
+  startServer();
+}

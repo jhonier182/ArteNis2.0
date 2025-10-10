@@ -30,10 +30,12 @@ const sequelize = new Sequelize({
   dialect: 'mysql',
   logging: false, // Desactivado para mantener terminal limpia
   pool: {
-    max: 10,      // Máximo 10 conexiones simultáneas
-    min: 0,       // Mínimo 0 conexiones
-    acquire: 30000, // Tiempo máximo para obtener conexión (30s)
-    idle: 10000   // Tiempo máximo que una conexión puede estar inactiva (10s)
+    max: 20,      // Aumentado para mejor concurrencia
+    min: 5,       // Mínimo de conexiones activas
+    acquire: 60000, // Aumentado a 60s para evitar timeouts
+    idle: 30000,   // Aumentado a 30s para mantener conexiones
+    evict: 1000,   // Verificar conexiones cada segundo
+    handleDisconnects: true // Reconectar automáticamente
   },    
   timezone: '-05:00', // Zona horaria de Colombia
   define: {
@@ -49,10 +51,52 @@ const sequelize = new Sequelize({
     ...(useSsl 
       ? { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: false } }
       : {}
-    )
+    ),
+    // Optimizaciones de conexión
+    connectTimeout: 60000,
+    acquireTimeout: 60000,
+    timeout: 60000,
+    // Configuraciones de rendimiento
+    multipleStatements: false,
+    dateStrings: false,
+    debug: false
   },
   retry: {
-    max: 3 // Reintentar conexión hasta 3 veces
+    max: 5, // Aumentado a 5 reintentos
+    timeout: 30000, // Timeout de 30s para reintentos
+    match: [
+      /ETIMEDOUT/,
+      /EHOSTUNREACH/,
+      /ECONNRESET/,
+      /ECONNREFUSED/,
+      /ETIMEDOUT/,
+      /ESOCKETTIMEDOUT/,
+      /EHOSTUNREACH/,
+      /EPIPE/,
+      /EAI_AGAIN/,
+      /SequelizeConnectionError/,
+      /SequelizeConnectionRefusedError/,
+      /SequelizeHostNotFoundError/,
+      /SequelizeHostNotReachableError/,
+      /SequelizeInvalidConnectionError/,
+      /SequelizeConnectionTimedOutError/
+    ]
+  },
+  // Configuraciones adicionales de rendimiento
+  benchmark: false,
+  isolationLevel: 'READ_COMMITTED', // Mejor rendimiento que REPEATABLE_READ
+  transactionType: 'IMMEDIATE', // Transacciones más rápidas
+  hooks: {
+    beforeConnect: (config) => {
+      // Configurar conexión antes de conectar
+      config.timezone = '-05:00';
+    },
+    afterConnect: (connection) => {
+      // Optimizaciones después de conectar
+      connection.query('SET SESSION sql_mode = "STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO"');
+      connection.query('SET SESSION innodb_lock_wait_timeout = 50');
+      connection.query('SET SESSION lock_wait_timeout = 50');
+    }
   }
 });
 
