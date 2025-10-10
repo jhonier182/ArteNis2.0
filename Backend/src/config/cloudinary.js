@@ -126,6 +126,21 @@ const deletePostImage = async (publicId) => {
   }
 };
 
+// Función para eliminar video de post
+const deletePostVideo = async (publicId) => {
+  try {
+    await cloudinary.uploader.destroy(publicId, {
+      invalidate: true,
+      resource_type: 'video',
+      type: 'upload'
+    });
+    return true;
+  } catch (error) {
+    console.error('Error deleting post video from Cloudinary:', error);
+    return false;
+  }
+};
+
 // Función para generar URLs optimizadas
 const getOptimizedUrl = (publicId, options = {}) => {
   const defaultOptions = {
@@ -143,5 +158,6 @@ module.exports = {
   uploadPostImage,
   uploadPostVideo,
   deletePostImage,
+  deletePostVideo,
   getOptimizedUrl
 };
