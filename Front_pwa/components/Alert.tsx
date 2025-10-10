@@ -11,7 +11,7 @@ export interface AlertProps {
   onClose: (id: string) => void
 }
 
-export default function Alert({ id, type, title, message, duration = 1500, onClose }: AlertProps) {
+export default function Alert({ id, type, title, message, duration = 1300, onClose }: AlertProps) {
   const [isVisible, setIsVisible] = useState(true)
 
   // Función para reproducir sonido 
@@ -168,7 +168,8 @@ export default function Alert({ id, type, title, message, duration = 1500, onClo
                   scale: 1, 
                   rotate: 0,
                   opacity: 1,
-                  y: [0, -5, 0]
+                  y: [0, -8, 0],
+                  x: [0, 2, -2, 0]
                 }}
                 transition={{ 
                   delay: 0.1, 
@@ -180,10 +181,131 @@ export default function Alert({ id, type, title, message, duration = 1500, onClo
                     repeat: Infinity,
                     repeatType: "reverse",
                     ease: "easeInOut"
+                  },
+                  x: {
+                    duration: 3,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    ease: "easeInOut"
                   }
+                }}
+                whileHover={{
+                  scale: 1.3,
+                  rotate: [0, -15, 15, -10, 10, 0],
+                  y: -10,
+                  transition: { 
+                    duration: 0.8,
+                    type: "spring",
+                    stiffness: 300
+                  }
+                }}
+                whileTap={{
+                  scale: 0.9,
+                  rotate: 360,
+                  transition: { duration: 0.3 }
                 }}
               >
                 {getEmoji()}
+                
+                {/* Efectos de partículas para success */}
+                {type === 'success' && (
+                  <>
+                    <motion.span
+                      className="absolute -top-1 -right-1 text-lg"
+                      animate={{
+                        scale: [1, 1.5, 1],
+                        opacity: [0, 1, 0],
+                        rotate: [0, 180, 360]
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        delay: 0.5
+                      }}
+                    >
+                      ✨
+                    </motion.span>
+                    <motion.span
+                      className="absolute -bottom-1 -left-1 text-sm"
+                      animate={{
+                        scale: [1, 1.3, 1],
+                        opacity: [0, 1, 0],
+                        rotate: [0, -180, -360]
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        delay: 1
+                      }}
+                    >
+                      ⭐
+                    </motion.span>
+                  </>
+                )}
+                
+                {/* Efectos de partículas para error */}
+                {type === 'error' && (
+                  <>
+                    <motion.span
+                      className="absolute -top-1 -right-1 text-sm"
+                      animate={{
+                        scale: [1, 1.2, 1],
+                        opacity: [0, 1, 0],
+                        x: [0, 10, -10, 0],
+                        y: [0, -10, 10, 0]
+                      }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        delay: 0.3
+                      }}
+                    >
+                      💥
+                    </motion.span>
+                  </>
+                )}
+                
+                {/* Efectos de partículas para warning */}
+                {type === 'warning' && (
+                  <>
+                    <motion.span
+                      className="absolute -top-1 -right-1 text-sm"
+                      animate={{
+                        scale: [1, 1.4, 1],
+                        opacity: [0, 1, 0],
+                        rotate: [0, 360]
+                      }}
+                      transition={{
+                        duration: 0.8,
+                        repeat: Infinity,
+                        delay: 0.2
+                      }}
+                    >
+                      ⚡
+                    </motion.span>
+                  </>
+                )}
+                
+                {/* Efectos de partículas para info */}
+                {type === 'info' && (
+                  <>
+                    <motion.span
+                      className="absolute -top-1 -right-1 text-sm"
+                      animate={{
+                        scale: [1, 1.3, 1],
+                        opacity: [0, 1, 0],
+                        y: [0, -5, 0]
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        delay: 0.4
+                      }}
+                    >
+                      💭
+                    </motion.span>
+                  </>
+                )}
               </motion.div>
               
               <motion.h4 
