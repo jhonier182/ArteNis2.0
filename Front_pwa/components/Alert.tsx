@@ -11,10 +11,54 @@ export interface AlertProps {
   onClose: (id: string) => void
 }
 
-export default function Alert({ id, type, title, message, duration = 4000, onClose }: AlertProps) {
+export default function Alert({ id, type, title, message, duration = 1500, onClose }: AlertProps) {
   const [isVisible, setIsVisible] = useState(true)
 
+  // Función para reproducir sonido 
+  const playSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      
+      // Sonido - más suave y musical
+      const frequencies = {
+        success: [523, 659, 784], // Do, Mi, Sol (acorde mayor)
+        error: [392, 311, 262],   // Sol, Mi♭, Do (acorde menor)
+        warning: [523, 622, 523], // Do, Mi♭, Do (tritono)
+        info: [523, 659]          // Do, Mi (intervalo mayor)
+      }
+      
+      const freqArray = frequencies[type]
+      const duration = 0.3
+      const noteDuration = duration / freqArray.length
+      
+      freqArray.forEach((freq, index) => {
+        const oscillator = audioContext.createOscillator()
+        const gainNode = audioContext.createGain()
+        
+        oscillator.connect(gainNode)
+        gainNode.connect(audioContext.destination)
+        
+        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + (index * noteDuration))
+        oscillator.type = 'sine'
+        
+        // Envelope suave como Instagram
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime + (index * noteDuration))
+        gainNode.gain.linearRampToValueAtTime(0.08, audioContext.currentTime + (index * noteDuration) + 0.05)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + (index * noteDuration) + noteDuration)
+        
+        oscillator.start(audioContext.currentTime + (index * noteDuration))
+        oscillator.stop(audioContext.currentTime + (index * noteDuration) + noteDuration)
+      })
+    } catch (error) {
+      // Silenciar errores de audio si no está disponible
+      console.log('Audio no disponible')
+    }
+  }
+
   useEffect(() => {
+    // Reproducir sonido al aparecer
+    playSound()
+    
     const timer = setTimeout(() => {
       setIsVisible(false)
       setTimeout(() => onClose(id), 500) // Delay para la animación de salida
@@ -78,29 +122,26 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
         <motion.div
           initial={{ 
             opacity: 0, 
-            y: -50, 
-            scale: 0.8,
-            rotateX: 15
+            scale: 0,
+            rotate: 180
           }}
           animate={{ 
             opacity: 1, 
-            y: 0, 
             scale: 1,
-            rotateX: 0
+            rotate: 0
           }}
           exit={{ 
             opacity: 0, 
-            y: -50, 
-            scale: 0.8,
-            rotateX: -15
+            scale: 0,
+            rotate: -180
           }}
           transition={{ 
             type: "spring", 
-            stiffness: 400, 
-            damping: 25,
-            duration: 0.2
+            stiffness: 300, 
+            damping: 20,
+            duration: 0.4
           }}
-          className={`relative max-w-sm w-full ${getBackgroundColor()} border backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden`}
+          className={`relative max-w-[200px] w-full ${getBackgroundColor()} border backdrop-blur-xl rounded-xl shadow-lg overflow-hidden`}
           style={{
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)'
           }}
@@ -110,195 +151,49 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
             initial={{ x: '-100%' }}
             animate={{ x: '100%' }}
             transition={{ 
-              duration: 0.8, 
+              duration: 0.5, 
               repeat: Infinity, 
-              repeatDelay: 1,
+              repeatDelay: 0.5,
               ease: "easeInOut"
             }}
             className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
           />
           
-          <div className="relative p-4">
-            <div className="flex items-start gap-3">
+          <div className="relative p-3">
+            <div className="flex items-center justify-center gap-2">
               <motion.div 
-                className="flex-shrink-0 mt-0.5 text-3xl"
+                className="flex-shrink-0 text-2xl"
                 initial={{ scale: 0, rotate: -180, opacity: 0 }}
                 animate={{ 
                   scale: 1, 
                   rotate: 0,
                   opacity: 1,
-                  y: [0, -8, 0],
-                  x: [0, 2, -2, 0]
+                  y: [0, -5, 0]
                 }}
                 transition={{ 
-                  delay: 0.2, 
+                  delay: 0.1, 
                   type: "spring", 
                   stiffness: 400,
                   damping: 20,
                   y: {
-                    duration: 1,
-                    repeat: Infinity,
-                    repeatType: "reverse",
-                    ease: "easeInOut"
-                  },
-                  x: {
-                    duration: 1.5,
+                    duration: 2,
                     repeat: Infinity,
                     repeatType: "reverse",
                     ease: "easeInOut"
                   }
-                }}
-                whileHover={{
-                  scale: 1.3,
-                  rotate: [0, -15, 15, -10, 10, 0],
-                  y: -10,
-                  transition: { 
-                    duration: 0.8,
-                    type: "spring",
-                    stiffness: 300
-                  }
-                }}
-                whileTap={{
-                  scale: 0.9,
-                  rotate: 360,
-                  transition: { duration: 0.3 }
                 }}
               >
                 {getEmoji()}
-                
-                {/* Efectos de partículas para success */}
-                {type === 'success' && (
-                  <>
-                    <motion.span
-                      className="absolute -top-1 -right-1 text-lg"
-                      animate={{
-                        scale: [1, 1.5, 1],
-                        opacity: [0, 1, 0],
-                        rotate: [0, 180, 360]
-                      }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                        delay: 0.5
-                      }}
-                    >
-                      ✨
-                    </motion.span>
-                    <motion.span
-                      className="absolute -bottom-1 -left-1 text-sm"
-                      animate={{
-                        scale: [1, 1.3, 1],
-                        opacity: [0, 1, 0],
-                        rotate: [0, -180, -360]
-                      }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        delay: 1
-                      }}
-                    >
-                      ⭐
-                    </motion.span>
-                  </>
-                )}
-                
-                {/* Efectos de partículas para error */}
-                {type === 'error' && (
-                  <>
-                    <motion.span
-                      className="absolute -top-1 -right-1 text-sm"
-                      animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0, 1, 0],
-                        x: [0, 10, -10, 0],
-                        y: [0, -10, 10, 0]
-                      }}
-                      transition={{
-                        duration: 0.6,
-                        repeat: Infinity,
-                        delay: 0.3
-                      }}
-                    >
-                      💥
-                    </motion.span>
-                  </>
-                )}
-                
-                {/* Efectos de partículas para warning */}
-                {type === 'warning' && (
-                  <>
-                    <motion.span
-                      className="absolute -top-1 -right-1 text-sm"
-                      animate={{
-                        scale: [1, 1.4, 1],
-                        opacity: [0, 1, 0],
-                        rotate: [0, 360]
-                      }}
-                      transition={{
-                        duration: 0.5,
-                        repeat: Infinity,
-                        delay: 0.2
-                      }}
-                    >
-                      ⚡
-                    </motion.span>
-                  </>
-                )}
-                
-                {/* Efectos de partículas para info */}
-                {type === 'info' && (
-                  <>
-                    <motion.span
-                      className="absolute -top-1 -right-1 text-sm"
-                      animate={{
-                        scale: [1, 1.3, 1],
-                        opacity: [0, 1, 0],
-                        y: [0, -5, 0]
-                      }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                        delay: 0.4
-                      }}
-                    >
-                      💭
-                    </motion.span>
-                  </>
-                )}
               </motion.div>
               
-              <div className="flex-1 min-w-0">
-                <motion.h4 
-                  className={`text-sm font-bold ${getTextColor()} mb-1`}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  {title}
-                </motion.h4>
-                {message && (
-                  <motion.p 
-                    className="text-xs text-gray-300 leading-relaxed"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    {message}
-                  </motion.p>
-                )}
-              </div>
-              
-              <motion.button
-                onClick={handleClose}
-                className="flex-shrink-0 p-1.5 hover:bg-white/10 rounded-full transition-all duration-200"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5 }}
+              <motion.h4 
+                className={`text-xs font-bold ${getTextColor()}`}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
               >
-                <X className="w-4 h-4 text-gray-400" />
-              </motion.button>
+                {title}
+              </motion.h4>
             </div>
           </div>
 
