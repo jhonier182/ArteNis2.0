@@ -694,20 +694,26 @@ class PostService {
   // Eliminar publicación
   static async deletePost(userId, postId) {
     try {
+      console.log(`🗑️ Iniciando eliminación de post ${postId} por usuario ${userId}`);
+      
       const post = await Post.findByPk(postId);
       
       if (!post) {
+        console.log(`❌ Post ${postId} no encontrado`);
         throw new Error('Publicación no encontrada');
       }
 
       // Verificar que el usuario sea el dueño de la publicación
       if (post.userId !== userId) {
+        console.log(`❌ Usuario ${userId} no es dueño del post ${postId} (dueño: ${post.userId})`);
         throw new Error('No tienes permisos para eliminar esta publicación');
       }
 
       // Guardar información de Cloudinary antes de eliminar el post
       const cloudinaryPublicId = post.cloudinaryPublicId;
       const postType = post.type;
+      
+      console.log(`📁 Eliminando post de BD: ${postId}, Cloudinary ID: ${cloudinaryPublicId}, Tipo: ${postType}`);
 
       await sequelize.transaction(async (t) => {
         await post.destroy({ transaction: t });
@@ -719,22 +725,29 @@ class PostService {
         });
       });
 
+      console.log(`✅ Post ${postId} eliminado de la base de datos exitosamente`);
+
       // Eliminar archivo de Cloudinary después de eliminar el post de la BD
       if (cloudinaryPublicId) {
         try {
+          console.log(`☁️ Eliminando archivo de Cloudinary: ${cloudinaryPublicId}`);
           if (postType === 'video') {
             await deletePostVideo(cloudinaryPublicId);
           } else {
             await deletePostImage(cloudinaryPublicId);
           }
+          console.log(`✅ Archivo de Cloudinary eliminado exitosamente`);
         } catch (cloudinaryError) {
-          console.error('Error al eliminar archivo de Cloudinary:', cloudinaryError);
+          console.error('❌ Error al eliminar archivo de Cloudinary:', cloudinaryError);
           // No fallar la operación si hay error en Cloudinary
         }
+      } else {
+        console.log(`⚠️ No hay cloudinaryPublicId para el post ${postId}`);
       }
 
       return { message: 'Publicación eliminada exitosamente' };
     } catch (error) {
+      console.error(`❌ Error en deletePost para post ${postId}:`, error);
       throw error;
     }
   }

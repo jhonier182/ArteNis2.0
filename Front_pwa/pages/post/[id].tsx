@@ -107,9 +107,9 @@ export default function PostDetailPage() {
         await apiClient.post('/api/follow', { userId: post.User.id })
         setIsFollowing(true)
       }
-    } catch (error: any) {
-      console.error('Error al cambiar seguimiento:', error)
-      error('Error al seguir', error.response?.data?.message || 'No se pudo actualizar el seguimiento')
+    } catch (err: any) {
+      console.error('Error al cambiar seguimiento:', err)
+      error('Error al seguir', err.response?.data?.message || 'No se pudo actualizar el seguimiento')
     } finally {
       setIsFollowLoading(false)
     }
@@ -164,9 +164,9 @@ export default function PostDetailPage() {
           setIsSaved(true)
         }
       }
-    } catch (error: any) {
-      console.error('Error al guardar post:', error)
-      error('Error al guardar', error.response?.data?.message || 'No se pudo guardar la publicación')
+    } catch (err: any) {
+      console.error('Error al guardar post:', err)
+      error('Error al guardar', err.response?.data?.message || 'No se pudo guardar la publicación')
     } finally {
       setIsSaving(false)
     }
@@ -215,9 +215,9 @@ export default function PostDetailPage() {
       setTimeout(() => {
         router.push('/')
       }, 2000)
-    } catch (error: any) {
-      console.error('Error al eliminar post:', error)
-      error('Error al eliminar', error.response?.data?.message || 'No se pudo eliminar la publicación')
+    } catch (err: any) {
+      console.error('Error al eliminar post:', err)
+      error('Error al eliminar', err.response?.data?.message || 'No se pudo eliminar la publicación')
     } finally {
       setIsDeleting(false)
     }

@@ -84,7 +84,7 @@ const sequelize = new Sequelize({
   },
   // Configuraciones adicionales de rendimiento
   benchmark: false,
-  isolationLevel: 'READ_COMMITTED', // Mejor rendimiento que REPEATABLE_READ
+  // isolationLevel: 'REPEATABLE_READ', // Comentado para evitar errores de sintaxis SQL
   transactionType: 'IMMEDIATE', // Transacciones más rápidas
   hooks: {
     beforeConnect: (config) => {
