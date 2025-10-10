@@ -54,8 +54,6 @@ const sequelize = new Sequelize({
     ),
     // Optimizaciones de conexión
     connectTimeout: 60000,
-    acquireTimeout: 60000,
-    timeout: 60000,
     // Configuraciones de rendimiento
     multipleStatements: false,
     dateStrings: false,
