@@ -15,7 +15,12 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
 const cacheMiddleware = (key, ttl = CACHE_TTL) => {
   return (req, res, next) => {
-    const cacheKey = `${key}:${JSON.stringify(req.query)}`;
+    // OPTIMIZACIÓN: Crear clave de cache más eficiente sin JSON.stringify
+    const queryString = Object.keys(req.query)
+      .sort()
+      .map(k => `${k}=${req.query[k]}`)
+      .join('&');
+    const cacheKey = `${key}:${queryString}`;
     const cached = simpleCache.get(cacheKey);
     
     if (cached && Date.now() - cached.timestamp < ttl) {

@@ -136,10 +136,19 @@ class FollowService {
     }
   }
 
-  // Invalidar cache de follows cuando se sigue/deja de seguir
+  // Invalidar cache de follows cuando se sigue/deja de seguir (OPTIMIZADO)
   static invalidateFollowCache(userId) {
     const keys = followCache.keys();
-    const userKeys = keys.filter(key => key.includes(`following:${userId}`));
+    const targetKey = `following:${userId}`;
+    
+    // OPTIMIZACIÓN: Usar for loop en lugar de filter para mejor rendimiento
+    const userKeys = [];
+    for (let i = 0; i < keys.length; i++) {
+      if (keys[i].includes(targetKey)) {
+        userKeys.push(keys[i]);
+      }
+    }
+    
     followCache.del(userKeys);
     console.log(`🗑️ Cache de follows invalidado para usuario ${userId}`);
   }

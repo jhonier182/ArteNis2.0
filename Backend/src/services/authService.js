@@ -13,8 +13,14 @@ class AuthService {
       .replace(/[^a-z0-9\s]/g, '') // Solo letras, números y espacios
       .trim();
     
-    // Dividir en palabras y tomar las primeras dos
-    const words = cleanName.split(/\s+/).filter(word => word.length > 0);
+    // OPTIMIZACIÓN: Dividir en palabras y filtrar de forma más eficiente
+    const words = [];
+    const parts = cleanName.split(/\s+/);
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i].length > 0) {
+        words.push(parts[i]);
+      }
+    }
     let baseUsername = '';
     
     if (words.length >= 2) {

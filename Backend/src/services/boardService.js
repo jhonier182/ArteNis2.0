@@ -32,7 +32,7 @@ class BoardService {
     }
   }
 
-  // Obtener tableros de un usuario
+  // Obtener tableros de un usuario (OPTIMIZADO - SIN N+1 QUERIES)
   static async getUserBoards(userId, requesterId = null, options = {}) {
     try {
       const {
@@ -49,7 +49,7 @@ class BoardService {
         where.isPublic = true;
       }
 
-      // Primero obtener los boards sin los posts
+      // OPTIMIZACIÓN: Primero obtener boards sin posts
       const boards = await Board.findAndCountAll({
         where,
         include: [
@@ -64,23 +64,43 @@ class BoardService {
         offset: parseInt(offset)
       });
 
-      // Luego cargar los posts para cada board (preview de 4)
-      const boardsWithPosts = await Promise.all(
-        boards.rows.map(async (board) => {
-          const posts = await board.getPosts({
-            limit: 4,
-            order: [['createdAt', 'DESC']],
-            through: { attributes: ['sortOrder', 'addedAt'] }
-          });
-          return {
-            ...board.toJSON(),
-            posts
-          };
-        })
-      );
+      // OPTIMIZACIÓN: Obtener posts para todos los boards en una sola query
+      if (boards.rows.length > 0) {
+        const boardIds = boards.rows.map(board => board.id);
+        
+        // Query separada para obtener posts con limit por board
+        const boardPosts = await BoardPost.findAll({
+          where: { boardId: boardIds },
+          include: [
+            {
+              model: Post,
+              as: 'post',
+              attributes: ['id', 'title', 'mediaUrl', 'thumbnailUrl', 'createdAt']
+            }
+          ],
+          order: [['boardId'], ['sortOrder', 'ASC'], ['addedAt', 'DESC']]
+        });
+
+        // Agrupar posts por board y limitar a 4 por board
+        const postsByBoard = {};
+        boardPosts.forEach(boardPost => {
+          const boardId = boardPost.boardId;
+          if (!postsByBoard[boardId]) {
+            postsByBoard[boardId] = [];
+          }
+          if (postsByBoard[boardId].length < 4) {
+            postsByBoard[boardId].push(boardPost.post);
+          }
+        });
+
+        // Agregar posts a cada board
+        boards.rows.forEach(board => {
+          board.dataValues.posts = postsByBoard[board.id] || [];
+        });
+      }
 
       return {
-        boards: boardsWithPosts,
+        boards: boards.rows,
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(boards.count / limit),

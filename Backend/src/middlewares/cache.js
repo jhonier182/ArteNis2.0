@@ -11,7 +11,12 @@ class CacheMiddleware {
   // Cache para consultas de posts
   static cachePosts = (key, ttl = 300) => {
     return (req, res, next) => {
-      const cacheKey = `posts:${key}:${JSON.stringify(req.query)}`;
+      // OPTIMIZACIÓN: Crear clave de cache más eficiente sin JSON.stringify
+      const queryString = Object.keys(req.query)
+        .sort()
+        .map(k => `${k}=${req.query[k]}`)
+        .join('&');
+      const cacheKey = `posts:${key}:${queryString}`;
       
       // Intentar obtener del cache
       const cachedData = cache.get(cacheKey);

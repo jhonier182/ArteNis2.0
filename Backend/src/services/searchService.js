@@ -542,16 +542,28 @@ class SearchService {
       const suggestions = [];
 
       // Sugerencias de estilos populares
-      const styleMatches = [
+      // OPTIMIZACIÓN: Usar for loop en lugar de filter para mejor rendimiento
+      const styles = [
         'tradicional', 'realista', 'minimalista', 'geométrico',
         'acuarela', 'blackwork', 'dotwork', 'tribal', 'japonés'
-      ].filter(style => style.toLowerCase().includes(query.toLowerCase()));
+      ];
+      
+      const styleMatches = [];
+      const queryLower = query.toLowerCase();
+      for (let i = 0; i < styles.length; i++) {
+        if (styles[i].toLowerCase().includes(queryLower)) {
+          styleMatches.push(styles[i]);
+        }
+      }
 
-      suggestions.push(...styleMatches.map(style => ({
-        type: 'style',
-        text: style,
-        icon: '🎨'
-      })));
+      // OPTIMIZACIÓN: Usar for loop para mapeo también
+      for (let i = 0; i < styleMatches.length; i++) {
+        suggestions.push({
+          type: 'style',
+          text: styleMatches[i],
+          icon: '🎨'
+        });
+      }
 
       // Sugerencias de artistas
       const artists = await User.findAll({
