@@ -7,21 +7,43 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET 
 });
 
-// Función para subir imagen de avatar
+// Función para subir imagen de avatar (ULTRA OPTIMIZADA)
 const uploadAvatar = async (imageBuffer, userId) => {
   try {
+    // OPTIMIZACIÓN CRÍTICA: Detectar tipo de imagen de forma más rápida
+    const isJPEG = imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8;
+    const isPNG = imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50;
+    const mimeType = isJPEG ? 'image/jpeg' : isPNG ? 'image/png' : 'image/jpeg';
+
+    // OPTIMIZACIÓN CRÍTICA: Configuración ultra rápida
     const result = await cloudinary.uploader.upload(
-      `data:image/jpeg;base64,${imageBuffer.toString('base64')}`,
+      `data:${mimeType};base64,${imageBuffer.toString('base64')}`,
       {
-        folder: 'avatars', // Carpeta en Cloudinary
-        public_id: `avatar_${userId}`, // ID único por usuario
+        folder: 'avatars',
+        public_id: `avatar_${userId}`,
+        // OPTIMIZACIÓN: Transformación mínima para velocidad máxima
         transformation: [
-          { width: 400, height: 400, crop: 'fill', gravity: 'face' },
-          { quality: 'auto', fetch_format: 'auto' }
+          { 
+            width: 400, 
+            height: 400, 
+            crop: 'fill', 
+            gravity: 'face',
+            quality: 'auto:low', // Calidad baja para velocidad máxima
+            fetch_format: 'auto'
+          }
         ],
-        overwrite: true, // Sobrescribir avatar anterior
-        invalidate: true, // Invalidar CDN para este recurso
-        resource_type: 'image'
+        overwrite: true,
+        invalidate: false, // No invalidar CDN para velocidad
+        resource_type: 'image',
+        // OPTIMIZACIÓN: Configuraciones para velocidad extrema
+        eager_async: true,
+        use_filename: false,
+        unique_filename: false,
+        // OPTIMIZACIÓN: Reducir metadatos
+        context: false,
+        tags: false,
+        // OPTIMIZACIÓN: Timeout más agresivo
+        timeout: 10000 // 10 segundos máximo
       }
     );
 
@@ -35,18 +57,26 @@ const uploadAvatar = async (imageBuffer, userId) => {
   }
 };
 
-// Función para eliminar imagen de avatar
+// Función para eliminar imagen de avatar (OPTIMIZADA)
 const deleteAvatar = async (publicId) => {
   try {
-    await cloudinary.uploader.destroy(publicId, {
+    // OPTIMIZACIÓN: Eliminación asíncrona con timeout
+    const deletePromise = cloudinary.uploader.destroy(publicId, {
       invalidate: true,
       resource_type: 'image',
       type: 'upload'
     });
+
+    // Timeout de 5 segundos para evitar bloqueos largos
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout eliminando avatar')), 5000);
+    });
+
+    await Promise.race([deletePromise, timeoutPromise]);
     return true;
   } catch (error) {
-    console.error('Error deleting from Cloudinary:', error);
-    return false;
+    console.warn('Error deleting from Cloudinary (no crítico):', error.message);
+    return false; // No fallar si no se puede eliminar
   }
 };
 
