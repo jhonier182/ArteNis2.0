@@ -1,70 +1,7 @@
 const { User, Post, Follow } = require('../models');
 const { uploadAvatar: cloudinaryUploadAvatar, deleteAvatar } = require('../config/cloudinary');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-
-// Cache local para avatares (ultra rápido)
-const avatarCache = new Map();
-const AVATAR_CACHE_DIR = path.join(__dirname, '../../uploads/avatars');
-
-// Crear directorio de cache si no existe
-if (!fs.existsSync(AVATAR_CACHE_DIR)) {
-  fs.mkdirSync(AVATAR_CACHE_DIR, { recursive: true });
-}
 
 class ProfileService {
-  // Guardar avatar en cache local (ultra rápido)
-  static saveAvatarToCache(userId, imageBuffer) {
-    try {
-      const hash = crypto.createHash('md5').update(imageBuffer).digest('hex');
-      const filename = `avatar_${userId}_${hash}.jpg`;
-      const filepath = path.join(AVATAR_CACHE_DIR, filename);
-      
-      // Guardar archivo
-      fs.writeFileSync(filepath, imageBuffer);
-      
-      // Guardar en cache en memoria
-      const localUrl = `/uploads/avatars/${filename}`;
-      avatarCache.set(userId, {
-        url: localUrl,
-        filepath,
-        timestamp: Date.now()
-      });
-      
-      return localUrl;
-    } catch (error) {
-      console.error('Error guardando avatar en cache local:', error);
-      return null;
-    }
-  }
-
-  // Obtener avatar del cache local
-  static getAvatarFromCache(userId) {
-    return avatarCache.get(userId);
-  }
-
-  // Limpiar cache local expirado
-  static cleanAvatarCache() {
-    const now = Date.now();
-    const maxAge = 24 * 60 * 60 * 1000; // 24 horas
-    
-    for (const [userId, cacheData] of avatarCache.entries()) {
-      if (now - cacheData.timestamp > maxAge) {
-        // Eliminar archivo
-        try {
-          if (fs.existsSync(cacheData.filepath)) {
-            fs.unlinkSync(cacheData.filepath);
-          }
-        } catch (error) {
-          console.warn('Error eliminando archivo de cache:', error);
-        }
-        
-        // Eliminar del cache
-        avatarCache.delete(userId);
-      }
-    }
-  }
 
   // Obtener perfil del usuario autenticado
   static async getProfile(userId) {
@@ -121,88 +58,33 @@ class ProfileService {
     }
   }
 
-  // Subir avatar del usuario (ULTRA OPTIMIZADO CON CACHE LOCAL)
+  // Subir avatar del usuario (OPTIMIZADO - SOLO CLOUDINARY)
   static async uploadAvatar(userId, imageBuffer) {
     try {
-      // OPTIMIZACIÓN CRÍTICA: Guardar inmediatamente en cache local
-      const localUrl = this.saveAvatarToCache(userId, imageBuffer);
-      
-      if (localUrl) {
-        // OPTIMIZACIÓN: Actualizar usuario inmediatamente con URL local
-        await User.update({
-          avatar: localUrl,
-          cloudinaryPublicId: null // Se actualizará en background
-        }, {
-          where: { id: userId },
-          fields: ['avatar', 'cloudinaryPublicId']
-        });
-
-        // OPTIMIZACIÓN: Procesar Cloudinary en background completamente asíncrono
-        setImmediate(() => {
-          this.processCloudinaryUpload(userId, imageBuffer).catch(error => {
-            console.error('Error procesando Cloudinary en background:', error);
-          });
-        });
-
-        return {
-          avatarUrl: localUrl,
-          message: 'Avatar actualizado exitosamente',
-          cached: true
-        };
-      } else {
-        // Fallback al método anterior si el cache falla
-        return await this.uploadAvatarFallback(userId, imageBuffer);
-      }
-    } catch (error) {
-      console.error('Error en uploadAvatar:', error);
-      throw error;
-    }
-  }
-
-  // Procesar upload a Cloudinary en background
-  static async processCloudinaryUpload(userId, imageBuffer) {
-    try {
-      const { url, publicId } = await cloudinaryUploadAvatar(imageBuffer, userId);
-      
-      // Actualizar usuario con URL de Cloudinary
-      await User.update({
-        avatar: url,
-        cloudinaryPublicId: publicId
-      }, {
-        where: { id: userId },
-        fields: ['avatar', 'cloudinaryPublicId']
-      });
-
-      console.log(`✅ Avatar de usuario ${userId} procesado en Cloudinary`);
-    } catch (error) {
-      console.error('Error procesando Cloudinary:', error);
-    }
-  }
-
-  // Método fallback si el cache local falla
-  static async uploadAvatarFallback(userId, imageBuffer) {
-    try {
+      // OPTIMIZACIÓN: Obtener usuario con campos mínimos
       const user = await User.findByPk(userId, {
-        attributes: ['id', 'avatar', 'cloudinaryPublicId']
+        attributes: ['id', 'cloudinaryPublicId']
       });
       
       if (!user) {
         throw new Error('Usuario no encontrado');
       }
 
-      // Eliminar avatar anterior de forma asíncrona
-      if (user.cloudinaryPublicId) {
-        setImmediate(() => {
-          deleteAvatar(user.cloudinaryPublicId).catch(error => {
+      // OPTIMIZACIÓN: Eliminar avatar anterior de forma asíncrona (no bloquear)
+      const deletePromise = user.cloudinaryPublicId 
+        ? deleteAvatar(user.cloudinaryPublicId).catch(error => {
             console.warn('Error eliminando avatar anterior:', error.message);
-          });
-        });
-      }
+            return false; // No fallar si no se puede eliminar
+          })
+        : Promise.resolve(true);
 
-      // Subir a Cloudinary
-      const { url, publicId } = await cloudinaryUploadAvatar(imageBuffer, userId);
+      // OPTIMIZACIÓN: Subir nueva imagen en paralelo con la eliminación
+      const uploadPromise = cloudinaryUploadAvatar(imageBuffer, userId);
 
-      // Actualizar usuario
+      // OPTIMIZACIÓN: Esperar ambas operaciones en paralelo
+      const [, { url, publicId }] = await Promise.all([deletePromise, uploadPromise]);
+
+      // OPTIMIZACIÓN: Actualizar solo los campos necesarios
       await user.update({
         avatar: url,
         cloudinaryPublicId: publicId
@@ -215,7 +97,7 @@ class ProfileService {
         message: 'Avatar actualizado exitosamente'
       };
     } catch (error) {
-      console.error('Error en uploadAvatarFallback:', error);
+      console.error('Error en uploadAvatar:', error);
       throw error;
     }
   }
@@ -255,10 +137,5 @@ class ProfileService {
     }
   }
 }
-
-// Limpiar cache de avatares cada hora
-setInterval(() => {
-  ProfileService.cleanAvatarCache();
-}, 60 * 60 * 1000); // Cada hora
 
 module.exports = ProfileService;
