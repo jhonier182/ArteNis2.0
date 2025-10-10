@@ -699,71 +699,89 @@ class PostService {
     }
   }
 
-  // Eliminar publicación
+  // Eliminar publicación (ULTRA OPTIMIZADO)
   static async deletePost(userId, postId) {
     try {
-      console.log(`🗑️ Iniciando eliminación de post ${postId} por usuario ${userId}`);
-      
-      const post = await Post.findByPk(postId);
+      // OPTIMIZACIÓN 1: Obtener solo campos necesarios
+      const post = await Post.findByPk(postId, {
+        attributes: ['id', 'userId', 'cloudinaryPublicId', 'type']
+      });
       
       if (!post) {
-        console.log(`❌ Post ${postId} no encontrado`);
         throw new Error('Publicación no encontrada');
       }
 
-      // Verificar que el usuario sea el dueño de la publicación
+      // Verificar permisos
       if (post.userId !== userId) {
-        console.log(`❌ Usuario ${userId} no es dueño del post ${postId} (dueño: ${post.userId})`);
         throw new Error('No tienes permisos para eliminar esta publicación');
       }
 
-      // Guardar información de Cloudinary antes de eliminar el post
+      // OPTIMIZACIÓN 2: Guardar datos para procesamiento en background
       const cloudinaryPublicId = post.cloudinaryPublicId;
       const postType = post.type;
-      
-      console.log(`📁 Eliminando post de BD: ${postId}, Cloudinary ID: ${cloudinaryPublicId}, Tipo: ${postType}`);
 
-      await sequelize.transaction(async (t) => {
-        await post.destroy({ transaction: t });
+      // OPTIMIZACIÓN 3: Eliminar de BD de forma rápida sin transacción innecesaria
+      await post.destroy();
 
-        // Decrementar contador de posts del usuario
-        await User.decrement('postsCount', {
-          where: { id: userId },
-          transaction: t
+      // OPTIMIZACIÓN 4: Decrementar contador de forma asíncrona
+      setImmediate(() => {
+        User.decrement('postsCount', {
+          where: { id: userId }
+        }).catch(error => {
+          console.warn('Error decrementando postsCount:', error.message);
         });
       });
 
-      console.log(`✅ Post ${postId} eliminado de la base de datos exitosamente`);
-
-      // Eliminar archivo de Cloudinary después de eliminar el post de la BD
+      // OPTIMIZACIÓN 5: Eliminar de Cloudinary en background completamente asíncrono
       if (cloudinaryPublicId) {
-        try {
-          console.log(`☁️ Eliminando archivo de Cloudinary: ${cloudinaryPublicId}`);
-          if (postType === 'video') {
-            await deletePostVideo(cloudinaryPublicId);
-          } else {
-            await deletePostImage(cloudinaryPublicId);
-          }
-          console.log(`✅ Archivo de Cloudinary eliminado exitosamente`);
-        } catch (cloudinaryError) {
-          console.error('❌ Error al eliminar archivo de Cloudinary:', cloudinaryError);
-          // No fallar la operación si hay error en Cloudinary
-        }
-      } else {
-        console.log(`⚠️ No hay cloudinaryPublicId para el post ${postId}`);
+        setImmediate(() => {
+          this.deleteCloudinaryFile(cloudinaryPublicId, postType).catch(error => {
+            console.warn('Error eliminando archivo de Cloudinary (background):', error.message);
+          });
+        });
       }
 
       return { message: 'Publicación eliminada exitosamente' };
     } catch (error) {
-      console.error(`❌ Error en deletePost para post ${postId}:`, error);
+      console.error(`Error eliminando post ${postId}:`, error.message);
       throw error;
     }
   }
 
-  // Obtener posts de usuarios seguidos
+  // Eliminar archivo de Cloudinary en background
+  static async deleteCloudinaryFile(cloudinaryPublicId, postType) {
+    try {
+      const { deletePostImage, deletePostVideo } = require('../config/cloudinary');
+      
+      // Timeout de 5 segundos para evitar bloqueos
+      const deletePromise = postType === 'video' 
+        ? deletePostVideo(cloudinaryPublicId)
+        : deletePostImage(cloudinaryPublicId);
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout eliminando archivo')), 5000);
+      });
+
+      await Promise.race([deletePromise, timeoutPromise]);
+      console.log(`✅ Archivo de Cloudinary eliminado: ${cloudinaryPublicId}`);
+    } catch (error) {
+      console.warn(`⚠️ Error eliminando archivo de Cloudinary: ${error.message}`);
+    }
+  }
+
+  // Obtener posts de usuarios seguidos (OPTIMIZADO CON CACHE)
   static async getFollowingPosts(userId, page, limit, offset) {
     try {
-      // Obtener IDs de usuarios seguidos
+      // OPTIMIZACIÓN 1: Cache para posts de usuarios seguidos
+      const cacheKey = `following_posts:${userId}:${page}:${limit}`;
+      const cachedData = simpleCache.get(cacheKey);
+      
+      if (cachedData) {
+        console.log(`📦 Cache hit para posts de usuarios seguidos: ${cacheKey}`);
+        return cachedData;
+      }
+
+      // OPTIMIZACIÓN 2: Obtener IDs de usuarios seguidos de forma más eficiente
       const followingUsers = await Follow.findAll({
         where: { followerId: userId },
         attributes: ['followingId']
@@ -803,11 +821,22 @@ class PostService {
       
       const { count, rows } = await Post.findAndCountAll(queryOptions);
 
-      // Agregar campo isLiked para el usuario actual
-      for (const post of rows) {
-        const hasLiked = await Like.exists(userId, post.id);
-        post.isLiked = !!hasLiked;
-      }
+      // OPTIMIZACIÓN: Eliminar consulta N+1 para likes
+      const postIds = rows.map(post => post.id);
+      const userLikes = await Like.findAll({
+        where: {
+          userId: userId,
+          postId: { [Op.in]: postIds }
+        },
+        attributes: ['postId']
+      });
+      
+      const likedPostIds = new Set(userLikes.map(like => like.postId));
+      
+      // Asignar isLiked de forma eficiente
+      rows.forEach(post => {
+        post.isLiked = likedPostIds.has(post.id);
+      });
 
       // Transformar los posts para el frontend usando transformPostForFrontend
       const transformedPosts = await Promise.all(
@@ -842,10 +871,16 @@ class PostService {
         console.warn(`⚠️ Se filtraron ${transformedPosts.length - filteredPosts.length} posts que no eran de usuarios seguidos`);
       }
 
-      return {
+      const result = {
         posts: filteredPosts,
         total: count
       };
+
+      // OPTIMIZACIÓN: Guardar en cache
+      simpleCache.set(cacheKey, result, 300); // 5 minutos
+      console.log(`💾 Guardando posts de usuarios seguidos en cache: ${cacheKey}`);
+
+      return result;
     } catch (error) {
       console.error('Error in getFollowingPosts:', error);
       throw error;

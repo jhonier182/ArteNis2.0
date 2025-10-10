@@ -1,5 +1,13 @@
 const { User, Follow } = require('../models');
 const { sequelize } = require('../config/db');
+const NodeCache = require('node-cache');
+
+// Cache específico para follows
+const followCache = new NodeCache({ 
+  stdTTL: 300, // 5 minutos
+  checkperiod: 120,
+  useClones: false
+});
 
 class FollowService {
   // Seguir usuario
@@ -40,6 +48,9 @@ class FollowService {
         });
       });
 
+      // OPTIMIZACIÓN: Invalidar cache de follows
+      this.invalidateFollowCache(followerId);
+
       return { message: 'Usuario seguido exitosamente' };
     } catch (error) {
       throw error;
@@ -73,38 +84,64 @@ class FollowService {
         });
       });
 
+      // OPTIMIZACIÓN: Invalidar cache de follows
+      this.invalidateFollowCache(followerId);
+
       return { message: 'Has dejado de seguir al usuario' };
     } catch (error) {
       throw error;
     }
   }
 
-  // Obtener usuarios que sigues
+  // Obtener usuarios que sigues (ULTRA OPTIMIZADO CON CACHE)
   static async getFollowingUsers(userId) {
     try {
-      // Verificar que el usuario existe
-      const userExists = await User.findByPk(userId);
-      if (!userExists) {
-        throw new Error('Usuario no encontrado');
-      }
+      // OPTIMIZACIÓN 1: Verificar cache primero
+      const cacheKey = `following:${userId}`;
+      const cachedData = followCache.get(cacheKey);
       
-      // Obtener los follows
+      if (cachedData) {
+        console.log(`📦 Cache hit para following de usuario ${userId}`);
+        return cachedData;
+      }
+
+      // OPTIMIZACIÓN 2: Eliminar consulta innecesaria de verificación de usuario
+      // OPTIMIZACIÓN 3: Consulta optimizada con JOIN manual
       const follows = await Follow.findAll({
         where: { followerId: userId },
-        include: [{
-          model: User,
-          as: 'following',
-          attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
-        }]
+        attributes: ['followingId']
       });
+
+      if (follows.length === 0) {
+        return [];
+      }
+
+      const followingIds = follows.map(follow => follow.followingId);
       
-      // Extraer los usuarios seguidos
-      const followingUsers = follows.map(follow => follow.following).filter(user => user !== null);
-      
+      // Obtener usuarios seguidos en una sola consulta
+      const followingUsers = await User.findAll({
+        where: { id: { [require('sequelize').Op.in]: followingIds } },
+        attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified'],
+        order: [['username', 'ASC']]
+      });
+
+      // OPTIMIZACIÓN 4: Guardar en cache
+      followCache.set(cacheKey, followingUsers, 300); // 5 minutos
+      console.log(`💾 Guardando following en cache: ${cacheKey}`);
+
       return followingUsers;
     } catch (error) {
+      console.error('Error obteniendo usuarios seguidos:', error);
       throw error;
     }
+  }
+
+  // Invalidar cache de follows cuando se sigue/deja de seguir
+  static invalidateFollowCache(userId) {
+    const keys = followCache.keys();
+    const userKeys = keys.filter(key => key.includes(`following:${userId}`));
+    followCache.del(userKeys);
+    console.log(`🗑️ Cache de follows invalidado para usuario ${userId}`);
   }
 }
 

@@ -165,16 +165,22 @@ router.put('/:id',
   PostController.updatePost
 );
 
-// DELETE /api/posts/:id - Eliminar publicación
+// DELETE /api/posts/:id - Eliminar publicación (OPTIMIZADO)
 router.delete('/:id',
   verifyToken,
   (req, res, next) => {
-    // Invalidar cache después de eliminar post
+    // OPTIMIZACIÓN: Invalidar cache de forma asíncrona
     const originalSend = res.json;
     res.json = function(data) {
       if (res.statusCode === 200) {
-        simpleCache.clear();
-        console.log('🗑️ Cache invalidado después de eliminar post');
+        // Invalidar cache en background para no bloquear respuesta
+        setImmediate(() => {
+          try {
+            simpleCache.clear();
+          } catch (error) {
+            console.warn('Error invalidando cache:', error.message);
+          }
+        });
       }
       return originalSend.call(this, data);
     };

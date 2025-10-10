@@ -141,32 +141,46 @@ const uploadPostVideo = async (videoBuffer, userId, postId, mimeType) => {
   }
 };
 
-// Función para eliminar imagen de post
+// Función para eliminar imagen de post (OPTIMIZADA)
 const deletePostImage = async (publicId) => {
   try {
-    await cloudinary.uploader.destroy(publicId, {
-      invalidate: true,
+    // OPTIMIZACIÓN: Eliminación con timeout agresivo
+    const deletePromise = cloudinary.uploader.destroy(publicId, {
+      invalidate: false, // No invalidar CDN para velocidad
       resource_type: 'image',
       type: 'upload'
     });
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout eliminando imagen')), 3000);
+    });
+
+    await Promise.race([deletePromise, timeoutPromise]);
     return true;
   } catch (error) {
-    console.error('Error deleting post image from Cloudinary:', error);
+    console.warn('Error eliminando imagen de Cloudinary:', error.message);
     return false;
   }
 };
 
-// Función para eliminar video de post
+// Función para eliminar video de post (OPTIMIZADA)
 const deletePostVideo = async (publicId) => {
   try {
-    await cloudinary.uploader.destroy(publicId, {
-      invalidate: true,
+    // OPTIMIZACIÓN: Eliminación con timeout agresivo
+    const deletePromise = cloudinary.uploader.destroy(publicId, {
+      invalidate: false, // No invalidar CDN para velocidad
       resource_type: 'video',
       type: 'upload'
     });
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout eliminando video')), 5000);
+    });
+
+    await Promise.race([deletePromise, timeoutPromise]);
     return true;
   } catch (error) {
-    console.error('Error deleting post video from Cloudinary:', error);
+    console.warn('Error eliminando video de Cloudinary:', error.message);
     return false;
   }
 };
