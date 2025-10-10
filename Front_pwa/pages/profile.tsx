@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { motion } from 'framer-motion'
@@ -38,6 +38,8 @@ export default function ProfilePage() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
   const [savedPosts, setSavedPosts] = useState<any[]>([])
   const [loadingSavedPosts, setLoadingSavedPosts] = useState(true)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Hook de scroll infinito para posts del usuario (solo para tatuadores)
   const {
@@ -80,6 +82,52 @@ export default function ProfilePage() {
       setSavedPosts([])
     } finally {
       setLoadingSavedPosts(false)
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      alert('Solo se permiten imágenes')
+      return
+    }
+
+    // Validar tamaño (máx 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('La imagen no puede superar 5MB')
+      return
+    }
+
+    // Cargar automáticamente la imagen
+    handleAvatarUpload(file)
+  }
+
+  const handleAvatarUpload = async (file: File) => {
+    setIsUploadingAvatar(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('avatar', file)
+
+      const response = await apiClient.post('/api/profile/me/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      const newAvatarUrl = response.data?.data?.avatarUrl || response.data?.data?.user?.avatar
+      
+      if (newAvatarUrl && setUser) {
+        setUser({ ...user, avatar: newAvatarUrl })
+      }
+    } catch (error: any) {
+      console.error('Error al subir avatar:', error)
+      alert(error.response?.data?.message || 'Error al subir la imagen')
+    } finally {
+      setIsUploadingAvatar(false)
     }
   }
 
@@ -178,7 +226,10 @@ export default function ProfilePage() {
             <div className="flex items-start gap-4">
               {/* Avatar pequeño */}
               <div className="relative group flex-shrink-0">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1 hover:from-orange-500 hover:to-orange-700 transition-all"
+                >
                   <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
                     {user.avatar ? (
                       <img
@@ -192,15 +243,12 @@ export default function ProfilePage() {
                       </div>
                     )}
                   </div>
-                </div>
-                
-                {/* Edit Button */}
-                <button
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="absolute bottom-0 right-0 p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg opacity-0 group-hover:opacity-100"
-                >
-                  <Camera className="w-3 h-3 text-white" />
                 </button>
+                
+                {/* Edit Button - Siempre visible */}
+                <div className="absolute bottom-0 right-0 p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg">
+                  <Camera className="w-3 h-3 text-white" />
+                </div>
               </div>
 
               {/* Info a la derecha */}
@@ -261,7 +309,10 @@ export default function ProfilePage() {
               className="flex justify-center mb-6"
             >
               <div className="relative group">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1 hover:from-orange-500 hover:to-orange-700 transition-all"
+                >
                   <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
                     {user.avatar ? (
                       <img
@@ -275,15 +326,12 @@ export default function ProfilePage() {
                       </div>
                     )}
                   </div>
-                </div>
-                
-                {/* Edit Button */}
-                <button
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="absolute bottom-0 right-0 p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg opacity-0 group-hover:opacity-100"
-                >
-                  <Camera className="w-5 h-5 text-white" />
                 </button>
+                
+                {/* Edit Button - Siempre visible */}
+                <div className="absolute bottom-0 right-0 p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg">
+                  <Camera className="w-5 h-5 text-white" />
+                </div>
               </div>
             </motion.div>
 
@@ -689,6 +737,25 @@ export default function ProfilePage() {
         userType={user.userType as 'user' | 'artist'}
         onUserTypeChange={handleUserTypeChange}
       />
+
+      {/* Hidden file input for direct avatar upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
+      {/* Loading overlay */}
+      {isUploadingAvatar && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-[#0f1419] p-6 rounded-2xl flex items-center gap-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500" />
+            <span className="text-white font-medium">Subiendo foto...</span>
+          </div>
+        </div>
+      )}
       <style jsx global>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;

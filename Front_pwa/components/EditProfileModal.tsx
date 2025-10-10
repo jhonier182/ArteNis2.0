@@ -49,6 +49,11 @@ export default function EditProfileModal({
       setSelectedImage(e.target?.result as string)
     }
     reader.readAsDataURL(file)
+
+    // Cargar automáticamente la imagen
+    setTimeout(() => {
+      handleUpload()
+    }, 100)
   }
 
   const handleUpload = async () => {
@@ -184,25 +189,12 @@ export default function EditProfileModal({
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
-                  {selectedFile ? (
-                    // Upload Button
-                    <button
-                      onClick={handleUpload}
-                      disabled={isUploading}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {isUploading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                          Subiendo...
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-5 h-5" />
-                          Guardar foto
-                        </>
-                      )}
-                    </button>
+                  {isUploading ? (
+                    // Uploading State
+                    <div className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                      Subiendo foto...
+                    </div>
                   ) : (
                     <>
                       {/* Select Photo Button */}
@@ -211,7 +203,7 @@ export default function EditProfileModal({
                         className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
                       >
                         <Upload className="w-5 h-5" />
-                        Seleccionar foto
+                        Seleccionar nueva foto
                       </button>
 
                       {/* Remove Avatar Button */}
@@ -221,17 +213,8 @@ export default function EditProfileModal({
                           disabled={isUploading}
                           className="w-full bg-gray-800 text-red-500 py-3 rounded-xl font-semibold hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                          {isUploading ? (
-                            <>
-                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500" />
-                              Eliminando...
-                            </>
-                          ) : (
-                            <>
-                              <Trash2 className="w-5 h-5" />
-                              Eliminar foto actual
-                            </>
-                          )}
+                          <Trash2 className="w-5 h-5" />
+                          Eliminar foto actual
                         </button>
                       )}
                     </>
