@@ -1,21 +1,20 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  X, 
-  Image as ImageIcon, 
-  Camera, 
+import {
+  X,
+  Image as ImageIcon,
+  Camera,
   Video,
   ChevronRight,
   Users,
-  Lock,
-  Globe,
   Tag,
-  Type,
   Sparkles,
   Edit3,
-  Send
+  Send,
+  Upload,
+  Wand2
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
@@ -24,10 +23,10 @@ import { useAlert, AlertContainer } from '@/components/Alert'
 export default function CreatePostPage() {
   const router = useRouter()
   const { user, isAuthenticated, isLoading } = useUser()
-  const { alerts, success, error, removeAlert } = useAlert()
+  const { alerts, success, error } = useAlert()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
-  
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [description, setDescription] = useState('')
@@ -36,6 +35,10 @@ export default function CreatePostPage() {
   const [visibility, setVisibility] = useState<'public' | 'private'>('public')
   const [showStylePicker, setShowStylePicker] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [showAISuggestions, setShowAISuggestions] = useState(false)
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
+  const [currentStep, setCurrentStep] = useState<'select' | 'edit'>('select')
 
   const tattooStyles = [
     'Realismo', 'Tradicional', 'Japonés', 'Acuarela',
@@ -43,40 +46,49 @@ export default function CreatePostPage() {
     'Tribal', 'Neo-tradicional', 'Ilustrativo', 'Lettering'
   ]
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login')
+  // Drag and drop functions
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+
+    const files = Array.from(e.dataTransfer.files)
+    const file = files[0]
+
+    if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
+      setSelectedFile(file)
+      const url = URL.createObjectURL(file)
+      setPreviewUrl(url)
+      setCurrentStep('edit')
+    } else {
+      error('Tipo de archivo no válido', 'Solo se permiten imágenes o videos')
     }
-  }, [isLoading, isAuthenticated, router])
+  }, [error])
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return null
-  }
-
-  if (user?.userType !== 'artist') {
-    return (
-      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center p-4">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-white mb-2">Acceso Restringido</h2>
-          <p className="text-gray-400 mb-4">Solo los tatuadores pueden crear publicaciones</p>
-          <button
-            onClick={() => router.push('/')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            Volver al inicio
-          </button>
-        </div>
-      </div>
-    )
-  }
+  // IA suggestions
+  const generateAISuggestions = useCallback(() => {
+    const suggestions = [
+      'Tatuaje realizado con técnica de realismo',
+      'Sesión de 3 horas con cliente satisfecho',
+      'Diseño personalizado inspirado en la naturaleza',
+      'Trabajo en progreso - próximamente más fotos',
+      'Nuevo estilo explorando técnicas mixtas',
+      'Colaboración especial con @cliente',
+      'Detalles finos con agujas de alta calidad',
+      'Proceso de curación - resultado final en 2 semanas'
+    ]
+    setAiSuggestions(suggestions)
+    setShowAISuggestions(true)
+  }, [])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -90,18 +102,15 @@ export default function CreatePostPage() {
     setSelectedFile(file)
     const url = URL.createObjectURL(file)
     setPreviewUrl(url)
-  }
-
-  const handleVideoSelect = () => {
-    fileInputRef.current?.click()
+    setCurrentStep('edit')
   }
 
   const handleStyleToggle = (style: string) => {
-    if (selectedStyles.includes(style)) {
-      setSelectedStyles(selectedStyles.filter(s => s !== style))
-    } else {
-      setSelectedStyles([...selectedStyles, style])
-    }
+    setSelectedStyles(prev =>
+      prev.includes(style)
+        ? prev.filter(s => s !== style)
+        : [...prev, style]
+    )
   }
 
   const handleEdit = () => {
@@ -109,10 +118,8 @@ export default function CreatePostPage() {
       error('Archivo requerido', 'Por favor selecciona una imagen o video')
       return
     }
-    
-    // Guardar la imagen en localStorage como base64
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = e => {
       const imageData = e.target?.result as string
       localStorage.setItem('draft_image', imageData)
       localStorage.setItem('draft_filename', selectedFile.name)
@@ -120,8 +127,6 @@ export default function CreatePostPage() {
       localStorage.setItem('draft_styles', selectedStyles.join(','))
       localStorage.setItem('draft_client', clientTag)
       localStorage.setItem('draft_visibility', visibility)
-      
-      // Navegar a la pantalla de edición
       router.push('/create/edit')
     }
     reader.readAsDataURL(selectedFile)
@@ -132,23 +137,14 @@ export default function CreatePostPage() {
       error('Archivo requerido', 'Por favor selecciona una imagen o video')
       return
     }
-
     try {
       setIsPublishing(true)
-
-      // Subir imagen a Cloudinary
       const formData = new FormData()
       formData.append('image', selectedFile)
-
       const uploadResponse = await apiClient.post('/api/posts/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' }
       })
-
       const { url: imageUrl, publicId: cloudinaryPublicId } = uploadResponse.data.data
-
-      // Crear el post
       const postData = {
         imageUrl,
         cloudinaryPublicId,
@@ -159,10 +155,9 @@ export default function CreatePostPage() {
         clientTag: clientTag || undefined,
         thumbnailUrl: uploadResponse.data.data.thumbnailUrl || undefined
       }
-
       await apiClient.post('/api/posts', postData)
 
-      // Limpiar y redirigir
+      // Limpiar draft
       localStorage.removeItem('draft_image')
       localStorage.removeItem('draft_filename')
       localStorage.removeItem('draft_description')
@@ -174,23 +169,59 @@ export default function CreatePostPage() {
       setTimeout(() => {
         router.push('/profile')
       }, 2000)
-    } catch (error: any) {
-      console.error('Error al publicar:', error)
-      error('Error al publicar', error.response?.data?.message || 'No se pudo crear la publicación')
+    } catch (e: any) {
+      console.error('Error al publicar:', e)
+      error('Error al publicar', e.response?.data?.message || 'No se pudo crear la publicación')
     } finally {
       setIsPublishing(false)
     }
   }
 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isLoading, isAuthenticated, router])
+
+  // Pantallas de carga/restricción
+  if (isLoading) {
+    return (
+      <div className="min-h-screen h-screen flex items-center justify-center bg-[#0a0e1a]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+      </div>
+    )
+  }
+  if (!isAuthenticated) return null
+
+  if (user?.userType !== 'artist') {
+    return (
+      <div className="min-h-screen h-screen flex items-center justify-center bg-[#0a0e1a] p-4">
+        <div className="text-center w-full max-w-xs space-y-4">
+          <h2 className="text-xl font-bold text-white">Acceso Restringido</h2>
+          <p className="text-gray-400">Solo los tatuadores pueden crear publicaciones</p>
+          <button
+            onClick={() => router.push('/')}
+            className="bg-blue-600 w-full text-white px-6 py-2 rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            Volver al inicio
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Layout adaptable al alto de pantalla y espacio para footer fijo
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white">
+    <div className="min-h-screen h-screen flex flex-col bg-[#0a0e1a] text-white">
       <Head>
         <title>Crear Publicación - InkEndin</title>
+        {/* Asegura meta viewport adecuada */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
       </Head>
 
-      {/* Header */}
+      {/* Header "pegajoso" */}
       <header className="sticky top-0 z-50 bg-[#0a0e1a]/95 backdrop-blur-sm border-b border-gray-800">
-        <div className="container-mobile px-4 py-4">
+        <div className="max-w-md w-full mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
@@ -199,24 +230,24 @@ export default function CreatePostPage() {
               <X className="w-6 h-6" />
             </button>
             <h1 className="text-lg font-bold">Nueva Publicación</h1>
-            {selectedFile ? (
+            {currentStep === 'edit' && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleEdit}
                   disabled={isPublishing}
-                  className="flex items-center gap-1.5 bg-gray-800 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50"
                 >
                   <Edit3 className="w-4 h-4" />
-                  Editar
+                  Editor
                 </button>
                 <button
                   onClick={handlePublish}
                   disabled={isPublishing}
-                  className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all disabled:opacity-50"
                 >
                   {isPublishing ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       <span className="text-xs">Publicando...</span>
                     </>
                   ) : (
@@ -227,290 +258,369 @@ export default function CreatePostPage() {
                   )}
                 </button>
               </div>
-            ) : (
-              <div className="w-20" />
             )}
           </div>
         </div>
       </header>
 
-      <div className="container-mobile px-4 py-6">
-        {/* Área de selección de archivo */}
-        {!selectedFile ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
-          >
-            {/* Botones de carga */}
-            <div className="space-y-3">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all flex items-center justify-center gap-3"
+      <main className="flex-1 flex flex-col items-center w-full max-w-md mx-auto pb-[92px]"> {/* padding bottom para navegación */}
+        <div className="w-full px-4 py-6 flex-1 flex flex-col justify-start">
+          {/* Área de selección de archivo */}
+          {currentStep === 'select' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6 w-full max-w-md mx-auto"
+            >
+              {/* Drag & Drop Area */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 }}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`relative border-2 border-dashed rounded-3xl p-6 text-center transition-all duration-300 w-full ${
+                  isDragOver
+                    ? 'border-blue-500 bg-blue-500/10 scale-105'
+                    : 'border-gray-700 bg-gray-900/50 hover:border-gray-600 hover:bg-gray-800/50'
+                }`}
+                style={{ minHeight: 220 }}
               >
-                <ImageIcon className="w-6 h-6" />
-                <span className="font-semibold">Seleccionar de la galería</span>
-              </button>
+                <motion.div
+                  animate={isDragOver ? { scale: 1.1, rotate: 5 } : { scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className="space-y-4"
+                >
+                  <Upload className={`w-14 h-14 mx-auto ${isDragOver ? 'text-blue-400' : 'text-gray-500'}`} />
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      {isDragOver ? '¡Suelta aquí!' : 'Arrastra tu archivo aquí'}
+                    </h3>
+                    <p className="text-gray-400 mb-4">
+                      O selecciona desde tu dispositivo
+                    </p>
+                  </div>
+                </motion.div>
 
-              <button
-                onClick={() => cameraInputRef.current?.click()}
-                className="w-full bg-gray-800 text-white p-6 rounded-2xl hover:bg-gray-700 transition-all flex items-center justify-center gap-3"
+                {/* Botones de acción */}
+                <div className="flex flex-col gap-2 max-w-xs mx-auto w-full mt-4">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all hover:scale-105 shadow-lg hover:shadow-blue-500/25"
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                    <span className="font-semibold">Galería</span>
+                  </button>
+                  <button
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="flex items-center justify-center gap-3 bg-gray-800 text-white py-3 rounded-2xl hover:bg-gray-700 transition-all hover:scale-105"
+                  >
+                    <Camera className="w-5 h-5" />
+                    <span className="font-semibold">Cámara</span>
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center justify-center gap-3 bg-gray-800 text-white py-3 rounded-2xl hover:bg-gray-700 transition-all hover:scale-105"
+                  >
+                    <Video className="w-5 h-5" />
+                    <span className="font-semibold">Video</span>
+                  </button>
+                </div>
+              </motion.div>
+
+              {/* Tips */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="mt-4 bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-600/30 rounded-2xl p-4 w-full"
               >
-                <Camera className="w-6 h-6" />
-                <span className="font-semibold">Tomar foto</span>
-              </button>
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-blue-400 mb-2">Tips para mejores publicaciones</h3>
+                    <ul className="grid grid-cols-1 gap-1 text-sm text-gray-400 list-[circle] ml-4">
+                      <li>Buena iluminación natural</li>
+                      <li>Fondo limpio y neutral</li>
+                      <li>Enfoque en el tatuaje</li>
+                      <li>Múltiples ángulos si es posible</li>
+                    </ul>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
 
-              <button 
-                onClick={handleVideoSelect}
-                className="w-full bg-gray-800 text-white p-6 rounded-2xl hover:bg-gray-700 transition-all flex items-center justify-center gap-3"
-              >
-                <Video className="w-6 h-6" />
-                <span className="font-semibold">Seleccionar video</span>
-              </button>
-            </div>
-
-            {/* Inputs ocultos */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-
-            {/* Info */}
-            <div className="bg-blue-600/10 border border-blue-600/30 rounded-2xl p-4 mt-6">
-              <div className="flex items-start gap-3">
-                <Sparkles className="w-5 h-5 text-blue-400 mt-0.5" />
-                <div>
-                  <h3 className="font-medium text-blue-400 mb-1">Tips para mejores publicaciones</h3>
-                  <ul className="text-sm text-gray-400 space-y-1">
-                    <li>• Buena iluminación natural</li>
-                    <li>• Fondo limpio y neutral</li>
-                    <li>• Enfoque en el tatuaje</li>
-                    <li>• Múltiples ángulos si es posible</li>
-                  </ul>
+          {/* Área de edición */}
+          {currentStep === 'edit' && selectedFile && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="space-y-6 w-full max-w-md mx-auto"
+            >
+              {/* Preview mejorado, cuadrado adaptado */}
+              <div className="relative group">
+                <div
+                  className="relative w-full max-w-xs mx-auto aspect-square rounded-3xl overflow-hidden bg-gray-900 shadow-2xl"
+                  style={{ minHeight: 240 }}
+                >
+                  {selectedFile?.type.startsWith('video/') ? (
+                    <video
+                      src={previewUrl || ''}
+                      className="w-full h-full object-cover"
+                      controls
+                      muted
+                    />
+                  ) : (
+                    <img
+                      src={previewUrl || ''}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </div>
               </div>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-6"
-          >
-            {/* Preview */}
-            <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-900">
-              {selectedFile?.type.startsWith('video/') ? (
-                <video
-                  src={previewUrl || ''}
-                  className="w-full h-full object-cover"
-                  controls
-                  muted
-                />
-              ) : (
-                <img
-                  src={previewUrl || ''}
-                  alt="Preview"
-                  className="w-full h-full object-cover"
-                />
-              )}
-              <button
-                onClick={() => {
-                  setSelectedFile(null)
-                  setPreviewUrl(null)
-                }}
-                className="absolute top-4 right-4 p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            {/* Descripción */}
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Descripción
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe tu trabajo, técnica utilizada, tiempo de sesión..."
-                className="w-full h-32 bg-[#0f1419] border border-gray-800 rounded-2xl p-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none"
-              />
-              <p className="text-xs text-gray-500 mt-2">{description.length}/500 caracteres</p>
-            </div>
-
-            {/* Estilos de tatuaje */}
-            <div>
-              <button
-                onClick={() => setShowStylePicker(!showStylePicker)}
-                className="w-full flex items-center justify-between p-4 bg-[#0f1419] border border-gray-800 rounded-2xl hover:border-gray-700 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Tag className="w-5 h-5 text-gray-400" />
-                  <div className="text-left">
-                    <p className="text-sm font-medium">Estilos de tatuaje</p>
-                    {selectedStyles.length > 0 && (
-                      <p className="text-xs text-gray-400">{selectedStyles.join(', ')}</p>
+              {/* Descripción con IA */}
+              <div>
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <label className="text-sm font-semibold text-gray-300">Descripción</label>
+                  <button
+                    onClick={generateAISuggestions}
+                    className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-600/30 rounded-full text-xs font-medium text-purple-400 hover:from-purple-600/30 hover:to-pink-600/30 transition-all"
+                  >
+                    <Wand2 className="w-3 h-3" /> IA
+                  </button>
+                </div>
+                <div className="relative">
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    maxLength={500}
+                    placeholder="Describe tu trabajo, técnica utilizada, tiempo de sesión..."
+                    className="w-full h-28 sm:h-32 bg-[#0f1419] border border-gray-800 rounded-2xl p-3 sm:p-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none transition-all"
+                  />
+                  <div className="absolute bottom-2 right-3 flex items-center gap-2">
+                    <span className="text-xs text-gray-500">{description.length}/500</span>
+                    {description.length > 400 && (
+                      <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
                     )}
                   </div>
                 </div>
-                <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${showStylePicker ? 'rotate-90' : ''}`} />
-              </button>
-
-              <AnimatePresence>
-                {showStylePicker && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-3 flex flex-wrap gap-2"
-                  >
-                    {tattooStyles.map((style) => (
+                {/* Sugerencias de IA */}
+                <AnimatePresence>
+                  {showAISuggestions && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-2 space-y-2"
+                    >
+                      <p className="text-xs text-gray-400 font-medium">Sugerencias de IA:</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {aiSuggestions.slice(0, 4).map((suggestion, index) => (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setDescription(suggestion)
+                              setShowAISuggestions(false)
+                            }}
+                            className="text-left p-3 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-gray-600 hover:bg-gray-800 transition-all text-sm w-full"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="w-3 h-3 text-purple-400" />
+                              <span className="text-gray-300">{suggestion}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                       <button
-                        key={style}
-                        onClick={() => handleStyleToggle(style)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                          selectedStyles.includes(style)
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                        }`}
+                        onClick={() => setShowAISuggestions(false)}
+                        className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
                       >
-                        {style}
+                        Cerrar sugerencias
                       </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Etiquetar cliente */}
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Etiquetar cliente (opcional)
-              </label>
-              <div className="relative">
-                <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input
-                  type="text"
-                  value={clientTag}
-                  onChange={(e) => setClientTag(e.target.value)}
-                  placeholder="@usuario"
-                  className="w-full pl-12 pr-4 py-3 bg-[#0f1419] border border-gray-800 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </div>
 
-            {/* Visibilidad */}
-            <div className="pb-20">
-              <label className="block text-sm font-medium text-gray-400 mb-3">
-                Visibilidad
-              </label>
-              <div className="grid grid-cols-2 gap-3">
+              {/* Estilos de tatuaje */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-300">Estilos de tatuaje</label>
+                  {selectedStyles.length > 0 && (
+                    <span className="text-xs text-blue-400 font-medium">
+                      {selectedStyles.length} seleccionado{selectedStyles.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
                 <button
-                  onClick={() => setVisibility('public')}
-                  className={`p-4 rounded-2xl border-2 transition-all ${
-                    visibility === 'public'
-                      ? 'border-blue-600 bg-blue-600/20'
-                      : 'border-gray-800 bg-gray-900/50'
-                  }`}
+                  onClick={() => setShowStylePicker(!showStylePicker)}
+                  className="w-full flex items-center justify-between p-3 sm:p-4 bg-[#0f1419] border border-gray-800 rounded-2xl hover:border-gray-700 transition-all group"
                 >
-                  <Globe className={`w-6 h-6 mx-auto mb-2 ${
-                    visibility === 'public' ? 'text-blue-400' : 'text-gray-400'
-                  }`} />
-                  <p className={`text-sm font-medium ${
-                    visibility === 'public' ? 'text-white' : 'text-gray-400'
-                  }`}>
-                    Público
-                  </p>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl flex items-center justify-center">
+                      <Tag className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-white">Seleccionar estilos</p>
+                      {selectedStyles.length > 0 ? (
+                        <p className="text-xs text-gray-400">{selectedStyles.slice(0, 2).join(', ')}{selectedStyles.length > 2 && ` +${selectedStyles.length - 2} más`}</p>
+                      ) : (
+                        <p className="text-xs text-gray-500">Toca para seleccionar</p>
+                      )}
+                    </div>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform group-hover:text-white ${showStylePicker ? 'rotate-90' : ''}`} />
                 </button>
-
-                <button
-                  onClick={() => setVisibility('private')}
-                  className={`p-4 rounded-2xl border-2 transition-all ${
-                    visibility === 'private'
-                      ? 'border-purple-600 bg-purple-600/20'
-                      : 'border-gray-800 bg-gray-900/50'
-                  }`}
-                >
-                  <Lock className={`w-6 h-6 mx-auto mb-2 ${
-                    visibility === 'private' ? 'text-purple-400' : 'text-gray-400'
-                  }`} />
-                  <p className={`text-sm font-medium ${
-                    visibility === 'private' ? 'text-white' : 'text-gray-400'
-                  }`}>
-                    Privado
-                  </p>
-                </button>
+                <AnimatePresence>
+                  {showStylePicker && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-3 space-y-2"
+                    >
+                      <div className="flex flex-wrap gap-2">
+                        {tattooStyles.map((style) => (
+                          <motion.button
+                            key={style}
+                            onClick={() => handleStyleToggle(style)}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                              selectedStyles.includes(style)
+                                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25'
+                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-300'
+                            }`}
+                          >
+                            {style}
+                          </motion.button>
+                        ))}
+                      </div>
+                      <div className="pt-2 border-t border-gray-800">
+                        <p className="text-xs text-gray-500 mb-2">Estilos populares:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {['Realismo', 'Tradicional', 'Japonés'].map((popularStyle) => (
+                            <button
+                              key={popularStyle}
+                              onClick={() => handleStyleToggle(popularStyle)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                                selectedStyles.includes(popularStyle)
+                                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white'
+                                  : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700'
+                              }`}
+                            >
+                              {popularStyle}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </div>
 
-      {/* Bottom Navigation */}
+              {/* Etiquetar cliente */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-300">Etiquetar cliente</label>
+                  <span className="text-xs text-gray-500">Opcional</span>
+                </div>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 rounded-xl flex items-center justify-center">
+                    <Users className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={clientTag}
+                    onChange={(e) => setClientTag(e.target.value)}
+                    placeholder="@usuario"
+                    className="w-full pl-14 sm:pl-16 pr-4 py-3 sm:py-4 bg-[#0f1419] border border-gray-800 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all"
+                  />
+                  {clientTag && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Inputs ocultos */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+        </div>
+      </main>
+
+      {/* Bottom Navigation adaptado, fijo abajo */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#0a0e1a] border-t border-gray-800 z-50 safe-bottom bottom-nav-ios">
-        <div className="flex items-center justify-around h-20 px-2">
+        <div className="flex items-center justify-around h-20 px-2 max-w-md mx-auto w-full">
           <button
             onClick={() => router.push('/')}
             className="nav-button flex flex-col items-center justify-center py-2 px-3 text-gray-400 hover:text-white transition-colors min-w-0 flex-1"
           >
             <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
             </svg>
             <span className="text-xs font-medium truncate">Inicio</span>
           </button>
-          
-          <button 
+          <button
             onClick={() => router.push('/search')}
             className="nav-button flex flex-col items-center justify-center py-2 px-3 text-gray-400 hover:text-white transition-colors min-w-0 flex-1"
           >
             <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
             </svg>
             <span className="text-xs font-medium truncate">Buscar</span>
           </button>
-          
           <button className="nav-button flex flex-col items-center justify-center py-2 px-3 text-blue-500 min-w-0 flex-1">
             <div className="w-6 h-6 mb-1 flex items-center justify-center">
               <div className="w-7 h-7 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="12" y1="5" x2="12" y2="19"/>
-                  <line x1="5" y1="12" x2="19" y2="12"/>
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
               </div>
             </div>
             <span className="text-xs font-medium truncate">Publicar</span>
           </button>
-          
-          <button 
+          <button
             onClick={() => router.push('/notifications')}
             className="nav-button flex flex-col items-center justify-center py-2 px-3 text-gray-400 hover:text-white transition-colors min-w-0 flex-1"
           >
             <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
             <span className="text-xs font-medium truncate">Notificaciones</span>
           </button>
-          
           <button
             onClick={() => router.push('/profile')}
             className="nav-button flex flex-col items-center justify-center py-2 px-3 text-gray-400 hover:text-white transition-colors min-w-0 flex-1"
           >
             <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
             </svg>
             <span className="text-xs font-medium truncate">Perfil</span>
           </button>
