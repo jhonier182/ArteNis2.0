@@ -24,6 +24,18 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
   const router = useRouter()
 
   useEffect(() => {
+    // Verificar si el usuario ya está logueado
+    const userData = localStorage.getItem('user')
+    const token = localStorage.getItem('token')
+    
+    if (userData && token) {
+      // Si el usuario está logueado, saltarse todo y ir directo al perfil
+      onComplete()
+      router.push('/profile')
+      return
+    }
+
+    // Si no está logueado, proceder con el video de introducción
     const video = videoRef.current
     if (video) {
       // Configurar el video para reproducción automática
@@ -44,7 +56,7 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
         video.removeEventListener('ended', handleVideoEnd)
       }
     }
-  }, [])
+  }, [onComplete, router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
