@@ -17,6 +17,7 @@ import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
 import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
 import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
+import { useAlert, AlertContainer } from '@/components/Alert'
 
 interface PublicUser {
   id: number
@@ -41,6 +42,7 @@ export default function PublicProfilePage() {
   const router = useRouter()
   const { id } = router.query
   const { user: currentUser, isAuthenticated } = useUser()
+  const { alerts, success, error: showAlert, removeAlert } = useAlert()
   const [profileUser, setProfileUser] = useState<PublicUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
@@ -76,7 +78,7 @@ export default function PublicProfilePage() {
 
     } catch (error) {
       console.error('Error al cargar perfil:', error)
-      alert('Error al cargar el perfil del usuario')
+      showAlert('Error al cargar', 'No se pudo cargar el perfil del usuario')
       router.push('/')
     } finally {
       setIsLoading(false)
@@ -97,7 +99,7 @@ export default function PublicProfilePage() {
 
   const handleFollowToggle = async () => {
     if (!isAuthenticated) {
-      alert('Debes iniciar sesión para seguir usuarios')
+      showAlert('Acceso denegado', 'Debes iniciar sesión para seguir usuarios')
       router.push('/login')
       return
     }
@@ -116,7 +118,7 @@ export default function PublicProfilePage() {
       }
     } catch (error: any) {
       console.error('Error al cambiar seguimiento:', error)
-      alert(error.response?.data?.message || 'Error al actualizar seguimiento')
+      showAlert('Error al seguir', error.response?.data?.message || 'No se pudo actualizar el seguimiento')
     } finally {
       setIsFollowLoading(false)
     }
@@ -657,6 +659,9 @@ export default function PublicProfilePage() {
           scrollbar-width: none;
         }
       `}</style>
+
+      {/* Alert Container */}
+      <AlertContainer alerts={alerts} />
     </div>
   )
 }

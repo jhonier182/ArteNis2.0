@@ -19,10 +19,12 @@ import {
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
+import { useAlert, AlertContainer } from '@/components/Alert'
 
 export default function CreatePostPage() {
   const router = useRouter()
   const { user, isAuthenticated, isLoading } = useUser()
+  const { alerts, success, error, removeAlert } = useAlert()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   
@@ -81,7 +83,7 @@ export default function CreatePostPage() {
     if (!file) return
 
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      alert('Solo se permiten imágenes o videos')
+      error('Tipo de archivo no válido', 'Solo se permiten imágenes o videos')
       return
     }
 
@@ -104,7 +106,7 @@ export default function CreatePostPage() {
 
   const handleEdit = () => {
     if (!selectedFile) {
-      alert('Por favor selecciona una imagen o video')
+      error('Archivo requerido', 'Por favor selecciona una imagen o video')
       return
     }
     
@@ -127,7 +129,7 @@ export default function CreatePostPage() {
 
   const handlePublish = async () => {
     if (!selectedFile) {
-      alert('Por favor selecciona una imagen o video')
+      error('Archivo requerido', 'Por favor selecciona una imagen o video')
       return
     }
 
@@ -168,11 +170,13 @@ export default function CreatePostPage() {
       localStorage.removeItem('draft_client')
       localStorage.removeItem('draft_visibility')
 
-      alert('¡Publicación creada exitosamente!')
-      router.push('/profile')
+      success('¡Publicación creada!', 'Tu publicación se ha subido exitosamente')
+      setTimeout(() => {
+        router.push('/profile')
+      }, 2000)
     } catch (error: any) {
       console.error('Error al publicar:', error)
-      alert(error.response?.data?.message || 'Error al crear la publicación')
+      error('Error al publicar', error.response?.data?.message || 'No se pudo crear la publicación')
     } finally {
       setIsPublishing(false)
     }
@@ -512,6 +516,9 @@ export default function CreatePostPage() {
           </button>
         </div>
       </nav>
+
+      {/* Alert Container */}
+      <AlertContainer alerts={alerts} />
     </div>
   )
 }

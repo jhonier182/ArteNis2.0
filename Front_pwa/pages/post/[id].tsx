@@ -13,11 +13,13 @@ import {
 import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
 import PostMenu from '@/components/PostMenu'
+import { useAlert, AlertContainer } from '@/components/Alert'
 
 export default function PostDetailPage() {
   const router = useRouter()
   const { id } = router.query
   const { user, isAuthenticated } = useUser()
+  const { alerts, success, error, removeAlert } = useAlert()
   const [post, setPost] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isLiked, setIsLiked] = useState(false)
@@ -55,9 +57,9 @@ export default function PostDetailPage() {
       setPost(postData)
       setIsLiked(postData.isLiked || false)
       setLikesCount(postData.likesCount || 0)
-    } catch (error) {
-      console.error('Error al cargar post:', error)
-      alert('Error al cargar la publicación')
+    } catch (err) {
+      console.error('Error al cargar post:', err)
+      error('Error al cargar', 'No se pudo cargar la publicación')
       router.push('/')
     } finally {
       setIsLoading(false)
@@ -90,7 +92,7 @@ export default function PostDetailPage() {
 
   const handleFollow = async () => {
     if (!isAuthenticated) {
-      alert('Debes iniciar sesión para seguir usuarios')
+      error('Acceso denegado', 'Debes iniciar sesión para seguir usuarios')
       router.push('/login')
       return
     }
@@ -107,7 +109,7 @@ export default function PostDetailPage() {
       }
     } catch (error: any) {
       console.error('Error al cambiar seguimiento:', error)
-      alert(error.response?.data?.message || 'Error al actualizar seguimiento')
+      error('Error al seguir', error.response?.data?.message || 'No se pudo actualizar el seguimiento')
     } finally {
       setIsFollowLoading(false)
     }
@@ -115,7 +117,7 @@ export default function PostDetailPage() {
 
   const handleSave = async () => {
     if (!isAuthenticated) {
-      alert('Debes iniciar sesión para guardar publicaciones')
+      error('Acceso denegado', 'Debes iniciar sesión para guardar publicaciones')
       router.push('/login')
       return
     }
@@ -164,7 +166,7 @@ export default function PostDetailPage() {
       }
     } catch (error: any) {
       console.error('Error al guardar post:', error)
-      alert(error.response?.data?.message || 'Error al guardar la publicación')
+      error('Error al guardar', error.response?.data?.message || 'No se pudo guardar la publicación')
     } finally {
       setIsSaving(false)
     }
@@ -172,7 +174,7 @@ export default function PostDetailPage() {
 
   const handleLike = async () => {
     if (!isAuthenticated) {
-      alert('Debes iniciar sesión para dar like')
+      error('Acceso denegado', 'Debes iniciar sesión para dar like')
       return
     }
 
@@ -193,13 +195,13 @@ export default function PostDetailPage() {
 
   const handleDelete = async () => {
     if (!isAuthenticated) {
-      alert('Debes iniciar sesión para eliminar publicaciones')
+      error('Acceso denegado', 'Debes iniciar sesión para eliminar publicaciones')
       return
     }
 
     // Verificar que el usuario sea el dueño de la publicación
     if (user?.id?.toString() !== post?.User?.id?.toString()) {
-      alert('No tienes permisos para eliminar esta publicación')
+      error('Sin permisos', 'No tienes permisos para eliminar esta publicación')
       return
     }
 
@@ -209,22 +211,24 @@ export default function PostDetailPage() {
     try {
       setIsDeleting(true)
       await apiClient.delete(`/api/posts/${id}`)
-      alert('Publicación eliminada exitosamente')
-      router.push('/')
+      success('Publicación eliminada', 'La publicación se ha eliminado exitosamente')
+      setTimeout(() => {
+        router.push('/')
+      }, 2000)
     } catch (error: any) {
       console.error('Error al eliminar post:', error)
-      alert(error.response?.data?.message || 'Error al eliminar la publicación')
+      error('Error al eliminar', error.response?.data?.message || 'No se pudo eliminar la publicación')
     } finally {
       setIsDeleting(false)
     }
   }
 
   const handleEdit = () => {
-    alert('Función de editar próximamente')
+    error('Función en desarrollo', 'La edición de publicaciones estará disponible próximamente')
   }
 
   const handleShare = () => {
-    alert('Función de compartir próximamente')
+    error('Función en desarrollo', 'La función de compartir estará disponible próximamente')
   }
 
   const isOwner = user?.id?.toString() === post?.User?.id?.toString()
@@ -469,6 +473,9 @@ export default function PostDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Alert Container */}
+      <AlertContainer alerts={alerts} />
     </div>
   )
 }

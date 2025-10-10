@@ -17,6 +17,7 @@ import {
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { apiClient } from '@/utils/apiClient'
+import { useAlert, AlertContainer } from '@/components/Alert'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -38,6 +39,7 @@ export default function SettingsModal({
   onUserTypeChange
 }: SettingsModalProps) {
   const router = useRouter()
+  const { alerts, success, error, removeAlert } = useAlert()
   const [isChangingType, setIsChangingType] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
 
@@ -67,10 +69,10 @@ export default function SettingsModal({
       }
 
       // Mostrar mensaje de éxito
-      alert(`¡Cuenta cambiada exitosamente a ${newType === 'artist' ? 'Tatuador' : 'Usuario'}!`)
+      success('¡Cuenta actualizada!', `Cambiada exitosamente a ${newType === 'artist' ? 'Tatuador' : 'Usuario'}`)
       onClose()
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error al cambiar tipo de cuenta')
+      error('Error al cambiar cuenta', error.response?.data?.message || 'No se pudo cambiar el tipo de cuenta')
     } finally {
       setIsChangingType(false)
     }
@@ -310,6 +312,9 @@ export default function SettingsModal({
           </motion.div>
         </>
       )}
+
+      {/* Alert Container */}
+      <AlertContainer alerts={alerts} />
     </AnimatePresence>
   )
 }

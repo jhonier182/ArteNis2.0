@@ -20,6 +20,7 @@ import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
 import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
 import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
+import { useAlert, AlertContainer } from '@/components/Alert'
 
 interface Post {
   id: string
@@ -45,6 +46,7 @@ interface Post {
 
 export default function HomePage() {
   const { user, isAuthenticated, isLoading } = useUser()
+  const { alerts, success, error: showAlert, removeAlert } = useAlert()
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set())
   const router = useRouter()
@@ -116,7 +118,7 @@ export default function HomePage() {
 
   const handleSavePost = async (postId: string) => {
     if (!isAuthenticated) {
-      alert('Debes iniciar sesión para guardar publicaciones')
+      showAlert('Acceso denegado', 'Debes iniciar sesión para guardar publicaciones')
       router.push('/login')
       return
     }
@@ -167,7 +169,7 @@ export default function HomePage() {
       }
     } catch (error: any) {
       console.error('Error al guardar post:', error)
-      alert(error.response?.data?.message || 'Error al guardar la publicación')
+      showAlert('Error al guardar', error.response?.data?.message || 'No se pudo guardar la publicación')
     }
   }
 
@@ -397,6 +399,9 @@ export default function HomePage() {
           </button>
         </div>
       </nav>
+
+      {/* Alert Container */}
+      <AlertContainer alerts={alerts} />
     </div>
   )
 }

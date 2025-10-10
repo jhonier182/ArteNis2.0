@@ -21,11 +21,13 @@ import {
   Circle
 } from 'lucide-react'
 import { apiClient } from '@/utils/apiClient'
+import { useAlert, AlertContainer } from '@/components/Alert'
 
 type FilterType = 'none' | 'vivid' | 'bright' | 'dark' | 'vintage' | 'cool' | 'warm'
 
 export default function EditImagePage() {
   const router = useRouter()
+  const { alerts, success, error, removeAlert } = useAlert()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [draftData, setDraftData] = useState({
@@ -361,7 +363,7 @@ export default function EditImagePage() {
 
   const handlePublish = async () => {
     if (!imageUrl) {
-      alert('No hay imagen para publicar')
+      error('Error de validación', 'No hay imagen para publicar')
       return
     }
 
@@ -407,11 +409,11 @@ export default function EditImagePage() {
       localStorage.removeItem('draft_client')
       localStorage.removeItem('draft_visibility')
 
-      alert('¡Publicación creada exitosamente!')
+      success('¡Publicación creada!', 'Tu imagen ha sido publicada exitosamente')
       router.push('/profile')
     } catch (error: any) {
       console.error('Error al publicar:', error)
-      alert(error.response?.data?.message || 'Error al crear la publicación')
+      error('Error al publicar', error.response?.data?.message || 'No se pudo crear la publicación')
     } finally {
       setIsPublishing(false)
     }
@@ -843,6 +845,9 @@ export default function EditImagePage() {
           padding-bottom: env(safe-area-inset-bottom);
         }
       `}</style>
+
+      {/* Alert Container */}
+      <AlertContainer alerts={alerts} />
     </div>
   )
 }

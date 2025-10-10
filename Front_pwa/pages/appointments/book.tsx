@@ -12,11 +12,13 @@ import {
   ChevronRight,
   Send
 } from 'lucide-react'
+import { useAlert, AlertContainer } from '@/components/Alert'
 
 type AppointmentType = 'presencial' | 'videollamada'
 
 export default function BookAppointmentPage() {
   const router = useRouter()
+  const { alerts, success, error, removeAlert } = useAlert()
   const [appointmentType, setAppointmentType] = useState<AppointmentType>('presencial')
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
@@ -64,7 +66,7 @@ export default function BookAppointmentPage() {
 
   const handleSubmit = () => {
     if (!selectedDate || !selectedTime) {
-      alert('Por favor selecciona fecha y hora')
+      error('Datos incompletos', 'Por favor selecciona fecha y hora')
       return
     }
 
@@ -76,7 +78,7 @@ export default function BookAppointmentPage() {
     })
 
     // Aquí iría la llamada al API
-    alert('¡Solicitud enviada!')
+    success('¡Solicitud enviada!', 'Tu cita ha sido solicitada exitosamente')
     router.back()
   }
 
@@ -295,6 +297,9 @@ export default function BookAppointmentPage() {
           </motion.div>
         )}
       </div>
+
+      {/* Alert Container */}
+      <AlertContainer alerts={alerts} />
     </div>
   )
 }
