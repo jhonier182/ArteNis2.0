@@ -4,12 +4,14 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 import { Mail, Lock, Eye, EyeOff, LogIn, Sparkles } from 'lucide-react'
+import { checkUserLoggedIn } from '@/utils/persistentStorage'
 
 interface IntroScreenProps {
   onComplete: () => void
 }
 
 export default function IntroScreen({ onComplete }: IntroScreenProps) {
+  const router = useRouter()
   const [videoEnded, setVideoEnded] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -21,42 +23,44 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const router = useRouter()
 
   useEffect(() => {
-    // Verificar si el usuario ya está logueado
-    const userData = localStorage.getItem('user')
-    const token = localStorage.getItem('token')
-    
-    if (userData && token) {
-      // Si el usuario está logueado, saltarse todo y ir directo al perfil
-      onComplete()
-      router.push('/profile')
-      return
-    }
-
-    // Si no está logueado, proceder con el video de introducción
-    const video = videoRef.current
-    if (video) {
-      // Configurar el video para reproducción automática
-      video.playbackRate = 1.90 // Aumentar velocidad al 125%
-      video.play().catch(console.error)
+    const initializeApp = async () => {
+      const isLoggedIn = await checkUserLoggedIn()
       
-      // Manejar cuando el video termina
-      const handleVideoEnd = () => {
-        setVideoEnded(true)
-        // Mostrar el login después de que termine el video
-        setTimeout(() => {
-          setShowLogin(true)
-        }, 500)
+      if (isLoggedIn) {
+        // Si el usuario está logueado, saltarse todo y ir directo al perfil
+        onComplete()
+        router.push('/profile')
+        return
       }
 
-      video.addEventListener('ended', handleVideoEnd)
-      
-      return () => {
-        video.removeEventListener('ended', handleVideoEnd)
+      console.log('Usuario no logueado, iniciando video de introducción')
+      // Si no está logueado, proceder con el video de introducción
+      const video = videoRef.current
+      if (video) {
+        // Configurar el video para reproducción automática
+        video.playbackRate = 1.90 // Aumentar velocidad al 125%
+        video.play().catch(console.error)
+        
+        // Manejar cuando el video termina
+        const handleVideoEnd = () => {
+          setVideoEnded(true)
+          // Mostrar el login después de que termine el video
+          setTimeout(() => {
+            setShowLogin(true)
+          }, 500)
+        }
+
+        video.addEventListener('ended', handleVideoEnd)
+        
+        return () => {
+          video.removeEventListener('ended', handleVideoEnd)
+        }
       }
     }
+
+    initializeApp()
   }, [onComplete, router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

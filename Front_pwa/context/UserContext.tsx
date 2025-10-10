@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { apiClient } from '@/utils/apiClient';
+import { saveAuthData, clearAuthData } from '@/utils/persistentStorage';
 
 export interface UserProfile {
   id: string;
@@ -63,11 +64,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { user: userData, token, refreshToken } = response.data.data;
 
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', token);
-        localStorage.setItem('refreshToken', refreshToken);
-        localStorage.setItem('userProfile', JSON.stringify(userData));
-      }
+      // Guardar en múltiples métodos para persistencia en PWA móviles
+      await saveAuthData({
+        token,
+        refreshToken,
+        user: userData
+      });
 
       setUser(userData);
       setIsAuthenticated(true);
@@ -89,11 +91,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('userProfile');
-      }
+      // Limpiar de todos los métodos de almacenamiento
+      await clearAuthData();
 
       setUser(null);
       setIsAuthenticated(false);
