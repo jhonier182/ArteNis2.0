@@ -124,59 +124,17 @@ export default function RegisterPage() {
         <title>Registro - InkEndin</title>
       </Head>
 
-      {/* Animated Background */}
-      <div className="absolute inset-0 z-0">
-        {/* Gradient Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-pink-600/20 to-orange-600/20 animate-gradient" />
-        <div className="absolute inset-0 bg-gradient-to-tl from-blue-600/10 via-transparent to-purple-600/10 animate-gradient-reverse" />
-        
-        {/* Animated Tattoo Patterns */}
-        <div className="absolute inset-0 opacity-10">
-          <motion.div
-            animate={{
-              backgroundPosition: ['0% 0%', '100% 100%'],
-            }}
-            transition={{
-              duration: 25,
-              repeat: Infinity,
-              repeatType: 'reverse',
-            }}
-            className="w-full h-full"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.3'%3E%3Cpath d='M50 50c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10c0 5.523-4.477 10-10 10s-10-4.477-10-10 4.477-10 10-10zM10 10c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10c0 5.523-4.477 10-10 10S0 25.523 0 20s4.477-10 10-10zm10 8c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8zm40 40c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-              backgroundSize: '80px 80px',
-            }}
-          />
-        </div>
+      {/* Imagen de fondo */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: 'url(/fondo.jpeg)',
+          filter: 'brightness(0.3)'
+        }}
+      />
 
-        {/* Floating Elements */}
-        <motion.div
-          animate={{
-            y: [0, -30, 0],
-            x: [0, 15, 0],
-            rotate: [0, 10, 0],
-          }}
-          transition={{
-            duration: 7,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="absolute top-20 left-10 w-40 h-40 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            y: [0, 25, 0],
-            x: [0, -20, 0],
-            rotate: [0, -10, 0],
-          }}
-          transition={{
-            duration: 9,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="absolute bottom-20 right-10 w-48 h-48 bg-gradient-to-br from-orange-500/20 to-yellow-500/20 rounded-full blur-3xl"
-        />
-      </div>
+      {/* Overlay oscuro para mejor legibilidad */}
+      <div className="absolute inset-0 bg-black/50" />
 
       {/* Content */}
       <div className="relative z-10 h-full flex items-start justify-center px-4 pt-16 pb-8">
@@ -464,23 +422,6 @@ export default function RegisterPage() {
         </motion.div>
       </div>
 
-      {/* Animated gradient background */}
-      <style jsx global>{`
-        @keyframes gradient {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.8; }
-        }
-        @keyframes gradient-reverse {
-          0%, 100% { opacity: 0.8; }
-          50% { opacity: 1; }
-        }
-        .animate-gradient {
-          animation: gradient 8s ease-in-out infinite;
-        }
-        .animate-gradient-reverse {
-          animation: gradient-reverse 8s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   )
 }

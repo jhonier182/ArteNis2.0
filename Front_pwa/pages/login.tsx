@@ -52,59 +52,17 @@ export default function LoginPage() {
         <title>Iniciar Sesión - InkEndin</title>
       </Head>
 
-      {/* Animated Background */}
-      <div className="absolute inset-0 z-0">
-        {/* Gradient Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 animate-gradient" />
-        <div className="absolute inset-0 bg-gradient-to-tl from-orange-600/10 via-transparent to-cyan-600/10 animate-gradient-reverse" />
-        
-        {/* Animated Tattoo Patterns */}
-        <div className="absolute inset-0 opacity-10">
-          <motion.div
-            animate={{
-              backgroundPosition: ['0% 0%', '100% 100%'],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              repeatType: 'reverse',
-            }}
-            className="w-full h-full"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-              backgroundSize: '60px 60px',
-            }}
-          />
-        </div>
+      {/* Imagen de fondo */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: 'url(/fondo.jpeg)',
+          filter: 'brightness(0.3)'
+        }}
+      />
 
-        {/* Floating Elements */}
-        <motion.div
-          animate={{
-            y: [0, -20, 0],
-            x: [0, 10, 0],
-            rotate: [0, 5, 0],
-          }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="absolute top-20 right-20 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            y: [0, 20, 0],
-            x: [0, -15, 0],
-            rotate: [0, -5, 0],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="absolute bottom-20 left-20 w-40 h-40 bg-gradient-to-br from-pink-500/20 to-orange-500/20 rounded-full blur-3xl"
-        />
-      </div>
+      {/* Overlay oscuro para mejor legibilidad */}
+      <div className="absolute inset-0 bg-black/50" />
 
       {/* Content */}
       <div className="relative z-10 h-full flex items-start justify-center px-4 pt-16 pb-8">
@@ -325,46 +283,6 @@ export default function LoginPage() {
         </motion.div>
       </div>
 
-      {/* Animated gradient background */}
-      <style jsx global>{`
-        @keyframes gradient {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.8; }
-        }
-        @keyframes gradient-reverse {
-          0%, 100% { opacity: 0.8; }
-          50% { opacity: 1; }
-        }
-        .animate-gradient {
-          animation: gradient 8s ease-in-out infinite;
-        }
-        .animate-gradient-reverse {
-          animation: gradient-reverse 8s ease-in-out infinite;
-        }
-        
-        /* Fix for mobile viewport height */
-        html, body {
-          height: 100%;
-          overflow: hidden;
-        }
-        
-        @media (max-width: 768px) {
-          .h-screen {
-            height: 100vh !important;
-            height: 100dvh !important;
-            min-height: 100vh !important;
-            min-height: 100dvh !important;
-          }
-          
-          /* Prevent body scroll on mobile */
-          body {
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-          }
-        }
-      `}</style>
     </div>
   )
 }
