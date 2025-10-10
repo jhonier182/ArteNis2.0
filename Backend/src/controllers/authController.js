@@ -53,6 +53,15 @@ class AuthController {
   static async logout(req, res, next) {
     try {
       const { refreshToken } = req.body;
+      
+      // Verificar que el usuario esté autenticado
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado'
+        });
+      }
+      
       const result = await AuthService.revokeRefreshTokens(req.user.id, refreshToken);
       
       res.status(200).json({
@@ -61,6 +70,7 @@ class AuthController {
         data: result
       });
     } catch (error) {
+      console.error('❌ Error en logout:', error);
       next(error);
     }
   }

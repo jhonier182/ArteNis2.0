@@ -130,14 +130,41 @@ const connectDB = async () => {
       
       // Crear índices adicionales para mejorar rendimiento y evitar deadlocks
       try {
-        await sequelize.query(`
-          CREATE INDEX IF NOT EXISTS idx_likes_user_post_type 
-          ON likes (user_id, post_id, type);
-        `);
-        console.log('✅ Índices adicionales creados/verificados');
+        const indexes = [
+          // Índice para likes (ya existente)
+          `CREATE INDEX IF NOT EXISTS idx_likes_user_post_type ON likes (user_id, post_id, type);`,
+          
+          // Índices para posts - optimización del feed
+          `CREATE INDEX IF NOT EXISTS idx_posts_public_status_created ON posts (is_public, status, created_at DESC);`,
+          `CREATE INDEX IF NOT EXISTS idx_posts_user_created ON posts (user_id, created_at DESC);`,
+          `CREATE INDEX IF NOT EXISTS idx_posts_likes_count ON posts (likes_count DESC);`,
+          `CREATE INDEX IF NOT EXISTS idx_posts_views_count ON posts (views_count DESC);`,
+          `CREATE INDEX IF NOT EXISTS idx_posts_comments_count ON posts (comments_count DESC);`,
+          
+          // Índices para follows
+          `CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows (follower_id);`,
+          `CREATE INDEX IF NOT EXISTS idx_follows_following ON follows (following_id);`,
+          
+          // Índices para usuarios
+          `CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);`,
+          `CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);`,
+          
+          // Índices compuestos para consultas complejas
+          `CREATE INDEX IF NOT EXISTS idx_posts_type_public_created ON posts (type, is_public, created_at DESC);`,
+          `CREATE INDEX IF NOT EXISTS idx_posts_style_public ON posts (style, is_public);`,
+          `CREATE INDEX IF NOT EXISTS idx_posts_bodypart_public ON posts (body_part, is_public);`,
+          `CREATE INDEX IF NOT EXISTS idx_posts_location_public ON posts (location, is_public);`,
+          `CREATE INDEX IF NOT EXISTS idx_posts_featured_public ON posts (is_featured, is_public);`
+        ];
+
+        for (const indexQuery of indexes) {
+          await sequelize.query(indexQuery);
+        }
+        
+        console.log('✅ Índices optimizados creados/verificados');
       } catch (indexError) {
         // Los índices ya existen o hay un error menor
-        console.log('ℹ️ Índices ya existen o no se pudieron crear');
+        console.log('ℹ️ Índices ya existen o no se pudieron crear:', indexError.message);
       }
     } else {
       await sequelize.sync(); 

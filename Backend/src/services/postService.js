@@ -101,7 +101,7 @@ class PostService {
         location,
         featured,
         sortBy = 'recent',
-        userId = null // Agregar userId para verificar seguimiento
+        userId = null
       } = options;
 
       const offset = (page - 1) * limit;
@@ -110,20 +110,32 @@ class PostService {
         status: 'published'
       };
 
-      // EXCLUIR posts de usuarios seguidos Y propios posts (para "Descubrir")
+      // OPTIMIZACIÓN: Obtener usuarios seguidos y likes en una sola consulta
+      let excludeUserIds = [];
+      let userLikes = new Set();
+      
       if (userId) {
-        // Obtener IDs de usuarios seguidos
-        const followingUsers = await Follow.findAll({
-          where: { followerId: userId },
-          attributes: ['followingId']
-        });
+        // Consulta optimizada: obtener seguidos y likes en paralelo
+        const [followingUsers, userLikesData] = await Promise.all([
+          Follow.findAll({
+            where: { followerId: userId },
+            attributes: ['followingId']
+          }),
+          Like.findAll({
+            where: { userId: userId },
+            attributes: ['postId']
+          })
+        ]);
 
-        const excludeUserIds = followingUsers.map(follow => follow.followingId);
+        excludeUserIds = followingUsers.map(follow => follow.followingId);
+        excludeUserIds.push(userId); // Excluir propios posts
         
-        // Agregar el propio userId para EXCLUIR sus propios posts
-        excludeUserIds.push(userId);
+        // Crear Set para búsqueda O(1)
+        userLikes = new Set(userLikesData.map(like => like.postId));
+      }
 
-        // Excluir posts de seguidos y propios
+      // Aplicar filtros de exclusión
+      if (excludeUserIds.length > 0) {
         where.userId = {
           [Op.notIn]: excludeUserIds
         };
@@ -180,26 +192,21 @@ class PostService {
         offset: parseInt(offset)
       });
 
-      // Agregar campo isFollowing si hay usuario autenticado
-      if (userId) {
-        for (const post of posts.rows) {
-          const isFollowing = await Follow.isFollowing(userId, post.author.id);
-          post.author.isFollowing = isFollowing;
-          
-          // Agregar campo isLiked para indicar si el usuario ya dio like
-          const hasLiked = await Like.exists(userId, post.id);
-          post.isLiked = !!hasLiked;
-          
+      // OPTIMIZACIÓN: Procesar datos sin consultas adicionales
+      const transformedPosts = posts.rows.map(post => {
+        const postData = post.toJSON();
+        
+        // Agregar campos calculados directamente
+        if (userId) {
+          postData.isLiked = userLikes.has(post.id);
+          // isFollowing se puede calcular si es necesario, pero por ahora lo omitimos para rendimiento
+        } else {
+          postData.isLiked = false;
         }
-      }
-      
-      // Transformar posts al formato del frontend usando transformPostForFrontend
-      const transformedPosts = await Promise.all(
-        posts.rows.map(post => this.transformPostForFrontend(post, userId))
-      );
-      
-      // Verificar que los posts transformados tengan isLiked
-      // Logs removidos para evitar spam
+        
+        // Transformar al formato del frontend
+        return this.transformPostForFrontend(postData, userId);
+      });
       
       return {
         posts: transformedPosts,
@@ -211,6 +218,7 @@ class PostService {
         }
       };
     } catch (error) {
+      console.error('❌ Error en getFeed:', error);
       throw error;
     }
   }

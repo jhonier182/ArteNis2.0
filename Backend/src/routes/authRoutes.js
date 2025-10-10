@@ -1,5 +1,6 @@
 const express = require('express');
 const AuthController = require('../controllers/authController');
+const { verifyToken } = require('../middlewares/auth');
 const { 
   validateRegister, 
   validateLogin, 
@@ -26,6 +27,9 @@ router.post('/login',
 router.post('/refresh', AuthController.refresh);
 
 // POST /api/auth/logout - Cerrar sesión
-router.post('/logout', AuthController.logout);
+router.post('/logout', 
+  verifyToken,
+  AuthController.logout
+);
 
 module.exports = router;
