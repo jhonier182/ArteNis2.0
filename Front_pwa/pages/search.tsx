@@ -64,15 +64,16 @@ export default function Search() {
     }
   }, [])
 
-  // Cargar usuarios seguidos al montar el componente
+  // Cargar usuarios seguidos y luego publicaciones
   useEffect(() => {
-    loadFollowingUsers()
+    const loadData = async () => {
+      if (user?.id) {
+        const followingIds = await loadFollowingUsers()
+        await loadPublicPostsWithFollowing(followingIds)
+      }
+    }
+    loadData()
   }, [user?.id])
-
-  // Cargar publicaciones públicas cuando cambien los usuarios seguidos
-  useEffect(() => {
-    loadPublicPosts()
-  }, [user?.id, followingUsers])
 
   // Búsqueda reactiva con debounce
   useEffect(() => {
@@ -130,23 +131,25 @@ export default function Search() {
   }
 
   const loadFollowingUsers = async () => {
-    if (!user?.id) return
+    if (!user?.id) return []
     
     try {
       const response = await apiClient.get('/api/follow/following')
-      const following = response.data.data.following || []
-      setFollowingUsers(following.map((follow: any) => follow.id))
+      const following = response.data.data.followingUsers || []
+      const followingIds = following.map((user: any) => String(user.id))
+      setFollowingUsers(followingIds)
+      return followingIds
     } catch (error) {
-      // Error loading following users
+      console.error('Error loading following users:', error)
+      return []
     }
   }
 
-  const loadPublicPosts = async () => {
+  const loadPublicPostsWithFollowing = async (followingIds: string[]) => {
     setLoadingPosts(true)
     try {
       const response = await apiClient.get('/api/search/posts?limit=50')
       let posts = response.data.data.posts || []
-      
       // Normalizar la estructura de datos (el backend devuelve 'author' en lugar de 'User')
       posts = posts.map((post: any) => ({
         ...post,
@@ -155,14 +158,28 @@ export default function Search() {
       
       // Filtrar publicaciones propias del usuario y de usuarios que ya sigue
       if (user?.id) {
-        posts = posts.filter((post: Post) => {
+        const initialCount = posts.length
+        const filteredPosts = posts.filter((post: Post) => {
           const postUserId = post.User?.id
+          const postUserIdStr = String(postUserId)
+          const userIdStr = String(user.id)
+          
+          
           // Excluir publicaciones propias
-          if (postUserId === user.id) return false
+          if (postUserIdStr === userIdStr) {
+            return false
+          }
+          
           // Excluir publicaciones de usuarios que ya sigue
-          if (followingUsers.includes(postUserId)) return false
+          const isFollowing = followingIds.some(followingId => String(followingId) === postUserIdStr)
+          if (isFollowing) {
+            return false
+          }
+          
           return true
         })
+        
+        posts = filteredPosts
       }
       
       // Agrupar por usuario y tomar solo las 2 más recientes de cada uno
@@ -190,7 +207,7 @@ export default function Search() {
       const finalPosts = filteredPosts.slice(0, 20) // Limitar a 20 posts total
       setPublicPosts(finalPosts)
     } catch (error) {
-      // Error loading public posts
+      console.error('Error loading public posts:', error)
     } finally {
       setLoadingPosts(false)
     }
@@ -200,10 +217,12 @@ export default function Search() {
     try {
       await apiClient.post('/api/follow', { userId })
       // Actualizar la lista de usuarios seguidos
-      setFollowingUsers(prev => [...prev, userId])
+      const newFollowingUsers = [...followingUsers, String(userId)]
+      setFollowingUsers(newFollowingUsers)
       // Recargar las publicaciones para ocultar las del usuario recién seguido
-      loadPublicPosts()
-    } catch (error) {      // Error following user
+      await loadPublicPostsWithFollowing(newFollowingUsers)
+    } catch (error) {
+      console.error('Error following user:', error)
     }
   }
 
