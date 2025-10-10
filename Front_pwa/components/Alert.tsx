@@ -78,7 +78,7 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
         <motion.div
           initial={{ 
             opacity: 0, 
-            y: 100, 
+            y: -50, 
             scale: 0.8,
             rotateX: 15
           }}
@@ -90,7 +90,7 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
           }}
           exit={{ 
             opacity: 0, 
-            y: 100, 
+            y: -50, 
             scale: 0.8,
             rotateX: -15
           }}
@@ -98,7 +98,7 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
             type: "spring", 
             stiffness: 400, 
             damping: 25,
-            duration: 0.4
+            duration: 0.2
           }}
           className={`relative max-w-sm w-full ${getBackgroundColor()} border backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden`}
           style={{
@@ -110,9 +110,9 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
             initial={{ x: '-100%' }}
             animate={{ x: '100%' }}
             transition={{ 
-              duration: 2, 
+              duration: 0.8, 
               repeat: Infinity, 
-              repeatDelay: 3,
+              repeatDelay: 1,
               ease: "easeInOut"
             }}
             className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
@@ -136,13 +136,13 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
                   stiffness: 400,
                   damping: 20,
                   y: {
-                    duration: 3,
+                    duration: 1,
                     repeat: Infinity,
                     repeatType: "reverse",
                     ease: "easeInOut"
                   },
                   x: {
-                    duration: 4,
+                    duration: 1.5,
                     repeat: Infinity,
                     repeatType: "reverse",
                     ease: "easeInOut"
@@ -177,7 +177,7 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
                         rotate: [0, 180, 360]
                       }}
                       transition={{
-                        duration: 2,
+                        duration: 0.8,
                         repeat: Infinity,
                         delay: 0.5
                       }}
@@ -192,7 +192,7 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
                         rotate: [0, -180, -360]
                       }}
                       transition={{
-                        duration: 2.5,
+                        duration: 1,
                         repeat: Infinity,
                         delay: 1
                       }}
@@ -214,7 +214,7 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
                         y: [0, -10, 10, 0]
                       }}
                       transition={{
-                        duration: 1.5,
+                        duration: 0.6,
                         repeat: Infinity,
                         delay: 0.3
                       }}
@@ -235,7 +235,7 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
                         rotate: [0, 360]
                       }}
                       transition={{
-                        duration: 1,
+                        duration: 0.5,
                         repeat: Infinity,
                         delay: 0.2
                       }}
@@ -256,7 +256,7 @@ export default function Alert({ id, type, title, message, duration = 4000, onClo
                         y: [0, -5, 0]
                       }}
                       transition={{
-                        duration: 2,
+                        duration: 0.8,
                         repeat: Infinity,
                         delay: 0.4
                       }}
@@ -367,10 +367,12 @@ export function useAlert() {
 // Componente contenedor de alertas
 export function AlertContainer({ alerts }: { alerts: AlertProps[] }) {
   return (
-    <div className="fixed bottom-4 right-4 z-50 space-y-3">
-      {alerts.map(alert => (
-        <Alert key={alert.id} {...alert} />
-      ))}
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+      <div className="space-y-3 pointer-events-auto">
+        {alerts.map(alert => (
+          <Alert key={alert.id} {...alert} />
+        ))}
+      </div>
     </div>
   )
 }
