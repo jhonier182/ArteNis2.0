@@ -39,6 +39,7 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
     const video = videoRef.current
     if (video) {
       // Configurar el video para reproducción automática
+      video.playbackRate = 1.90 // Aumentar velocidad al 125%
       video.play().catch(console.error)
       
       // Manejar cuando el video termina
