@@ -43,7 +43,7 @@ export default function CollectionsPage() {
       const filtered = savedPosts.filter(post => 
         post.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.User?.username?.toLowerCase().includes(searchTerm.toLowerCase())
+        post.author?.username?.toLowerCase().includes(searchTerm.toLowerCase())
       )
       setFilteredPosts(filtered)
     } else {
@@ -197,7 +197,7 @@ export default function CollectionsPage() {
                         {post.title || post.description || 'Sin título'}
                       </h3>
                       <p className="text-xs text-gray-400">
-                        por @{post.User?.username || 'desconocido'}
+                        por @{post.author?.username || 'desconocido'}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-500">

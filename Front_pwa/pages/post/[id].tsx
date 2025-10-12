@@ -39,10 +39,10 @@ export default function PostDetailPage() {
   }, [id])
 
   useEffect(() => {
-    if (post?.User?.id && isAuthenticated) {
-      setIsFollowing(isFollowingUser(post.User.id))
+    if (post?.author?.id && isAuthenticated) {
+      setIsFollowing(isFollowingUser(post.author.id))
     }
-  }, [post?.User?.id, isAuthenticated, isFollowingUser])
+  }, [post?.author?.id, isAuthenticated, isFollowingUser])
 
   useEffect(() => {
     if (post?.id && isAuthenticated) {
@@ -92,10 +92,10 @@ export default function PostDetailPage() {
       setIsFollowLoading(true)
       
       if (isFollowing) {
-        await apiClient.delete(`/api/follow/${post.User.id}`)
+        await apiClient.delete(`/api/follow/${post.author.id}`)
         setIsFollowing(false)
       } else {
-        await apiClient.post('/api/follow', { userId: post.User.id })
+        await apiClient.post('/api/follow', { userId: post.author.id })
         setIsFollowing(true)
       }
       
@@ -195,7 +195,7 @@ export default function PostDetailPage() {
     }
 
     // Verificar que el usuario sea el dueño de la publicación
-    if (user?.id?.toString() !== post?.User?.id?.toString()) {
+    if (user?.id?.toString() !== post?.author?.id?.toString()) {
       error('Sin permisos', 'No tienes permisos para eliminar esta publicación')
       return
     }
@@ -226,7 +226,7 @@ export default function PostDetailPage() {
     error('Función en desarrollo', 'La función de compartir estará disponible próximamente')
   }
 
-  const isOwner = user?.id?.toString() === post?.User?.id?.toString()
+  const isOwner = user?.id?.toString() === post?.author?.id?.toString()
 
   if (isLoading) {
     return (
@@ -294,29 +294,29 @@ export default function PostDetailPage() {
       <div className="container-mobile px-4 py-4">
         {/* Author */}
         <div className="flex items-center justify-between mb-4">
-          {post.User ? (
+          {post.author ? (
             <button
-              onClick={() => router.push(`/user/${post.User.id}`)}
+              onClick={() => router.push(`/user/${post.author.id}`)}
               className="flex items-center space-x-3 group"
             >
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-                {post.User.avatar ? (
+                {post.author.avatar ? (
                   <img
-                    src={post.User.avatar}
-                    alt={post.User.username}
+                    src={post.author.avatar}
+                    alt={post.author.username}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 ) : (
                   <span className="text-sm font-bold text-white">
-                    {post.User.username?.charAt(0).toUpperCase() || 'U'}
+                    {post.author.username?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 )}
               </div>
               <div>
                 <p className="font-semibold group-hover:text-blue-500 transition-colors">
-                  {post.User.fullName || post.User.username || 'Usuario'}
+                  {post.author.fullName || post.author.username || 'Usuario'}
                 </p>
-                <p className="text-sm text-gray-500">@{post.User.username || 'usuario'}</p>
+                <p className="text-sm text-gray-500">@{post.author.username || 'usuario'}</p>
               </div>
             </button>
           ) : (
@@ -331,7 +331,7 @@ export default function PostDetailPage() {
             </div>
           )}
 
-          {post.User && user?.id?.toString() !== post.User.id?.toString() && (
+          {post.author && user?.id?.toString() !== post.author.id?.toString() && (
             <button 
               onClick={handleFollow}
               disabled={isFollowLoading}
