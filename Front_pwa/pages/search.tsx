@@ -16,6 +16,7 @@ import {
 import { apiClient } from '@/utils/apiClient'
 import { useUser } from '@/context/UserContext'
 import { useFollowing } from '@/hooks/useFollowing'
+import { useSearchPosts } from '@/hooks/useSearchPosts'
 
 // Tipos para los posts
 interface Post {
@@ -50,6 +51,7 @@ export default function Search() {
   const router = useRouter()
   const { user } = useUser()
   const { followingUsers, isFollowing, refreshFollowing } = useFollowing()
+  const { loadFilteredPosts } = useSearchPosts()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -71,8 +73,23 @@ export default function Search() {
     
     const loadData = async () => {
       if (user?.id && followingUsers.length >= 0 && isMounted) {
-        const followingIds = followingUsers.map(user => user.id)
-        await loadPublicPostsWithFollowing(followingIds)
+        setLoadingPosts(true)
+        try {
+          const followingIds = followingUsers.map(user => user.id)
+          const filteredPosts = await loadFilteredPosts(followingIds, user.id)
+          if (isMounted) {
+            setPublicPosts(filteredPosts)
+          }
+        } catch (error) {
+          console.error('Error cargando posts filtrados:', error)
+          if (isMounted) {
+            setPublicPosts([])
+          }
+        } finally {
+          if (isMounted) {
+            setLoadingPosts(false)
+          }
+        }
       }
     }
     
@@ -81,7 +98,7 @@ export default function Search() {
     return () => {
       isMounted = false
     }
-  }, [user?.id, followingUsers]) // Depende de followingUsers del hook
+  }, [user?.id, followingUsers, loadFilteredPosts]) // Depende de followingUsers del hook
 
   // Búsqueda reactiva con debounce
   useEffect(() => {
@@ -138,79 +155,19 @@ export default function Search() {
     localStorage.removeItem('recentSearches')
   }
 
-  const loadPublicPostsWithFollowing = useCallback(async (followingIds: string[]) => {
-    setLoadingPosts(true)
-    try {
-      const response = await apiClient.get('/api/search/posts?limit=50')
-      let posts = response.data.data.posts || []
-      // Normalizar la estructura de datos (el backend devuelve 'author' en lugar de 'User')
-      posts = posts.map((post: any) => ({
-        ...post,
-        User: post.author || post.User
-      }))
-      
-      // Filtrar publicaciones propias del usuario y de usuarios que ya sigue
-      if (user?.id) {
-        const initialCount = posts.length
-        const filteredPosts = posts.filter((post: Post) => {
-          const postUserId = post.User?.id
-          const postUserIdStr = String(postUserId)
-          const userIdStr = String(user.id)
-          
-          
-          // Excluir publicaciones propias
-          if (postUserIdStr === userIdStr) {
-            return false
-          }
-          
-          // Excluir publicaciones de usuarios que ya sigue
-          const isFollowing = followingIds.some(followingId => String(followingId) === postUserIdStr)
-          if (isFollowing) {
-            return false
-          }
-          
-          return true
-        })
-        
-        posts = filteredPosts
-      }
-      
-      // Agrupar por usuario y tomar solo las 2 más recientes de cada uno
-      const userPostsMap = new Map<string, Post[]>()
-      posts.forEach((post: Post) => {
-        const userId = post.User?.id
-        if (userId) {
-          if (!userPostsMap.has(userId)) {
-            userPostsMap.set(userId, [])
-          }
-          userPostsMap.get(userId)!.push(post)
-        }
-      })
-      
-      // Tomar solo las 2 más recientes de cada usuario
-      const filteredPosts: Post[] = []
-      userPostsMap.forEach((userPosts: Post[]) => {
-        const sortedPosts = userPosts.sort((a: Post, b: Post) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        filteredPosts.push(...sortedPosts.slice(0, 2))
-      })
-      
-      // Ordenar por fecha de creación (más recientes primero)
-      filteredPosts.sort((a: Post, b: Post) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      
-      const finalPosts = filteredPosts.slice(0, 20) // Limitar a 20 posts total
-      setPublicPosts(finalPosts)
-    } catch (error) {
-      console.error('Error loading public posts:', error)
-    } finally {
-      setLoadingPosts(false)
-    }
-  }, [user?.id])
-
   const handleFollowUser = async (userId: string) => {
     try {
       await apiClient.post('/api/follow', { userId })
       // Refrescar la lista de usuarios seguidos usando el hook
       await refreshFollowing()
+      
+      // Refrescar las publicaciones para ocultar las del usuario recién seguido
+      if (user?.id) {
+        const followingIds = [...followingUsers.map(u => u.id), userId]
+        const filteredPosts = await loadFilteredPosts(followingIds, user.id)
+        setPublicPosts(filteredPosts)
+      }
+      
       console.log('Usuario seguido exitosamente')
     } catch (error) {
       console.error('Error following user:', error)
