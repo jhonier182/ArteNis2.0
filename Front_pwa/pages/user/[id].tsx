@@ -18,6 +18,7 @@ import { apiClient } from '@/utils/apiClient'
 import { useFollowing } from '@/hooks/useFollowing'
 import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
 import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
+import FollowButton from '@/components/FollowButton'
 import { useAlert, AlertContainer } from '@/components/Alert'
 
 interface PublicUser {
@@ -43,12 +44,9 @@ export default function PublicProfilePage() {
   const router = useRouter()
   const { id } = router.query
   const { user: currentUser, isAuthenticated } = useUser()
-  const { isFollowing: isFollowingUser, refreshFollowing } = useFollowing()
   const { alerts, success, error: showAlert, removeAlert } = useAlert()
   const [profileUser, setProfileUser] = useState<PublicUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isFollowing, setIsFollowing] = useState(false)
-  const [isFollowLoading, setIsFollowLoading] = useState(false)
   // Hook de scroll infinito para posts del usuario público
   const {
     data: userPosts,
@@ -73,10 +71,6 @@ export default function PublicProfilePage() {
       const response = await apiClient.get(`/api/profile/${id}`)
       setProfileUser(response.data.data.user)
       
-      // Verificar si ya sigue al usuario usando el hook
-      if (isAuthenticated && response.data.data.user?.id) {
-        setIsFollowing(isFollowingUser(response.data.data.user.id))
-      }
 
     } catch (error) {
       console.error('Error al cargar perfil:', error)
@@ -88,36 +82,6 @@ export default function PublicProfilePage() {
   }
 
 
-  const handleFollowToggle = async () => {
-    if (!isAuthenticated) {
-      showAlert('Acceso denegado', 'Debes iniciar sesión para seguir usuarios')
-      router.push('/login')
-      return
-    }
-
-    try {
-      setIsFollowLoading(true)
-      
-      if (isFollowing) {
-        // Dejar de seguir
-        await apiClient.delete(`/api/follow/${id}`)
-        setIsFollowing(false)
-      } else {
-        // Seguir
-        await apiClient.post('/api/follow', { userId: id })
-        setIsFollowing(true)
-      }
-      
-      // Refrescar la lista de usuarios seguidos usando el hook
-      await refreshFollowing()
-      
-    } catch (error: any) {
-      console.error('Error al cambiar seguimiento:', error)
-      showAlert('Error al seguir', error.response?.data?.message || 'No se pudo actualizar el seguimiento')
-    } finally {
-      setIsFollowLoading(false)
-    }
-  }
 
   // Mock data - Reemplazar con datos reales del backend
   const stats = {
@@ -269,25 +233,13 @@ export default function PublicProfilePage() {
                 {/* Action Buttons - Solo si NO es tu propio perfil */}
                 {currentUser?.id?.toString() !== profileUser.id?.toString() && (
                   <div className="flex gap-2.5">
-                    <button 
-                      onClick={handleFollowToggle}
-                      disabled={isFollowLoading}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-                        isFollowing
-                          ? 'bg-gray-800/80 text-white hover:bg-gray-700 border border-gray-700'
-                          : 'bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95'
-                      }`}
-                    >
-                      {isFollowLoading ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        </div>
-                      ) : isFollowing ? (
-                        '✓ Siguiendo'
-                      ) : (
-                        '+ Seguir'
-                      )}
-                    </button>
+                    <FollowButton 
+                      userId={id as string}
+                      username={profileUser?.username}
+                      size="md"
+                      variant="primary"
+                      className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95"
+                    />
                     <button 
                       onClick={() => router.push('/appointments/book')}
                       className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-2.5 rounded-xl text-sm font-bold hover:shadow-xl hover:shadow-emerald-500/40 transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
@@ -354,25 +306,13 @@ export default function PublicProfilePage() {
             {/* Action Buttons para Usuario Normal - Solo si NO es tu propio perfil */}
             {currentUser?.id?.toString() !== profileUser.id?.toString() && (
               <div className="flex gap-3 mb-8">
-                <button 
-                  onClick={handleFollowToggle}
-                  disabled={isFollowLoading}
-                  className={`flex-1 py-3 rounded-xl font-bold transition-all duration-300 ${
-                    isFollowing
-                      ? 'bg-gray-800/80 text-white hover:bg-gray-700 border border-gray-700'
-                      : 'bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95'
-                  }`}
-                >
-                  {isFollowLoading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    </div>
-                  ) : isFollowing ? (
-                    '✓ Siguiendo'
-                  ) : (
-                    '+ Seguir'
-                  )}
-                </button>
+                <FollowButton 
+                  userId={id as string}
+                  username={profileUser?.username}
+                  size="lg"
+                  variant="primary"
+                  className="flex-1 py-3 rounded-xl font-bold bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95"
+                />
               </div>
             )}
           </>

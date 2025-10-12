@@ -9,7 +9,10 @@ class FollowService {
       // Usar setImmediate para evitar bloquear el event loop
       setImmediate(async () => {
         try {
+          console.log(`🔍 FollowService: Verificando seguimiento ${followerId} -> ${followingId}`);
+          
           if (followerId === followingId) {
+            console.log(`❌ FollowService: Usuario intentando seguirse a sí mismo`);
             setImmediate(() => {
               resolve({ error: 'No puedes seguirte a ti mismo' });
             });
@@ -23,6 +26,7 @@ class FollowService {
           });
           
           if (!userToFollow) {
+            console.log(`❌ FollowService: Usuario a seguir no encontrado: ${followingId}`);
             setImmediate(() => {
               resolve({ error: 'Usuario no encontrado' });
             });
@@ -37,6 +41,7 @@ class FollowService {
           });
 
           if (existingFollow) {
+            console.log(`❌ FollowService: Usuario ya está siendo seguido`);
             setImmediate(() => {
               resolve({ error: 'Ya sigues a este usuario' });
             });
@@ -82,17 +87,25 @@ class FollowService {
   // Dejar de seguir usuario
   static async unfollowUser(followerId, followingId) {
     try {
+      console.log(`🔍 FollowService: Intentando dejar de seguir ${followerId} -> ${followingId}`);
+      
       const follow = await Follow.findOne({
         where: { followerId, followingId }
       });
 
+      console.log(`📊 FollowService: Relación encontrada:`, follow ? 'Sí' : 'No');
+
       if (!follow) {
+        console.log(`❌ FollowService: No se encontró relación de seguimiento`);
         throw new Error('No sigues a este usuario');
       }
+
+      console.log(`✅ FollowService: Relación encontrada, eliminando...`);
 
       // Eliminar la relación de seguimiento
       await sequelize.transaction(async (t) => {
         await follow.destroy({ transaction: t });
+        console.log(`🗑️ FollowService: Relación eliminada de la base de datos`);
 
         // Decrementar contadores
         await User.decrement('followersCount', {
@@ -104,13 +117,18 @@ class FollowService {
           where: { id: followerId },
           transaction: t
         });
+        
+        console.log(`📉 FollowService: Contadores decrementados`);
       });
 
       // OPTIMIZACIÓN: Invalidar cache de follows
       this.invalidateFollowCache(followerId);
+      console.log(`🧹 FollowService: Cache invalidado`);
 
+      console.log(`✅ FollowService: Usuario dejado de seguir exitosamente`);
       return { message: 'Has dejado de seguir al usuario' };
     } catch (error) {
+      console.error(`❌ FollowService: Error en unfollowUser:`, error);
       throw error;
     }
   }
