@@ -78,7 +78,7 @@ class BoardService {
               attributes: ['id', 'title', 'mediaUrl', 'thumbnailUrl', 'createdAt']
             }
           ],
-          order: [['boardId'], ['sortOrder', 'ASC'], ['addedAt', 'DESC']]
+          order: [['boardId'], ['sortOrder', 'ASC'], [{ model: Post, as: 'post' }, 'createdAt', 'DESC']]
         });
 
         // Agrupar posts por board y limitar a 4 por board
