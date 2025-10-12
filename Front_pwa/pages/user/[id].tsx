@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
+import { useFollowing } from '@/hooks/useFollowing'
 import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
 import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
 import { useAlert, AlertContainer } from '@/components/Alert'
@@ -42,6 +43,7 @@ export default function PublicProfilePage() {
   const router = useRouter()
   const { id } = router.query
   const { user: currentUser, isAuthenticated } = useUser()
+  const { isFollowing: isFollowingUser, refreshFollowing } = useFollowing()
   const { alerts, success, error: showAlert, removeAlert } = useAlert()
   const [profileUser, setProfileUser] = useState<PublicUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -71,9 +73,9 @@ export default function PublicProfilePage() {
       const response = await apiClient.get(`/api/profile/${id}`)
       setProfileUser(response.data.data.user)
       
-      // Verificar si ya sigue al usuario
-      if (isAuthenticated) {
-        checkIfFollowing()
+      // Verificar si ya sigue al usuario usando el hook
+      if (isAuthenticated && response.data.data.user?.id) {
+        setIsFollowing(isFollowingUser(response.data.data.user.id))
       }
 
     } catch (error) {
@@ -85,17 +87,6 @@ export default function PublicProfilePage() {
     }
   }
 
-
-  const checkIfFollowing = async () => {
-    try {
-      const response = await apiClient.get('/api/follow/following')
-      const followingUsers = response.data.data.followingUsers || []
-      const isUserFollowed = followingUsers.some((u: any) => u.id === id)
-      setIsFollowing(isUserFollowed)
-    } catch (error) {
-      console.error('Error al verificar seguimiento:', error)
-    }
-  }
 
   const handleFollowToggle = async () => {
     if (!isAuthenticated) {
@@ -116,6 +107,10 @@ export default function PublicProfilePage() {
         await apiClient.post('/api/follow', { userId: id })
         setIsFollowing(true)
       }
+      
+      // Refrescar la lista de usuarios seguidos usando el hook
+      await refreshFollowing()
+      
     } catch (error: any) {
       console.error('Error al cambiar seguimiento:', error)
       showAlert('Error al seguir', error.response?.data?.message || 'No se pudo actualizar el seguimiento')

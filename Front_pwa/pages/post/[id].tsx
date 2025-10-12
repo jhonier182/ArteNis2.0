@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { apiClient } from '@/utils/apiClient'
+import { useFollowing } from '@/hooks/useFollowing'
 import PostMenu from '@/components/PostMenu'
 import { useAlert, AlertContainer } from '@/components/Alert'
 
@@ -19,6 +20,7 @@ export default function PostDetailPage() {
   const router = useRouter()
   const { id } = router.query
   const { user, isAuthenticated } = useUser()
+  const { isFollowing: isFollowingUser, refreshFollowing } = useFollowing()
   const { alerts, success, error, removeAlert } = useAlert()
   const [post, setPost] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -38,9 +40,9 @@ export default function PostDetailPage() {
 
   useEffect(() => {
     if (post?.User?.id && isAuthenticated) {
-      checkIfFollowing()
+      setIsFollowing(isFollowingUser(post.User.id))
     }
-  }, [post?.User?.id, isAuthenticated])
+  }, [post?.User?.id, isAuthenticated, isFollowingUser])
 
   useEffect(() => {
     if (post?.id && isAuthenticated) {
@@ -63,17 +65,6 @@ export default function PostDetailPage() {
       router.push('/')
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const checkIfFollowing = async () => {
-    try {
-      const response = await apiClient.get('/api/follow/following')
-      const followingUsers = response.data.data.followingUsers || []
-      const isUserFollowed = followingUsers.some((u: any) => u.id?.toString() === post.User.id?.toString())
-      setIsFollowing(isUserFollowed)
-    } catch (error) {
-      console.error('Error al verificar seguimiento:', error)
     }
   }
 
@@ -107,6 +98,10 @@ export default function PostDetailPage() {
         await apiClient.post('/api/follow', { userId: post.User.id })
         setIsFollowing(true)
       }
+      
+      // Refrescar la lista de usuarios seguidos usando el hook
+      await refreshFollowing()
+      
     } catch (err: any) {
       console.error('Error al cambiar seguimiento:', err)
       error('Error al seguir', err.response?.data?.message || 'No se pudo actualizar el seguimiento')

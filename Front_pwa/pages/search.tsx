@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { motion } from 'framer-motion'
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { apiClient } from '@/utils/apiClient'
 import { useUser } from '@/context/UserContext'
+import { useFollowing } from '@/hooks/useFollowing'
 
 // Tipos para los posts
 interface Post {
@@ -48,13 +49,13 @@ interface User {
 export default function Search() {
   const router = useRouter()
   const { user } = useUser()
+  const { followingUsers, isFollowing, refreshFollowing } = useFollowing()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [publicPosts, setPublicPosts] = useState<Post[]>([])
   const [loadingPosts, setLoadingPosts] = useState(false)
-  const [followingUsers, setFollowingUsers] = useState<string[]>([])
 
   // Cargar búsquedas recientes del localStorage
   useEffect(() => {
@@ -64,16 +65,23 @@ export default function Search() {
     }
   }, [])
 
-  // Cargar usuarios seguidos y luego publicaciones
+  // Cargar publicaciones cuando se carguen los usuarios seguidos
   useEffect(() => {
+    let isMounted = true
+    
     const loadData = async () => {
-      if (user?.id) {
-        const followingIds = await loadFollowingUsers()
+      if (user?.id && followingUsers.length >= 0 && isMounted) {
+        const followingIds = followingUsers.map(user => user.id)
         await loadPublicPostsWithFollowing(followingIds)
       }
     }
+    
     loadData()
-  }, [user?.id])
+    
+    return () => {
+      isMounted = false
+    }
+  }, [user?.id, followingUsers]) // Depende de followingUsers del hook
 
   // Búsqueda reactiva con debounce
   useEffect(() => {
@@ -130,22 +138,7 @@ export default function Search() {
     localStorage.removeItem('recentSearches')
   }
 
-  const loadFollowingUsers = async () => {
-    if (!user?.id) return []
-    
-    try {
-      const response = await apiClient.get('/api/follow/following')
-      const following = response.data.data.followingUsers || []
-      const followingIds = following.map((user: any) => String(user.id))
-      setFollowingUsers(followingIds)
-      return followingIds
-    } catch (error) {
-      console.error('Error loading following users:', error)
-      return []
-    }
-  }
-
-  const loadPublicPostsWithFollowing = async (followingIds: string[]) => {
+  const loadPublicPostsWithFollowing = useCallback(async (followingIds: string[]) => {
     setLoadingPosts(true)
     try {
       const response = await apiClient.get('/api/search/posts?limit=50')
@@ -211,16 +204,14 @@ export default function Search() {
     } finally {
       setLoadingPosts(false)
     }
-  }
+  }, [user?.id])
 
   const handleFollowUser = async (userId: string) => {
     try {
       await apiClient.post('/api/follow', { userId })
-      // Actualizar la lista de usuarios seguidos
-      const newFollowingUsers = [...followingUsers, String(userId)]
-      setFollowingUsers(newFollowingUsers)
-      // Recargar las publicaciones para ocultar las del usuario recién seguido
-      await loadPublicPostsWithFollowing(newFollowingUsers)
+      // Refrescar la lista de usuarios seguidos usando el hook
+      await refreshFollowing()
+      console.log('Usuario seguido exitosamente')
     } catch (error) {
       console.error('Error following user:', error)
     }

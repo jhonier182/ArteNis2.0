@@ -136,7 +136,7 @@ const searchUsers = async (query, limit = 20) => {
   
   return getCachedData(cacheKey, async () => {
     try {
-      const [results] = await sequelize.query(`
+      const results = await sequelize.query(`
         SELECT 
           u.id,
           u.username,

@@ -37,11 +37,13 @@ export function useInfiniteScroll<T>(
 
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const isLoadingRef = useRef<boolean>(false)
 
   const loadMore = useCallback(async () => {
-    if (loading || !hasMore || !enabled) return
+    if (loading || !hasMore || !enabled || isLoadingRef.current) return
 
     try {
+      isLoadingRef.current = true
       setLoading(true)
       setError(null)
       
@@ -61,8 +63,9 @@ export function useInfiniteScroll<T>(
       console.error('Error en scroll infinito:', err)
     } finally {
       setLoading(false)
+      isLoadingRef.current = false
     }
-  }, [fetchFunction, page, loading, hasMore, enabled, isInitialLoad])
+  }, [fetchFunction, page, hasMore, enabled, isInitialLoad]) // Removido 'loading' de las dependencias
 
   const reset = useCallback(() => {
     setData([])
@@ -70,6 +73,7 @@ export function useInfiniteScroll<T>(
     setHasMore(true)
     setError(null)
     setIsInitialLoad(true)
+    isLoadingRef.current = false
   }, [])
 
   const appendData = useCallback((newData: T[]) => {
@@ -108,10 +112,10 @@ export function useInfiniteScroll<T>(
 
   // Cargar datos iniciales
   useEffect(() => {
-    if (enabled && isInitialLoad) {
+    if (enabled && isInitialLoad && !loading) {
       loadMore()
     }
-  }, [enabled, isInitialLoad, loadMore])
+  }, [enabled, isInitialLoad]) // Removido loadMore de las dependencias para evitar bucles
 
   return {
     data,
@@ -151,7 +155,7 @@ export function useInfinitePosts<T = any>(
     } catch (error) {
       throw new Error('Error al cargar publicaciones')
     }
-  }, [endpoint, params])
+  }, [endpoint, JSON.stringify(params)]) // Usar JSON.stringify para comparar objetos
 
   return useInfiniteScroll<T>(fetchPosts, options)
 }

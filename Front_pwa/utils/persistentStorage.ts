@@ -18,6 +18,16 @@ export const saveAuthData = async (authData: AuthData): Promise<void> => {
   const { token, refreshToken, user } = authData;
   
   try {
+    // Limpiar datos anteriores primero
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('userProfile');
+      localStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('userProfile');
+      sessionStorage.removeItem('refreshToken');
+    }
+    
     // Método 1: localStorage (navegadores web)
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token);
@@ -122,6 +132,54 @@ export const clearAuthData = async (): Promise<void> => {
     console.log('Datos de autenticación eliminados de todos los métodos');
   } catch (error) {
     console.error('Error eliminando datos de autenticación:', error);
+    throw error;
+  }
+};
+
+// Función para forzar limpieza completa de datos de autenticación
+export const forceClearAllAuthData = async (): Promise<void> => {
+  try {
+    // Limpiar localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('userProfile');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('recentSearches');
+    }
+    
+    // Limpiar sessionStorage
+    if (typeof window !== 'undefined') {
+      sessionStorage.clear();
+    }
+    
+    // Limpiar IndexedDB completamente
+    try {
+      if ('indexedDB' in window) {
+        const deleteReq = indexedDB.deleteDatabase('InkEndinDB');
+        await new Promise<void>((resolve, reject) => {
+          deleteReq.onsuccess = () => resolve();
+          deleteReq.onerror = () => reject(deleteReq.error);
+        });
+      }
+    } catch (error) {
+      console.log('Error eliminando IndexedDB:', error);
+    }
+    
+    // Limpiar caché del navegador si es posible
+    if ('caches' in window) {
+      try {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+      } catch (error) {
+        console.log('Error limpiando caché:', error);
+      }
+    }
+    
+    console.log('Limpieza completa de datos de autenticación realizada');
+  } catch (error) {
+    console.error('Error en limpieza completa:', error);
     throw error;
   }
 };

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { apiClient } from '@/utils/apiClient';
-import { saveAuthData, clearAuthData } from '@/utils/persistentStorage';
+import { saveAuthData, clearAuthData, forceClearAllAuthData } from '@/utils/persistentStorage';
 
 export interface UserProfile {
   id: string;
@@ -18,6 +18,7 @@ interface UserContextValue {
   setUser: (user: UserProfile | null) => void;
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  forceLogout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -37,6 +38,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      // NO limpiar datos aquí - esto puede causar problemas después del login
+      // setUser(null);
+      // setIsAuthenticated(false);
+
       const response = await apiClient.get('/api/profile/me');
       const userData = response.data?.data?.user;
 
@@ -46,10 +51,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (typeof window !== 'undefined') {
           localStorage.setItem('userProfile', JSON.stringify(userData));
         }
+        console.log('Usuario cargado:', userData.username, userData.id);
       }
     } catch (error) {
       console.error('Error al cargar usuario:', error);
       setIsAuthenticated(false);
+      setUser(null);
+      // Limpiar datos inválidos
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userProfile');
+        localStorage.removeItem('refreshToken');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -57,6 +70,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(async (identifier: string, password: string) => {
     try {
+      // Limpiar datos anteriores antes del login
+      setUser(null);
+      setIsAuthenticated(false);
+      
       const response = await apiClient.post('/api/auth/login', {
         identifier,
         password
@@ -71,10 +88,20 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user: userData
       });
 
+      // Establecer estado inmediatamente después del login
       setUser(userData);
       setIsAuthenticated(true);
+      
+      console.log('Login exitoso para:', userData.username, userData.id);
+      
+      // Pequeña pausa para asegurar que el estado se establezca
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
     } catch (error) {
       console.error('Error en login:', error);
+      // Asegurar que el estado esté limpio en caso de error
+      setUser(null);
+      setIsAuthenticated(false);
       throw error;
     }
   }, []);
@@ -92,12 +119,36 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Limpiar de todos los métodos de almacenamiento
-      await clearAuthData();
+      await forceClearAllAuthData();
 
+      // Limpiar estado inmediatamente
       setUser(null);
       setIsAuthenticated(false);
+      
+      console.log('Logout completado');
     } catch (error) {
       console.error('Error en logout:', error);
+      // Asegurar que el estado esté limpio incluso si hay error
+      setUser(null);
+      setIsAuthenticated(false);
+    }
+  }, []);
+
+  const forceLogout = useCallback(async () => {
+    try {
+      // Limpieza completa sin llamar al servidor
+      await forceClearAllAuthData();
+      
+      // Limpiar estado inmediatamente
+      setUser(null);
+      setIsAuthenticated(false);
+      
+      console.log('Logout forzado completado');
+    } catch (error) {
+      console.error('Error en logout forzado:', error);
+      // Asegurar que el estado esté limpio incluso si hay error
+      setUser(null);
+      setIsAuthenticated(false);
     }
   }, []);
 
@@ -110,6 +161,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser,
     login,
     logout,
+    forceLogout,
     isAuthenticated,
     isLoading,
   };
