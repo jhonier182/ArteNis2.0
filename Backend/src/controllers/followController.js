@@ -9,6 +9,14 @@ class FollowController {
       
       const result = await FollowService.followUser(followerId, userId);
       
+      // Verificar si hay error en el resultado
+      if (result.error) {
+        return res.status(400).json({
+          success: false,
+          message: result.error
+        });
+      }
+      
       res.status(200).json({
         success: true,
         message: 'Usuario seguido exitosamente',

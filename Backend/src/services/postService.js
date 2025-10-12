@@ -851,8 +851,81 @@ class PostService {
     }
   }
 
-  // Obtener posts de usuarios seguidos (OPTIMIZADO CON CACHE)
+  // Obtener posts de usuarios seguidos (SIMPLIFICADO SIN CACHE)
   static async getFollowingPosts(userId, page, limit, offset) {
+    try {
+      console.log(`🔍 Obteniendo posts para usuario ${userId}, página ${page}`);
+      
+      // Obtener IDs de usuarios seguidos
+      const followingUsers = await Follow.findAll({
+        where: { followerId: userId },
+        attributes: ['followingId']
+      });
+
+      const followingIds = followingUsers.map(follow => follow.followingId);
+      console.log(`📊 Usuarios seguidos encontrados: ${followingIds.length}`);
+
+      if (followingIds.length === 0) {
+        console.log('📭 No hay usuarios seguidos, devolviendo array vacío');
+        return {
+          posts: [],
+          total: 0,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: 0,
+            totalItems: 0,
+            itemsPerPage: parseInt(limit)
+          }
+        };
+      }
+
+      // Obtener posts con una sola consulta optimizada
+      const posts = await Post.findAndCountAll({
+        where: {
+          userId: { [Op.in]: followingIds },
+          isPublic: true,
+          status: 'published'
+        },
+        include: [
+          {
+            model: User,
+            as: 'author',
+            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
+          }
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        subQuery: false,
+        distinct: true
+      });
+
+      console.log(`📝 Posts encontrados: ${posts.count}`);
+
+      // Transformar posts para el frontend
+      const transformedPosts = posts.rows.map(post => 
+        this.transformPostForFrontendSync(post, userId)
+      );
+
+      return {
+        posts: transformedPosts,
+        total: posts.count,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(posts.count / limit),
+          totalItems: posts.count,
+          itemsPerPage: parseInt(limit)
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ Error obteniendo posts de usuarios seguidos:', error);
+      throw error;
+    }
+  }
+
+  // Obtener posts de usuarios seguidos (OPTIMIZADO CON CACHE) - COMENTADO TEMPORALMENTE
+  static async getFollowingPosts_OLD(userId, page, limit, offset) {
     try {
       // OPTIMIZACIÓN 1: Cache para posts de usuarios seguidos
       const cacheKey = `following_posts:${userId}:${page}:${limit}`;

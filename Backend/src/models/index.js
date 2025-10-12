@@ -58,13 +58,26 @@ const setupAssociations = () => {
   // Asociaciones de Follow (seguir usuarios)
   User.hasMany(Follow, {
     foreignKey: 'followerId',
-    as: 'following',
+    as: 'followingRelations',
     onDelete: 'CASCADE'
   });
 
   User.hasMany(Follow, {
     foreignKey: 'followingId',
-    as: 'followers',
+    as: 'followerRelations',
+    onDelete: 'CASCADE'
+  });
+
+  // Asociaciones inversas de Follow
+  Follow.belongsTo(User, {
+    foreignKey: 'followerId',
+    as: 'follower',
+    onDelete: 'CASCADE'
+  });
+
+  Follow.belongsTo(User, {
+    foreignKey: 'followingId',
+    as: 'following',
     onDelete: 'CASCADE'
   });
 
@@ -116,19 +129,6 @@ const setupAssociations = () => {
   Like.belongsTo(Post, {
     foreignKey: 'postId',
     as: 'post',
-    onDelete: 'CASCADE'
-  });
-
-  // Asociaciones de Follow
-  Follow.belongsTo(User, {
-    foreignKey: 'followerId',
-    as: 'follower',
-    onDelete: 'CASCADE'
-  });
-
-  Follow.belongsTo(User, {
-    foreignKey: 'followingId',
-    as: 'following',
     onDelete: 'CASCADE'
   });
 

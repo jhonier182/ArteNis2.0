@@ -426,35 +426,34 @@ class PostController {
     }
   }
 
-  // Obtener posts de usuarios seguidos
-  // Obtener posts de usuarios seguidos (NO BLOQUEANTE)
+  // Obtener posts de usuarios seguidos (SIMPLIFICADO)
   static async getFollowingPosts(req, res, next) {
-    // Usar setImmediate para evitar bloquear el event loop
-    setImmediate(async () => {
-      try {
-        const userId = req.user.id;
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 15; // Reducir límite por defecto
-        const offset = (page - 1) * limit;
+    try {
+      const userId = req.user.id;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 15;
+      const offset = (page - 1) * limit;
 
-        const result = await PostService.getFollowingPosts(userId, page, limit, offset);
-        
-        res.json({
-          success: true,
-          data: {
-            posts: result.posts,
-            pagination: {
-              currentPage: page,
-              totalPages: Math.ceil(result.total / limit),
-              totalPosts: result.total,
-              hasMore: page < Math.ceil(result.total / limit)
-            }
+      console.log(`📡 Endpoint /api/posts/following llamado para usuario ${userId}`);
+
+      const result = await PostService.getFollowingPosts(userId, page, limit, offset);
+      
+      res.json({
+        success: true,
+        data: {
+          posts: result.posts,
+          pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(result.total / limit),
+            totalPosts: result.total,
+            hasMore: page < Math.ceil(result.total / limit)
           }
-        });
-      } catch (error) {
-        next(error);
-      }
-    });
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error en getFollowingPosts:', error);
+      next(error);
+    }
   }
 }
 

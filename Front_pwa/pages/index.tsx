@@ -21,6 +21,7 @@ import { apiClient } from '@/utils/apiClient'
 import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
 import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
 import { useAlert, AlertContainer } from '@/components/Alert'
+import { useFollowing } from '@/hooks/useFollowing'
 
 interface Post {
   id: string
@@ -46,6 +47,7 @@ interface Post {
 
 export default function HomePage() {
   const { user, isAuthenticated, isLoading } = useUser()
+  const { followingUsers } = useFollowing()
   const { alerts, success, error: showAlert, removeAlert } = useAlert()
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set())
@@ -55,11 +57,13 @@ export default function HomePage() {
   const {
     data: posts,
     loading: loadingPosts,
+    isInitialLoading,
     hasMore,
     error,
     loadMore,
     reset: resetPosts,
-    setData: setPosts
+    setData: setPosts,
+    refresh: refreshPosts
   } = useInfinitePosts<Post>('/api/posts/following', {}, {
     enabled: isAuthenticated && user?.userType !== 'artist'
   })
@@ -80,6 +84,14 @@ export default function HomePage() {
       loadSavedPosts()
     }
   }, [isAuthenticated, user])
+
+  // Refrescar el feed cuando cambien los usuarios seguidos (OPTIMIZADO)
+  useEffect(() => {
+    if (isAuthenticated && user?.userType !== 'artist' && followingUsers.length > 0) {
+      console.log('🔄 Refrescando feed por cambio en usuarios seguidos:', followingUsers.length)
+      refreshPosts()
+    }
+  }, [followingUsers.length, isAuthenticated, user?.userType]) // Removido refreshPosts de las dependencias
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -284,11 +296,11 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="container-mobile">
-        {loadingPosts ? (
+        {isInitialLoading ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-            ) : posts.length === 0 ? (
+        ) : posts.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
