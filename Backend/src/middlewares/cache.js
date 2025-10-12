@@ -21,7 +21,7 @@ class CacheMiddleware {
       // Intentar obtener del cache
       const cachedData = cache.get(cacheKey);
       if (cachedData) {
-        console.log(`📦 Cache hit para ${cacheKey}`);
+
         return res.status(200).json(cachedData);
       }
       
@@ -30,7 +30,7 @@ class CacheMiddleware {
       res.json = function(data) {
         // Solo cachear respuestas exitosas
         if (res.statusCode === 200 && data.success) {
-          console.log(`💾 Guardando en cache: ${cacheKey}`);
+
           cache.set(cacheKey, data, ttl);
         }
         return originalSend.call(this, data);
@@ -51,14 +51,14 @@ class CacheMiddleware {
       
       const cachedData = cache.get(cacheKey);
       if (cachedData) {
-        console.log(`📦 Cache hit para usuario ${req.user.id}`);
+
         return res.status(200).json(cachedData);
       }
       
       const originalSend = res.json;
       res.json = function(data) {
         if (res.statusCode === 200 && data.success) {
-          console.log(`💾 Guardando datos de usuario en cache: ${cacheKey}`);
+
           cache.set(cacheKey, data, ttl);
         }
         return originalSend.call(this, data);
@@ -77,7 +77,7 @@ class CacheMiddleware {
         const keys = cache.keys();
         const postKeys = keys.filter(key => key.startsWith('posts:'));
         cache.del(postKeys);
-        console.log(`🗑️ Cache de posts invalidado (${postKeys.length} claves)`);
+
       }
       return originalSend.call(this, data);
     };
@@ -89,7 +89,7 @@ class CacheMiddleware {
     const keys = cache.keys();
     const userKeys = keys.filter(key => key.includes(`user:${userId}:`));
     cache.del(userKeys);
-    console.log(`🗑️ Cache de usuario ${userId} invalidado (${userKeys.length} claves)`);
+
   };
 
   // Obtener estadísticas del cache
@@ -106,7 +106,7 @@ class CacheMiddleware {
   // Limpiar todo el cache
   static clearCache = () => {
     cache.flushAll();
-    console.log('🗑️ Cache completamente limpiado');
+
   };
 }
 

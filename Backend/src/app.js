@@ -8,6 +8,8 @@ const path = require('path');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { devRateLimit, strictRateLimit } = require('./middlewares/devRateLimit');
 const { performanceMonitor, eventLoopMonitor } = require('./middlewares/performanceMonitor');
+const { smartCacheMiddleware, cacheStatsMiddleware } = require('./middlewares/httpCache');
+const { metricsMiddleware, databaseMetricsMiddleware, metricsEndpoint, healthEndpoint, metricsDashboard } = require('./middlewares/metricsMiddleware');
 const logger = require('./utils/logger');
 const { sequelize } = require('./config/db');
 
@@ -54,7 +56,7 @@ const responseTimeLogger = (req, res, next) => {
       speedText = 'CRÍTICA';
     }
     
-    console.log(`${statusColor} ${speedIndicator} ${req.method} ${req.url} - ${responseTime}ms - ${res.statusCode} (${speedText})`);
+
   });
   
   next();
@@ -131,7 +133,7 @@ const corsOptions = {
 		}
 
 		// En desarrollo, permitir cualquier origen HTTP/HTTPS
-		console.log(`⚠️ CORS: Permitiendo origen en desarrollo: ${origin}`);
+
 		return callback(null, true);
 	},
 	credentials: true,
@@ -194,6 +196,18 @@ app.use(compression({
 
 // Middleware de logging simple para tiempo de respuesta
 app.use(responseTimeLogger);
+
+// Middleware de caché HTTP inteligente
+app.use(smartCacheMiddleware);
+
+// Middleware de estadísticas de caché
+app.use(cacheStatsMiddleware);
+
+// Middleware de métricas
+app.use(metricsMiddleware);
+
+// Middleware de métricas de base de datos
+app.use(databaseMetricsMiddleware(sequelize));
 
 // Middleware de monitoreo de rendimiento
 app.use(performanceMonitor);
@@ -318,6 +332,11 @@ app.use('/api/follow', require('./routes/followRoutes'));
 app.use('/api/posts', postRoutes);
 app.use('/api/boards', boardRoutes);
 
+// Rutas de métricas y monitoreo
+app.get('/metrics', metricsEndpoint);
+app.get('/health', healthEndpoint);
+app.get('/dashboard', metricsDashboard);
+
 // Ruta raíz
 app.get('/', (req, res) => {
   res.status(200).json({
@@ -331,7 +350,9 @@ app.get('/', (req, res) => {
       follow: '/api/follow',
       posts: '/api/posts',
       boards: '/api/boards',
-      health: '/health'
+      health: '/health',
+      metrics: '/metrics',
+      dashboard: '/dashboard'
     }
   });
 });

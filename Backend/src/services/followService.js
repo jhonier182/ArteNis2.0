@@ -101,7 +101,7 @@ class FollowService {
       const cachedData = followCache.get(cacheKey);
       
       if (cachedData) {
-        console.log(`📦 Cache hit para following de usuario ${userId}`);
+
         return cachedData;
       }
 
@@ -127,7 +127,7 @@ class FollowService {
 
       // OPTIMIZACIÓN 4: Guardar en cache
       followCache.set(cacheKey, followingUsers, 300); // 5 minutos
-      console.log(`💾 Guardando following en cache: ${cacheKey}`);
+
 
       return followingUsers;
     } catch (error) {
@@ -150,7 +150,7 @@ class FollowService {
     }
     
     followCache.del(userKeys);
-    console.log(`🗑️ Cache de follows invalidado para usuario ${userId}`);
+
   }
 }
 

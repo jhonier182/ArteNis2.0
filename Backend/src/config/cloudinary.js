@@ -75,7 +75,7 @@ const deleteAvatar = async (publicId) => {
     await Promise.race([deletePromise, timeoutPromise]);
     return true;
   } catch (error) {
-    console.warn('Error deleting from Cloudinary (no crítico):', error.message);
+
     return false; // No fallar si no se puede eliminar
   }
 };
@@ -158,7 +158,7 @@ const deletePostImage = async (publicId) => {
     await Promise.race([deletePromise, timeoutPromise]);
     return true;
   } catch (error) {
-    console.warn('Error eliminando imagen de Cloudinary:', error.message);
+
     return false;
   }
 };
@@ -180,7 +180,7 @@ const deletePostVideo = async (publicId) => {
     await Promise.race([deletePromise, timeoutPromise]);
     return true;
   } catch (error) {
-    console.warn('Error eliminando video de Cloudinary:', error.message);
+
     return false;
   }
 };

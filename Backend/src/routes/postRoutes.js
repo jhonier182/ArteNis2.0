@@ -24,14 +24,14 @@ const cacheMiddleware = (key, ttl = CACHE_TTL) => {
     const cached = simpleCache.get(cacheKey);
     
     if (cached && Date.now() - cached.timestamp < ttl) {
-      console.log(`📦 Cache hit para ${cacheKey}`);
+
       return res.status(200).json(cached.data);
     }
     
     const originalSend = res.json;
     res.json = function(data) {
       if (res.statusCode === 200 && data.success) {
-        console.log(`💾 Guardando en cache: ${cacheKey}`);
+
         simpleCache.set(cacheKey, {
           data,
           timestamp: Date.now()
@@ -123,7 +123,7 @@ router.post('/',
     res.json = function(data) {
       if (res.statusCode === 201) {
         simpleCache.clear();
-        console.log('🗑️ Cache invalidado después de crear post');
+
       }
       return originalSend.call(this, data);
     };
@@ -183,7 +183,7 @@ router.delete('/:id',
           try {
             simpleCache.clear();
           } catch (error) {
-            console.warn('Error invalidando cache:', error.message);
+
           }
         });
       }

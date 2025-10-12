@@ -1,5 +1,6 @@
 const PostService = require('../services/postService');
 const { uploadPostImage, uploadPostVideo } = require('../config/cloudinary');
+const { getPopularPosts, invalidateCache } = require('../config/performanceOptimization');
 
 class PostController {
   // Subir imagen o video para post
@@ -87,6 +88,9 @@ class PostController {
         cloudinaryPublicId
       );
 
+      // Invalidar caché de posts populares
+      invalidateCache('popular_posts');
+
       res.status(201).json({
         success: true,
         message: 'Publicación creada exitosamente',
@@ -104,6 +108,24 @@ class PostController {
       const options = { ...req.query };
       if (req.user) {
         options.userId = req.user.id;
+      }
+      
+      // Si es una consulta de posts populares sin filtros específicos, usar caché
+      if (!options.userId && !options.search && !options.type && !options.style) {
+        const limit = parseInt(options.limit) || 20;
+        const cachedPosts = await getPopularPosts(limit);
+        
+        if (cachedPosts && cachedPosts.length > 0) {
+          return res.status(200).json({
+            success: true,
+            message: 'Feed obtenido exitosamente (desde caché)',
+            data: {
+              posts: cachedPosts,
+              total: cachedPosts.length,
+              hasMore: cachedPosts.length === limit
+            }
+          });
+        }
       }
       
       const result = await PostService.getFeed(options);
@@ -155,7 +177,7 @@ class PostController {
     } catch (error) {
       // Manejo específico para deadlocks
       if (error.message.includes('Deadlock')) {
-        console.log(`🚨 Deadlock en likePost para usuario ${req.user.id}, post ${req.params.id}`);
+
         return res.status(409).json({
           success: false,
           message: 'Error temporal al procesar el like. Por favor, inténtalo de nuevo.',
@@ -190,7 +212,7 @@ class PostController {
     } catch (error) {
       // Manejo específico para deadlocks
       if (error.message.includes('Deadlock')) {
-        console.log(`🚨 Deadlock en unlikePost para usuario ${req.user.id}, post ${req.params.id}`);
+
         return res.status(409).json({
           success: false,
           message: 'Error temporal al procesar el unlike. Por favor, inténtalo de nuevo.',

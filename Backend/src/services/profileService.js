@@ -73,7 +73,7 @@ class ProfileService {
       // OPTIMIZACIÓN: Eliminar avatar anterior de forma asíncrona (no bloquear)
       const deletePromise = user.cloudinaryPublicId 
         ? deleteAvatar(user.cloudinaryPublicId).catch(error => {
-            console.warn('Error eliminando avatar anterior:', error.message);
+
             return false; // No fallar si no se puede eliminar
           })
         : Promise.resolve(true);

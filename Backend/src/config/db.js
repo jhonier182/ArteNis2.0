@@ -119,54 +119,72 @@ const connectDB = async () => {
 
     // Probar la conexión
     await sequelize.authenticate();
-    console.log('✅ Conexión a MySQL establecida correctamente');
+
     
     // Sincronizar modelos
     if (process.env.NODE_ENV === 'development') { // Usar force: false para evitar recrear índices
       await sequelize.sync({ force: false, alter: false }); 
-      console.log('✅ Modelos sincronizados');
+
       
       // Crear índices adicionales para mejorar rendimiento y evitar deadlocks
       try {
         const indexes = [
           // Índice para likes (ya existente)
-          `CREATE INDEX IF NOT EXISTS idx_likes_user_post_type ON likes (user_id, post_id, type);`,
+          { name: 'idx_likes_user_post_type', query: 'CREATE INDEX idx_likes_user_post_type ON likes (user_id, post_id, type)' },
           
           // Índices para posts - optimización del feed
-          `CREATE INDEX IF NOT EXISTS idx_posts_public_status_created ON posts (is_public, status, created_at DESC);`,
-          `CREATE INDEX IF NOT EXISTS idx_posts_user_created ON posts (user_id, created_at DESC);`,
-          `CREATE INDEX IF NOT EXISTS idx_posts_likes_count ON posts (likes_count DESC);`,
-          `CREATE INDEX IF NOT EXISTS idx_posts_views_count ON posts (views_count DESC);`,
-          `CREATE INDEX IF NOT EXISTS idx_posts_comments_count ON posts (comments_count DESC);`,
+          { name: 'idx_posts_public_status_created', query: 'CREATE INDEX idx_posts_public_status_created ON posts (is_public, status, created_at DESC)' },
+          { name: 'idx_posts_user_created', query: 'CREATE INDEX idx_posts_user_created ON posts (user_id, created_at DESC)' },
+          { name: 'idx_posts_likes_count', query: 'CREATE INDEX idx_posts_likes_count ON posts (likes_count DESC)' },
+          { name: 'idx_posts_views_count', query: 'CREATE INDEX idx_posts_views_count ON posts (views_count DESC)' },
+          { name: 'idx_posts_comments_count', query: 'CREATE INDEX idx_posts_comments_count ON posts (comments_count DESC)' },
           
           // Índices para follows
-          `CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows (follower_id);`,
-          `CREATE INDEX IF NOT EXISTS idx_follows_following ON follows (following_id);`,
+          { name: 'idx_follows_follower', query: 'CREATE INDEX idx_follows_follower ON follows (follower_id)' },
+          { name: 'idx_follows_following', query: 'CREATE INDEX idx_follows_following ON follows (following_id)' },
           
           // Índices para usuarios
-          `CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);`,
-          `CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);`,
+          { name: 'idx_users_username', query: 'CREATE INDEX idx_users_username ON users (username)' },
+          { name: 'idx_users_email', query: 'CREATE INDEX idx_users_email ON users (email)' },
           
           // Índices compuestos para consultas complejas
-          `CREATE INDEX IF NOT EXISTS idx_posts_type_public_created ON posts (type, is_public, created_at DESC);`,
-          `CREATE INDEX IF NOT EXISTS idx_posts_style_public ON posts (style, is_public);`,
-          `CREATE INDEX IF NOT EXISTS idx_posts_bodypart_public ON posts (body_part, is_public);`,
-          `CREATE INDEX IF NOT EXISTS idx_posts_location_public ON posts (location, is_public);`,
-          `CREATE INDEX IF NOT EXISTS idx_posts_featured_public ON posts (is_featured, is_public);`
+          { name: 'idx_posts_type_public_created', query: 'CREATE INDEX idx_posts_type_public_created ON posts (type, is_public, created_at DESC)' },
+          { name: 'idx_posts_style_public', query: 'CREATE INDEX idx_posts_style_public ON posts (style, is_public)' },
+          { name: 'idx_posts_bodypart_public', query: 'CREATE INDEX idx_posts_bodypart_public ON posts (body_part, is_public)' },
+          { name: 'idx_posts_location_public', query: 'CREATE INDEX idx_posts_location_public ON posts (location, is_public)' },
+          { name: 'idx_posts_featured_public', query: 'CREATE INDEX idx_posts_featured_public ON posts (is_featured, is_public)' }
         ];
 
-        for (const indexQuery of indexes) {
-          await sequelize.query(indexQuery);
+        for (const index of indexes) {
+          try {
+            // Verificar si el índice ya existe
+            const [results] = await sequelize.query(`
+              SELECT COUNT(*) as count 
+              FROM information_schema.statistics 
+              WHERE table_schema = DATABASE() 
+              AND table_name = '${index.name.split('_')[1]}' 
+              AND index_name = '${index.name}'
+            `);
+            
+            if (results[0].count === 0) {
+              await sequelize.query(index.query);
+
+            } else {
+
+            }
+          } catch (indexError) {
+
+          }
         }
         
-        console.log('✅ Índices optimizados creados/verificados');
+
       } catch (indexError) {
         // Los índices ya existen o hay un error menor
-        console.log('ℹ️ Índices ya existen o no se pudieron crear:', indexError.message);
+
       }
     } else {
       await sequelize.sync(); 
-      console.log('✅ Modelos sincronizados');
+
     }
     
   } catch (error) {
@@ -179,7 +197,7 @@ const connectDB = async () => {
 const closeDB = async () => {
   try {
     await sequelize.close();
-    console.log('✅ Conexión a la base de datos cerrada');
+
   } catch (error) {
     console.error('❌ Error cerrando la conexión:', error);
   }

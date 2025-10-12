@@ -46,7 +46,7 @@ const errorHandler = (err, req, res, next) => {
     statusCode = 409;
     message = 'Error temporal debido a alta concurrencia. Por favor, inténtalo de nuevo.';
     
-    console.log(`🚨 Deadlock detectado en ${req.method} ${req.url} para usuario ${req.user?.id || 'No autenticado'}`);
+
     
     return res.status(statusCode).json({
       success: false,

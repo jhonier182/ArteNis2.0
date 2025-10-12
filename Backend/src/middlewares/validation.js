@@ -67,7 +67,9 @@ const sanitizeQuery = (req, res, next) => {
 
 // Validaciones para registro de usuario
 const validateRegister = [
+  // Username es opcional - se genera automáticamente si no se proporciona
   body('username')
+    .optional()
     .isLength({ min: 3, max: 50 })
     .withMessage('El nombre de usuario debe tener entre 3 y 50 caracteres')
     .isAlphanumeric()
