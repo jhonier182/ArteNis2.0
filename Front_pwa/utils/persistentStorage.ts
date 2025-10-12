@@ -81,6 +81,9 @@ export const saveAuthData = async (authData: AuthData): Promise<void> => {
     }
     
     console.log('Datos de autenticación guardados en todos los métodos disponibles');
+    
+    // Limpiar cache para forzar nueva verificación
+    clearLoginCache();
   } catch (error) {
     console.error('Error guardando datos de autenticación:', error);
     throw error;
@@ -130,6 +133,9 @@ export const clearAuthData = async (): Promise<void> => {
     }
     
     console.log('Datos de autenticación eliminados de todos los métodos');
+    
+    // Limpiar cache para forzar nueva verificación
+    clearLoginCache();
   } catch (error) {
     console.error('Error eliminando datos de autenticación:', error);
     throw error;
@@ -178,24 +184,67 @@ export const forceClearAllAuthData = async (): Promise<void> => {
     }
     
     console.log('Limpieza completa de datos de autenticación realizada');
+    
+    // Limpiar cache para forzar nueva verificación
+    clearLoginCache();
   } catch (error) {
     console.error('Error en limpieza completa:', error);
     throw error;
   }
 };
 
+// Cache para evitar verificaciones repetidas
+let loginCheckCache: { result: boolean; timestamp: number } | null = null;
+const CACHE_DURATION = 5000; // 5 segundos
+
+// Función para limpiar el cache de verificación de login
+export const clearLoginCache = (): void => {
+  loginCheckCache = null;
+};
+
 // Función para verificar si el usuario está logueado usando múltiples métodos
 export const checkUserLoggedIn = async (): Promise<boolean> => {
   try {
-    // Método 1: localStorage
+    // Verificar cache primero
+    if (loginCheckCache && Date.now() - loginCheckCache.timestamp < CACHE_DURATION) {
+      return loginCheckCache.result;
+    }
+
+    // Método 1: localStorage (más rápido)
     const userData = typeof window !== 'undefined' ? localStorage.getItem('userProfile') : null;
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     
-    // Método 2: sessionStorage
+    if (userData && token) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        if (parsedUser && token !== 'null' && token !== 'undefined') {
+          loginCheckCache = { result: true, timestamp: Date.now() };
+          console.log('Usuario logueado detectado (localStorage)');
+          return true;
+        }
+      } catch (error) {
+        console.log('Error parsing localStorage user data:', error);
+      }
+    }
+    
+    // Método 2: sessionStorage (si localStorage falla)
     const sessionUserData = typeof window !== 'undefined' ? sessionStorage.getItem('userProfile') : null;
     const sessionToken = typeof window !== 'undefined' ? sessionStorage.getItem('token') : null;
     
-    // Método 3: IndexedDB
+    if (sessionUserData && sessionToken) {
+      try {
+        const parsedUser = JSON.parse(sessionUserData);
+        if (parsedUser && sessionToken !== 'null' && sessionToken !== 'undefined') {
+          loginCheckCache = { result: true, timestamp: Date.now() };
+          console.log('Usuario logueado detectado (sessionStorage)');
+          return true;
+        }
+      } catch (error) {
+        console.log('Error parsing sessionStorage user data:', error);
+      }
+    }
+    
+    // Método 3: IndexedDB (solo si los anteriores fallan)
     let indexedDBUser = null;
     let indexedDBToken = null;
     
@@ -239,35 +288,29 @@ export const checkUserLoggedIn = async (): Promise<boolean> => {
         };
         request.onerror = () => reject(request.error);
       });
+      
+      if (indexedDBUser && indexedDBToken) {
+        try {
+          const parsedUser = typeof indexedDBUser === 'string' ? JSON.parse(indexedDBUser) : indexedDBUser;
+          if (parsedUser && indexedDBToken !== 'null' && indexedDBToken !== 'undefined') {
+            loginCheckCache = { result: true, timestamp: Date.now() };
+            console.log('Usuario logueado detectado (IndexedDB)');
+            return true;
+          }
+        } catch (error) {
+          console.log('Error parsing IndexedDB user data:', error);
+        }
+      }
     } catch (error) {
       console.log('IndexedDB no disponible:', error);
     }
     
-    console.log('Verificando usuario logueado:', { 
-      localStorage: { userProfile: !!userData, token: !!token },
-      sessionStorage: { userProfile: !!sessionUserData, token: !!sessionToken },
-      indexedDB: { userProfile: !!indexedDBUser, token: !!indexedDBToken }
-    });
-    
-    // Verificar cualquiera de los métodos que tenga datos válidos
-    const validUserData = userData || sessionUserData || indexedDBUser;
-    const validToken = token || sessionToken || indexedDBToken;
-    
-    if (validUserData && validToken) {
-      try {
-        const parsedUser = typeof validUserData === 'string' ? JSON.parse(validUserData) : validUserData;
-        if (parsedUser && validToken !== 'null' && validToken !== 'undefined') {
-          console.log('Usuario logueado detectado');
-          return true;
-        }
-      } catch (error) {
-        console.log('Error parsing user data:', error);
-      }
-    }
-    
+    // Cache el resultado negativo también
+    loginCheckCache = { result: false, timestamp: Date.now() };
     return false;
   } catch (error) {
     console.log('Error checking user login:', error);
+    loginCheckCache = { result: false, timestamp: Date.now() };
     return false;
   }
 };

@@ -35,14 +35,14 @@ export default function App({ Component, pageProps }: AppProps) {
     })
   }, [])
 
-  // Mostrar pantalla de introducción si es necesario
-  if (showIntro) {
-    return <IntroScreen onComplete={completeIntro} />
-  }
-
   return (
     <UserProvider>
-      <Component {...pageProps} />
+      {/* Mostrar pantalla de introducción si es necesario */}
+      {showIntro ? (
+        <IntroScreen onComplete={completeIntro} />
+      ) : (
+        <Component {...pageProps} />
+      )}
     </UserProvider>
   )
 }

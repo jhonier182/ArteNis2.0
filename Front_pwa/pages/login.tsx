@@ -19,7 +19,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/')
+      router.push('/profile')
     }
   }, [isAuthenticated, router])
 
@@ -39,15 +39,10 @@ export default function LoginPage() {
     try {
       await login(formData.email, formData.password)
       
-      // Esperar un momento para que el estado se establezca
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Redirigir inmediatamente después del login exitoso
+      // El UserContext ya estableció el estado correctamente
+      router.push('/profile')
       
-      // Verificar que el usuario esté autenticado antes de redirigir
-      if (isAuthenticated) {
-        router.push('/')
-      } else {
-        setError('Error al establecer la sesión. Intenta nuevamente.')
-      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al iniciar sesión')
     } finally {

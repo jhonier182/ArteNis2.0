@@ -38,10 +38,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // NO limpiar datos aquí - esto puede causar problemas después del login
-      // setUser(null);
-      // setIsAuthenticated(false);
-
       const response = await apiClient.get('/api/profile/me');
       const userData = response.data?.data?.user;
 
@@ -94,8 +90,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Login exitoso para:', userData.username, userData.id);
       
-      // Pequeña pausa para asegurar que el estado se establezca
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // No necesitamos esperar aquí, el estado ya está establecido
       
     } catch (error) {
       console.error('Error en login:', error);
