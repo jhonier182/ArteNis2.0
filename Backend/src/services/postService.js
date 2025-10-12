@@ -262,13 +262,40 @@ class PostService {
   // Obtener publicación por ID (OPTIMIZADO)
   static async getPostById(postId, userId = null) {
     try {
-      // OPTIMIZACIÓN: Obtener post con datos básicos primero
+      // OPTIMIZACIÓN: Usar una sola consulta con includes para reducir bloqueos del event loop
       const post = await Post.findByPk(postId, {
         include: [
           {
             model: User,
             as: 'author',
             attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType'],
+            required: false
+          },
+          {
+            model: Comment,
+            as: 'comments',
+            include: [
+              {
+                model: User,
+                as: 'author',
+                attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
+              }
+            ],
+            order: [['createdAt', 'DESC']],
+            limit: 20, // Reducir comentarios para mejor rendimiento
+            required: false
+          },
+          {
+            model: Like,
+            as: 'likes',
+            include: [
+              {
+                model: User,
+                as: 'user',
+                attributes: ['id', 'username', 'fullName', 'avatar']
+              }
+            ],
+            limit: 10, // Reducir likes mostrados
             required: false
           }
         ]
@@ -278,53 +305,34 @@ class PostService {
         return null;
       }
 
-      // OPTIMIZACIÓN: Obtener datos relacionados en paralelo
-      const [comments, likes, isLiked] = await Promise.all([
-        // Comentarios con usuarios
-        Comment.findAll({
-          where: { postId },
-          include: [
-            {
-              model: User,
-              as: 'author',
-              attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
-            }
-          ],
-          order: [['createdAt', 'DESC']],
-          limit: 50 // Limitar comentarios para rendimiento
-        }),
-        // Likes del post
-        Like.findAll({
-          where: { postId },
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['id', 'username', 'fullName', 'avatar']
-            }
-          ],
-          limit: 20 // Limitar likes mostrados
-        }),
-        // Verificar si el usuario actual le dio like
-        userId ? Like.findOne({
+      // Verificar si el usuario actual le dio like (consulta separada pero rápida)
+      let isLiked = false;
+      if (userId) {
+        const userLike = await Like.findOne({
           where: { postId, userId },
           attributes: ['id']
-        }) : Promise.resolve(null)
-      ]);
+        });
+        isLiked = !!userLike;
+      }
 
-      // Construir respuesta optimizada
+      // Construir respuesta optimizada usando los datos del include
       const postData = post.toJSON();
-      postData.comments = comments.map(comment => ({
-        ...comment.toJSON(),
-        author: comment.User
+      
+      // Procesar comentarios del include
+      postData.comments = (postData.comments || []).map(comment => ({
+        ...comment,
+        author: comment.author
       }));
-      postData.likes = likes.map(like => ({
-        ...like.toJSON(),
-        user: like.User
+      
+      // Procesar likes del include
+      postData.likes = (postData.likes || []).map(like => ({
+        ...like,
+        user: like.user
       }));
-      postData.isLiked = !!isLiked;
-      postData.commentsCount = comments.length;
-      postData.likesCount = likes.length;
+      
+      postData.isLiked = isLiked;
+      postData.commentsCount = postData.comments.length;
+      postData.likesCount = postData.likes.length;
 
       return this.transformPostForFrontendSync(postData, userId);
       

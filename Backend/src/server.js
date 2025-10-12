@@ -2,7 +2,6 @@ require('dotenv').config();
 const app = require('./app');
 const { connectDB, closeDB } = require('./config/db');
 const logger = require('./utils/logger');
-const { startCluster } = require('./config/cluster');
 
 // Definir constantes globales
 const PORT = process.env.PORT || 3000;
@@ -16,9 +15,6 @@ if (missingVars.length) {
   logger.error('💡 Configura las variables de entorno en el archivo .env');
   process.exit(1);
 }
-
-// Selección de modo clustering (preferencia explícita o producción)
-const useClustering = process.env.USE_CLUSTERING === 'true' || process.env.NODE_ENV === 'production';
 
 // Manejo elegante del cierre del servidor (graceful shutdown)
 const gracefulShutdown = (server, signal) => {
@@ -84,5 +80,5 @@ const startServer = async () => {
   }
 };
 
-// Ejecutar con o sin clustering según corresponda
-useClustering ? startCluster() : startServer();
+// Iniciar servidor
+startServer();

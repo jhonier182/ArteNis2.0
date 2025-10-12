@@ -7,7 +7,6 @@ const path = require('path');
 // Middlewares locales
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { devRateLimit, strictRateLimit } = require('./middlewares/devRateLimit');
-const { performanceMonitor, eventLoopMonitor } = require('./middlewares/performanceMonitor');
 const { smartCacheMiddleware, cacheStatsMiddleware } = require('./middlewares/httpCache');
 const { metricsMiddleware, databaseMetricsMiddleware, metricsEndpoint, healthEndpoint, metricsDashboard } = require('./middlewares/metricsMiddleware');
 const logger = require('./utils/logger');
@@ -209,9 +208,7 @@ app.use(metricsMiddleware);
 // Middleware de métricas de base de datos
 app.use(databaseMetricsMiddleware(sequelize));
 
-// Middleware de monitoreo de rendimiento
-app.use(performanceMonitor);
-app.use(eventLoopMonitor);
+// Middleware de monitoreo de rendimiento (integrado en metricsMiddleware)
 
 // Parseo de JSON y URL encoded
 app.use(express.json({ limit: '10mb' }));
@@ -271,58 +268,8 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Ruta para métricas de rendimiento
-app.get('/metrics', (req, res) => {
-  try {
-    const { getPerformanceMetrics, generatePerformanceReport } = require('./middlewares/performanceMonitor');
-    
-    if (req.query.format === 'detailed') {
-      res.json({
-        success: true,
-        data: getPerformanceMetrics()
-      });
-    } else {
-      res.json({
-        success: true,
-        data: generatePerformanceReport()
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error obteniendo métricas',
-      error: error.message
-    });
-  }
-});
-
-// Ruta para estadísticas del cluster
-app.get('/cluster', (req, res) => {
-  try {
-    const { getClusterStats, restartWorkers } = require('./config/cluster');
-    
-    if (req.query.action === 'restart') {
-      const result = restartWorkers();
-      res.json({
-        success: true,
-        message: 'Workers reiniciados',
-        data: result
-      });
-    } else {
-      const stats = getClusterStats();
-      res.json({
-        success: true,
-        data: stats
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error obteniendo estadísticas del cluster',
-      error: error.message
-    });
-  }
-});
+// Ruta para métricas de rendimiento (usando metricsMiddleware)
+app.get('/metrics', metricsEndpoint);
 
 // Rutas de la API
 app.use('/api/auth', require('./routes/authRoutes'));
