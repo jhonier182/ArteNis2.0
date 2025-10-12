@@ -3,6 +3,7 @@ const { Post, User, Comment, Like, Follow } = require('../models');
 const { sequelize } = require('../config/db');
 const { deletePostImage, deletePostVideo } = require('../config/cloudinary');
 const { getCachedData, invalidateCache } = require('../config/performanceOptimization');
+const taskQueue = require('../utils/taskQueue');
 
 class PostService {
   // Función helper para transformar posts al formato esperado por el frontend

@@ -1,37 +1,50 @@
 const ProfileService = require('../services/profileService');
+const taskQueue = require('../utils/taskQueue');
 
 class ProfileController {
-  // Obtener perfil del usuario autenticado
+  // Obtener perfil del usuario autenticado (NO BLOQUEANTE)
   static async getProfile(req, res, next) {
-    try {
-      const user = await ProfileService.getProfile(req.user.id);
-      
-      res.status(200).json({
-        success: true,
-        message: 'Perfil obtenido exitosamente',
-        data: { user }
-      });
-    } catch (error) {
-      next(error);
-    }
+    // Usar setImmediate para evitar bloquear el event loop
+    setImmediate(async () => {
+      try {
+        // Usar task queue para operaciones de base de datos
+        const user = await taskQueue.add(async () => {
+          return await ProfileService.getProfile(req.user.id);
+        }, 'normal');
+        
+        res.status(200).json({
+          success: true,
+          message: 'Perfil obtenido exitosamente',
+          data: { user }
+        });
+      } catch (error) {
+        next(error);
+      }
+    });
   }
 
-  // Obtener usuario por ID
+  // Obtener usuario por ID (NO BLOQUEANTE)
   static async getUserById(req, res, next) {
-    try {
-      const { id } = req.params;
-      const requesterId = req.user?.id || null;
-      
-      const user = await ProfileService.getUserById(id, requesterId);
-      
-      res.status(200).json({
-        success: true,
-        message: 'Usuario obtenido exitosamente',
-        data: { user }
-      });
-    } catch (error) {
-      next(error);
-    }
+    // Usar setImmediate para evitar bloquear el event loop
+    setImmediate(async () => {
+      try {
+        const { id } = req.params;
+        const requesterId = req.user?.id || null;
+        
+        // Usar task queue para operaciones de base de datos
+        const user = await taskQueue.add(async () => {
+          return await ProfileService.getUserById(id, requesterId);
+        }, 'normal');
+        
+        res.status(200).json({
+          success: true,
+          message: 'Usuario obtenido exitosamente',
+          data: { user }
+        });
+      } catch (error) {
+        next(error);
+      }
+    });
   }
 
   // Subir avatar del usuario
