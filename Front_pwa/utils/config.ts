@@ -7,7 +7,7 @@
 // CONFIGURACIÓN DE API
 // ===========================================
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.2:3000',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
   TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '30000', 10),
   ENDPOINTS: {
     AUTH: '/api/auth',

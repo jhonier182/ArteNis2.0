@@ -31,15 +31,6 @@
       "purpose": "any"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshot-mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Feed principal de InkEndin"
-    }
-  ],
   "share_target": {
     "action": "/share",
     "method": "POST",
