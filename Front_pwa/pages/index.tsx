@@ -214,13 +214,13 @@ export default function HomePage() {
       
       // Actualizar con la respuesta real del servidor
       if (response.data.success) {
-        const { liked, likesCount } = response.data.data
-        console.log(`✅ Respuesta del servidor para post ${postId}: liked=${liked}, likesCount=${likesCount}`)
+        const { isLiked, likesCount } = response.data.data
+        console.log(`✅ Respuesta del servidor para post ${postId}: isLiked=${isLiked}, likesCount=${likesCount}`)
         const finalPosts = updatedPosts.map((post: Post) => {
           if (post.id === postId) {
             return {
               ...post,
-              isLiked: liked,
+              isLiked: isLiked,
               likesCount: likesCount
             }
           }
@@ -375,14 +375,26 @@ export default function HomePage() {
                         {/* Información mínima en hover */}
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-3">
                           <div className="flex items-center gap-3 text-white text-sm font-medium">
-                            <div className="flex items-center gap-1">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleLike(post.id)
+                              }}
+                              className="flex items-center gap-1 hover:scale-110 transition-transform"
+                            >
                               <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                               <span>{post.likesCount}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/post/${post.id}`)
+                              }}
+                              className="flex items-center gap-1 hover:scale-110 transition-transform"
+                            >
                               <MessageCircle className="w-4 h-4" />
                               <span>{post.commentsCount}</span>
-                            </div>
+                            </button>
                           </div>
                         </div>
                       </div>

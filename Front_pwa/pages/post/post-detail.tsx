@@ -24,9 +24,12 @@ export async function getServerSideProps() {
 }
 
 export default function PostDetailPage() {
+  console.log('🎬 Componente PostDetailPage iniciando...')
   const router = useRouter()
   const { id } = router.query
+  console.log('🔍 Router query:', { id })
   const { user, isAuthenticated } = useUser()
+  console.log('👤 Usuario y autenticación:', { user, isAuthenticated })
   const { isFollowing: isFollowingUser, refreshFollowing } = useFollowing()
   const { alerts, success, error, removeAlert } = useAlert()
   const [post, setPost] = useState<any>(null)
@@ -40,16 +43,48 @@ export default function PostDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
+    console.log('🔄 useEffect ejecutándose:', { id, isAuthenticated })
     if (id) {
       loadPost()
     }
-  }, [id])
+  }, [id, isAuthenticated])
+
+  // Monitorear cambios en la autenticación
+  useEffect(() => {
+    console.log('🔄 Cambio en autenticación:', {
+      isAuthenticated,
+      user: user?.id,
+      isLoading
+    })
+  }, [isAuthenticated, user, isLoading])
 
   useEffect(() => {
-    if (post?.author?.id && isAuthenticated) {
-      setIsFollowing(isFollowingUser(post.author.id))
+    console.log('🔍 useEffect de seguimiento ejecutándose:', {
+      hasPost: !!post,
+      hasAuthor: !!post?.author?.id,
+      isAuthenticated,
+      authorId: post?.author?.id,
+      currentUserId: user?.id
+    })
+    
+    if (post?.author?.id && isAuthenticated && user?.id) {
+      const followingStatus = isFollowingUser(post.author.id)
+      console.log('🔍 Verificando estado de seguimiento:', {
+        authorId: post.author.id,
+        currentUserId: user.id,
+        isFollowing: followingStatus,
+        isOwnPost: user.id === post.author.id
+      })
+      setIsFollowing(followingStatus)
+    } else {
+      console.log('⚠️ No se puede verificar seguimiento:', {
+        reason: !post?.author?.id ? 'No hay autor' : 
+                !isAuthenticated ? 'No autenticado' : 
+                !user?.id ? 'No hay usuario' : 'Desconocido'
+      })
+      setIsFollowing(false)
     }
-  }, [post?.author?.id, isAuthenticated, isFollowingUser])
+  }, [post?.author?.id, isAuthenticated, user?.id, isFollowingUser])
 
   useEffect(() => {
     if (post?.id && isAuthenticated) {
@@ -59,30 +94,45 @@ export default function PostDetailPage() {
 
 
   const loadPost = async () => {
+    console.log('🚀 Iniciando carga del post...')
     try {
       setIsLoading(true)
       
-      // Cargar post principal y información de likes en paralelo
-      const [postResponse, likesResponse] = await Promise.allSettled([
-        apiClient.get(`/api/posts/${id}`),
-        isAuthenticated ? apiClient.get(`/api/posts/${id}/likes`) : Promise.resolve(null)
-      ])
+      // Cargar el post principal
+      const postResponse = await apiClient.get(`/api/posts/${id}`)
       
-      // Procesar respuesta del post
-      if (postResponse.status === 'fulfilled') {
-        const postData = postResponse.value.data.data.post
+      console.log('📡 Respuesta completa de la API:', postResponse.data)
+      
+      if (postResponse.data.success) {
+        const postData = postResponse.data.data.post
         setPost(postData)
+        
+        // Usar los datos del post principal para el estado de like
         setIsLiked(postData.isLiked || false)
         setLikesCount(postData.likesCount || 0)
+        
+        console.log('✅ Post cargado - Estado de like:', { 
+          isLiked: postData.isLiked, 
+          likesCount: postData.likesCount,
+          willBeRed: postData.isLiked ? 'SÍ' : 'NO'
+        })
+        
+        console.log('👤 Información del autor:', {
+          hasAuthor: !!postData.author,
+          authorId: postData.author?.id,
+          authorUsername: postData.author?.username,
+          currentUserId: user?.id,
+          isOwnPost: user?.id?.toString() === postData.author?.id?.toString()
+        })
+        
+        console.log('📊 Datos completos del post:', {
+          id: postData.id,
+          author: postData.author,
+          likesCount: postData.likesCount,
+          isLiked: postData.isLiked
+        })
       } else {
         throw new Error('No se pudo cargar la publicación')
-      }
-      
-      // Procesar respuesta de likes si está autenticado
-      if (isAuthenticated && likesResponse.status === 'fulfilled' && likesResponse.value) {
-        const { liked, likesCount } = likesResponse.value.data.data
-        setIsLiked(liked)
-        setLikesCount(likesCount)
       }
       
     } catch (err) {
@@ -117,12 +167,20 @@ export default function PostDetailPage() {
     try {
       setIsFollowLoading(true)
       
+      console.log('🔄 Cambiando estado de seguimiento:', {
+        authorId: post.author.id,
+        currentState: isFollowing,
+        action: isFollowing ? 'UNFOLLOW' : 'FOLLOW'
+      })
+      
       if (isFollowing) {
         await apiClient.delete(`/api/follow/${post.author.id}`)
         setIsFollowing(false)
+        console.log('✅ Dejaste de seguir al usuario')
       } else {
         await apiClient.post('/api/follow', { userId: post.author.id })
         setIsFollowing(true)
+        console.log('✅ Empezaste a seguir al usuario')
       }
       
       // Refrescar la lista de usuarios seguidos usando el hook
@@ -200,20 +258,29 @@ export default function PostDetailPage() {
     }
 
     try {
-      // Actualización optimista
+      console.log('🔄 Estado actual antes del like:', { isLiked, likesCount })
+      
+      // Actualización optimista - cambiar estado inmediatamente
       const newIsLiked = !isLiked
       const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1
+      
+      console.log('🎯 Cambio optimista:', { 
+        from: { isLiked, likesCount }, 
+        to: { newIsLiked, newLikesCount } 
+      })
       
       setIsLiked(newIsLiked)
       setLikesCount(newLikesCount)
 
-      // Hacer la petición al backend (toggle)
+      // Hacer la petición al backend
       const response = await apiClient.post(`/api/posts/${id}/like`)
+      console.log('📡 Respuesta del servidor:', response.data)
       
-      // Actualizar con la respuesta real del servidor
+      // Confirmar con la respuesta del servidor
       if (response.data.success) {
-        const { liked, likesCount: serverLikesCount } = response.data.data
-        setIsLiked(liked)
+        const { liked: serverLiked, likesCount: serverLikesCount } = response.data.data
+        console.log('✅ Confirmado por servidor:', { liked: serverLiked, likesCount: serverLikesCount })
+        setIsLiked(serverLiked)
         setLikesCount(serverLikesCount)
       }
     } catch (err) {
@@ -405,11 +472,21 @@ export default function PostDetailPage() {
               className="flex items-center space-x-2 group"
             >
               <Heart
-                className={`w-6 h-6 transition-colors ${
-                  isLiked ? 'fill-red-500 text-red-500' : 'group-hover:text-red-500'
+                className={`w-6 h-6 ${
+                  isLiked 
+                    ? 'fill-red-500 text-red-500' 
+                    : 'text-gray-400 group-hover:text-red-500'
                 }`}
+                style={{
+                  fill: isLiked ? '#ef4444' : 'none',
+                  color: isLiked ? '#ef4444' : 'currentColor'
+                }}
               />
               <span className="text-sm font-medium">{likesCount}</span>
+              {/* Debug temporal */}
+              <span className="text-xs text-gray-500 ml-1">
+                ({isLiked ? 'L' : 'N'})
+              </span>
             </button>
 
             <button className="flex items-center space-x-2 group">
@@ -519,4 +596,3 @@ export default function PostDetailPage() {
     </div>
   )
 }
-

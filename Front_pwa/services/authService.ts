@@ -79,7 +79,7 @@ export const authService = {
   // Obtener perfil del usuario actual
   async getCurrentUser(): Promise<{ success: boolean; data: { user: UserProfile } }> {
     try {
-      const response = await api.get<{ success: boolean; data: { user: UserProfile } }>('/api/auth/me');
+      const response = await api.get<{ success: boolean; data: { user: UserProfile } }>('/api/profile/me');
       return response;
     } catch (error: any) {
       console.error('Error obteniendo usuario actual:', error);

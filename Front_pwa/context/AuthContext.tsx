@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      const response = await apiClient.get('/api/auth/me');
+      const response = await apiClient.get('/api/profile/me');
       if (response.data.success) {
         setUser(response.data.data.user);
       } else {
@@ -198,7 +198,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const refreshUser = async () => {
     try {
-      const response = await apiClient.get('/api/auth/me');
+      const response = await apiClient.get('/api/profile/me');
       if (response.data.success) {
         setUser(response.data.data.user);
       }

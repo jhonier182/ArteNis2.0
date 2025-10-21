@@ -73,10 +73,10 @@ export default function CollectionsPage() {
           try {
             const likesResponse = await apiClient.get(`/api/posts/${post.id}/likes`)
             if (likesResponse.data.success) {
-              const { liked, likesCount } = likesResponse.data.data
+              const { isLiked, likesCount } = likesResponse.data.data
               return {
                 ...post,
-                isLiked: liked,
+                isLiked: isLiked,
                 likesCount: likesCount
               }
             }
@@ -109,6 +109,64 @@ export default function CollectionsPage() {
       setFilteredPosts(prev => prev.filter(post => post.id !== postId))
     } catch (error) {
       console.error('Error al remover de colección:', error)
+    }
+  }
+
+  const handleLike = async (postId: string) => {
+    try {
+      // Actualización optimista - actualizar UI inmediatamente
+      const updatedSavedPosts = savedPosts.map((post: any) => {
+        if (post.id === postId) {
+          const isCurrentlyLiked = post.isLiked || false
+          console.log(`🔄 Toggle like para post ${postId}: ${isCurrentlyLiked} -> ${!isCurrentlyLiked}`)
+          return {
+            ...post,
+            isLiked: !isCurrentlyLiked,
+            likesCount: isCurrentlyLiked ? post.likesCount - 1 : post.likesCount + 1
+          }
+        }
+        return post
+      })
+      setSavedPosts(updatedSavedPosts)
+      setFilteredPosts(updatedSavedPosts)
+
+      // Hacer la petición al backend (toggle)
+      const response = await apiClient.post(`/api/posts/${postId}/like`)
+      
+      // Actualizar con la respuesta real del servidor
+      if (response.data.success) {
+        const { isLiked, likesCount } = response.data.data
+        console.log(`✅ Respuesta del servidor para post ${postId}: isLiked=${isLiked}, likesCount=${likesCount}`)
+        const finalPosts = updatedSavedPosts.map((post: any) => {
+          if (post.id === postId) {
+            return {
+              ...post,
+              isLiked: isLiked,
+              likesCount: likesCount
+            }
+          }
+          return post
+        })
+        setSavedPosts(finalPosts)
+        setFilteredPosts(finalPosts)
+      }
+    } catch (error) {
+      console.error('Error al dar like:', error)
+      
+      // Revertir cambios en caso de error
+      const revertedPosts = savedPosts.map((post: any) => {
+        if (post.id === postId) {
+          const isCurrentlyLiked = post.isLiked || false
+          return {
+            ...post,
+            isLiked: !isCurrentlyLiked,
+            likesCount: isCurrentlyLiked ? post.likesCount + 1 : post.likesCount - 1
+          }
+        }
+        return post
+      })
+      setSavedPosts(revertedPosts)
+      setFilteredPosts(revertedPosts)
     }
   }
 
@@ -250,14 +308,26 @@ export default function CollectionsPage() {
                 }`}>
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 text-white text-sm">
-                      <div className="flex items-center gap-1">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleLike(post.id)
+                        }}
+                        className="flex items-center gap-1 hover:scale-110 transition-transform"
+                      >
                         <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                         <span>{post.likesCount || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/post/${post.id}`)
+                        }}
+                        className="flex items-center gap-1 hover:scale-110 transition-transform"
+                      >
                         <MessageCircle className="w-4 h-4" />
                         <span>{post.commentsCount || 0}</span>
-                      </div>
+                      </button>
                     </div>
                     <button
                       onClick={(e) => {

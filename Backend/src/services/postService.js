@@ -308,12 +308,16 @@ class PostService {
 
       // Verificar si el usuario actual le dio like (consulta separada pero rápida)
       let isLiked = false;
+      console.log(`🔍 Verificando like para postId: ${postId}, userId: ${userId}`);
       if (userId) {
         const userLike = await Like.findOne({
           where: { postId, userId },
           attributes: ['id']
         });
         isLiked = !!userLike;
+        console.log(`👤 Like encontrado: ${!!userLike}, isLiked: ${isLiked}`);
+      } else {
+        console.log('⚠️ No hay userId, isLiked será false');
       }
 
       // Construir respuesta optimizada usando los datos del include
@@ -333,7 +337,8 @@ class PostService {
       
       postData.isLiked = isLiked;
       postData.commentsCount = postData.comments.length;
-      postData.likesCount = postData.likes.length;
+      // NO sobrescribir likesCount - usar el valor de la base de datos
+      // postData.likesCount ya viene del campo likes_count de la tabla posts
 
       return this.transformPostForFrontendSync(postData, userId);
       

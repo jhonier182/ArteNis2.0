@@ -38,7 +38,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      console.log('🔐 Cargando usuario con token:', token.substring(0, 20) + '...');
+      
       const response = await apiClient.get('/api/profile/me');
+      console.log('📡 Respuesta del perfil:', response.data);
+      
       const userData = response.data?.data?.user;
 
       if (userData) {
@@ -47,10 +51,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (typeof window !== 'undefined') {
           localStorage.setItem('userProfile', JSON.stringify(userData));
         }
-        console.log('Usuario cargado:', userData.username, userData.id);
+        console.log('✅ Usuario cargado exitosamente:', userData.username, userData.id);
+      } else {
+        console.log('⚠️ No se encontraron datos de usuario en la respuesta');
+        setIsAuthenticated(false);
+        setUser(null);
       }
     } catch (error) {
-      console.error('Error al cargar usuario:', error);
+      console.error('❌ Error al cargar usuario:', error);
       setIsAuthenticated(false);
       setUser(null);
       // Limpiar datos inválidos

@@ -205,7 +205,7 @@ src/
 
 ### Variables de Entorno
 ```env
-NEXT_PUBLIC_API_URL=http://192.168.1.2:3000
+NEXT_PUBLIC_API_URL=
 NEXT_PUBLIC_APP_NAME=ArteNis 2.0
 NEXT_PUBLIC_APP_VERSION=2.0.0
 ```

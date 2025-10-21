@@ -237,6 +237,8 @@ class PostController {
       const { id } = req.params;
       const userId = req.user?.id; // Opcional, puede ser null si no está autenticado
       
+      console.log(`📡 getLikeInfo - postId: ${id}, userId: ${userId}, user:`, req.user);
+      
       // Verificar que la publicación existe
       const post = await PostService.getPostById(id, userId);
       if (!post) {
@@ -245,6 +247,8 @@ class PostController {
           message: 'La publicación no existe'
         });
       }
+      
+      console.log(`📊 Post data:`, { likesCount: post.likesCount, isLiked: post.isLiked });
       
       res.status(200).json({
         success: true,
