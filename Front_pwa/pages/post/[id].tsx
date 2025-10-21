@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import {
   ChevronLeft,
@@ -10,11 +11,17 @@ import {
   Bookmark,
   Send
 } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
-import { apiClient } from '@/utils/apiClient'
-import { useFollowing } from '@/hooks/useFollowing'
-import PostMenu from '@/components/PostMenu'
-import { useAlert, AlertContainer } from '@/components/Alert'
+import { useUser } from '../../context/UserContext'
+import apiClient from '../../services/apiClient'
+import { useFollowing } from '../../hooks/useFollowing'
+import PostMenu from '../../components/PostMenu'
+import { useAlert, AlertContainer } from '../../components/Alert'
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
 
 export default function PostDetailPage() {
   const router = useRouter()
@@ -209,8 +216,8 @@ export default function PostDetailPage() {
         setIsLiked(liked)
         setLikesCount(serverLikesCount)
       }
-    } catch (error) {
-      console.error('Error al dar like:', error)
+    } catch (err) {
+      console.error('Error al dar like:', err)
       
       // Revertir cambios en caso de error
       setIsLiked(!isLiked)
@@ -314,9 +321,11 @@ export default function PostDetailPage() {
             poster={post.thumbnailUrl}
           />
         ) : (
-          <img
+          <Image
             src={post.mediaUrl}
             alt={post.title || 'Post'}
+            width={800}
+            height={600}
             className="w-full max-h-[70vh] object-contain"
           />
         )}
@@ -333,9 +342,11 @@ export default function PostDetailPage() {
             >
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
                 {post.author.avatar ? (
-                  <img
+                  <Image
                     src={post.author.avatar}
                     alt={post.author.username}
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 ) : (
@@ -470,9 +481,11 @@ export default function PostDetailPage() {
             <div className="flex items-center space-x-3 mb-6">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
                 {user?.avatar ? (
-                  <img
+                  <Image
                     src={user.avatar}
                     alt={user.username}
+                    width={32}
+                    height={32}
                     className="w-8 h-8 rounded-full object-cover"
                   />
                 ) : (

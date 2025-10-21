@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { useUser } from '@/context/UserContext'
-import { useFollowing } from '@/hooks/useFollowing'
-import { apiClient } from '@/utils/apiClient'
+import { useUser } from '../context/UserContext'
+import { useFollowing } from '../hooks/useFollowing'
+import apiClient from '../services/apiClient'
 
 interface FollowButtonProps {
   userId: string

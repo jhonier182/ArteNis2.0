@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { 
   X, 
@@ -20,10 +21,16 @@ import {
   Focus,
   Circle
 } from 'lucide-react'
-import { apiClient } from '@/utils/apiClient'
-import { useAlert, AlertContainer } from '@/components/Alert'
+import apiClient from '../../services/apiClient'
+import { useAlert, AlertContainer } from '../../components/Alert'
 
 type FilterType = 'none' | 'vivid' | 'bright' | 'dark' | 'vintage' | 'cool' | 'warm'
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
 
 export default function EditImagePage() {
   const router = useRouter()
@@ -172,7 +179,7 @@ export default function EditImagePage() {
         return
       }
 
-      const img = new Image()
+      const img = new window.Image()
       img.crossOrigin = 'anonymous'
       
       img.onload = () => {
@@ -467,9 +474,11 @@ export default function EditImagePage() {
               transition: 'transform 0.3s ease'
             }}
           >
-            <img
+            <Image
               src={imageUrl}
               alt="Preview"
+              width={800}
+              height={600}
               style={{
                 filter: getFilterStyle(),
                 transition: 'filter 0.2s ease',
@@ -776,9 +785,11 @@ export default function EditImagePage() {
                       }`}
                     >
                       {imageUrl && (
-                        <img
+                        <Image
                           src={imageUrl}
                           alt={filter.label}
+                          width={200}
+                          height={200}
                           className="w-full h-full object-cover"
                           style={{ filter: filter.preview }}
                         />

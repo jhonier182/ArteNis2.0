@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -13,11 +14,17 @@ import {
   Upload,
   Wand2
 } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
-import { apiClient } from '@/utils/apiClient'
-import { useAlert, AlertContainer } from '@/components/Alert'
-import { StyleFilter, VisibilityFilter, ClientTagFilter } from '@/components/PostFilters'
-import { usePostFilters, FILTER_CONSTRAINTS } from '@/hooks/usePostFilters'
+import { useUser } from '../context/UserContext'
+import apiClient from '../services/apiClient'
+import { useAlert, AlertContainer } from '../components/Alert'
+import { StyleFilter, VisibilityFilter, ClientTagFilter } from '../components/PostFilters'
+import { usePostFilters, FILTER_CONSTRAINTS } from '../hooks/usePostFilters'
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
 
 export default function CreatePostPage() {
   const router = useRouter()
@@ -370,9 +377,11 @@ export default function CreatePostPage() {
                       muted
                     />
                   ) : (
-                    <img
+                    <Image
                       src={previewUrl || ''}
                       alt="Preview"
+                      width={400}
+                      height={400}
                       className="w-full h-full object-cover"
                     />
                   )}

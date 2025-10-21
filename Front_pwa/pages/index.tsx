@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { motion } from 'framer-motion'
@@ -16,12 +17,12 @@ import {
   TrendingUp,
   Bell
 } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
-import { apiClient } from '@/utils/apiClient'
-import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
-import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
-import { useAlert, AlertContainer } from '@/components/Alert'
-import { useFollowing } from '@/hooks/useFollowing'
+import { useUser } from '../context/UserContext'
+import apiClient from '../services/apiClient'
+import { useInfinitePosts } from '../hooks/useInfiniteScroll'
+import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
+import { useAlert, AlertContainer } from '../components/Alert'
+import { useFollowing } from '../hooks/useFollowing'
 
 interface Post {
   id: string
@@ -43,6 +44,12 @@ interface Post {
   createdAt: string
   publishedAt?: string
   isLiked?: boolean
+}
+
+export async function getServerSideProps() {
+  return {
+    props: {}, // will be passed to the page component as props
+  }
 }
 
 export default function HomePage() {
@@ -225,7 +232,7 @@ export default function HomePage() {
       console.error('Error al dar like:', error)
       
       // Revertir cambios en caso de error
-      const revertedPosts = updatedPosts.map((post: Post) => {
+      const revertedPosts = posts.map((post: Post) => {
         if (post.id === postId) {
           const isCurrentlyLiked = post.isLiked || false
           return {
@@ -356,9 +363,11 @@ export default function HomePage() {
                       className="relative group cursor-pointer rounded-lg overflow-hidden"
                       onClick={() => router.push(`/post/${post.id}`)}
                     >
-                      <img
+                      <Image
                         src={post.mediaUrl}
                         alt={post.title || 'Post'}
+                        width={400}
+                        height={256}
                         className="w-full object-cover"
                       />
                       {/* Overlay sutil al hover */}

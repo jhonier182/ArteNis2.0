@@ -1,45 +1,53 @@
 // Utilidades de validación
-import { VALIDATION_CONFIG } from '../config/constants';
 
 // Validar email
 export const isValidEmail = (email: string): boolean => {
-  return VALIDATION_CONFIG.EMAIL.PATTERN.test(email);
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 };
 
 // Validar username
 export const isValidUsername = (username: string): boolean => {
-  const { MIN_LENGTH, MAX_LENGTH, PATTERN } = VALIDATION_CONFIG.USERNAME;
-  return username.length >= MIN_LENGTH && 
-         username.length <= MAX_LENGTH && 
-         PATTERN.test(username);
+  const minLength = 3;
+  const maxLength = 20;
+  const pattern = /^[a-zA-Z0-9_]+$/;
+  return username.length >= minLength && 
+         username.length <= maxLength && 
+         pattern.test(username);
 };
 
 // Validar contraseña
 export const isValidPassword = (password: string): { isValid: boolean; errors: string[] } => {
-  const { MIN_LENGTH, MAX_LENGTH, REQUIRE_UPPERCASE, REQUIRE_LOWERCASE, REQUIRE_NUMBER, REQUIRE_SPECIAL } = VALIDATION_CONFIG.PASSWORD;
+  const minLength = 8;
+  const maxLength = 128;
+  const requireUppercase = true;
+  const requireLowercase = true;
+  const requireNumber = true;
+  const requireSpecial = true;
+  
   const errors: string[] = [];
 
-  if (password.length < MIN_LENGTH) {
-    errors.push(`La contraseña debe tener al menos ${MIN_LENGTH} caracteres`);
+  if (password.length < minLength) {
+    errors.push(`La contraseña debe tener al menos ${minLength} caracteres`);
   }
 
-  if (password.length > MAX_LENGTH) {
-    errors.push(`La contraseña no puede tener más de ${MAX_LENGTH} caracteres`);
+  if (password.length > maxLength) {
+    errors.push(`La contraseña no puede tener más de ${maxLength} caracteres`);
   }
 
-  if (REQUIRE_UPPERCASE && !/[A-Z]/.test(password)) {
+  if (requireUppercase && !/[A-Z]/.test(password)) {
     errors.push('La contraseña debe contener al menos una letra mayúscula');
   }
 
-  if (REQUIRE_LOWERCASE && !/[a-z]/.test(password)) {
+  if (requireLowercase && !/[a-z]/.test(password)) {
     errors.push('La contraseña debe contener al menos una letra minúscula');
   }
 
-  if (REQUIRE_NUMBER && !/\d/.test(password)) {
+  if (requireNumber && !/\d/.test(password)) {
     errors.push('La contraseña debe contener al menos un número');
   }
 
-  if (REQUIRE_SPECIAL && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+  if (requireSpecial && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
     errors.push('La contraseña debe contener al menos un carácter especial');
   }
 
@@ -51,24 +59,28 @@ export const isValidPassword = (password: string): { isValid: boolean; errors: s
 
 // Validar título de post
 export const isValidPostTitle = (title: string): boolean => {
-  return title.trim().length > 0 && title.length <= VALIDATION_CONFIG.POST.TITLE_MAX_LENGTH;
+  const titleMaxLength = 200;
+  return title.trim().length > 0 && title.length <= titleMaxLength;
 };
 
 // Validar descripción de post
 export const isValidPostDescription = (description: string): boolean => {
-  return description.length <= VALIDATION_CONFIG.POST.DESCRIPTION_MAX_LENGTH;
+  const descriptionMaxLength = 2000;
+  return description.length <= descriptionMaxLength;
 };
 
 // Validar tags
 export const isValidTags = (tags: string[]): { isValid: boolean; errors: string[] } => {
+  const maxTags = 10;
+  const tagMaxLength = 30;
   const errors: string[] = [];
 
-  if (tags.length > VALIDATION_CONFIG.POST.MAX_TAGS) {
-    errors.push(`No puedes usar más de ${VALIDATION_CONFIG.POST.MAX_TAGS} tags`);
+  if (tags.length > maxTags) {
+    errors.push(`No puedes usar más de ${maxTags} tags`);
   }
 
   tags.forEach(tag => {
-    if (tag.length > VALIDATION_CONFIG.POST.TAG_MAX_LENGTH) {
+    if (tag.length > tagMaxLength) {
       errors.push(`El tag "${tag}" es demasiado largo`);
     }
     if (tag.trim().length === 0) {
@@ -84,14 +96,16 @@ export const isValidTags = (tags: string[]): { isValid: boolean; errors: string[
 
 // Validar archivo de imagen
 export const isValidImageFile = (file: File): { isValid: boolean; errors: string[] } => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  const maxSize = 10 * 1024 * 1024; // 10MB
   const errors: string[] = [];
 
-  if (!VALIDATION_CONFIG.IMAGE.ALLOWED_TYPES.includes(file.type)) {
+  if (!allowedTypes.includes(file.type)) {
     errors.push('Tipo de archivo no permitido. Usa JPG, PNG, WebP o GIF');
   }
 
-  if (file.size > VALIDATION_CONFIG.IMAGE.MAX_SIZE) {
-    errors.push(`El archivo es demasiado grande. Máximo ${VALIDATION_CONFIG.IMAGE.MAX_SIZE / (1024 * 1024)}MB`);
+  if (file.size > maxSize) {
+    errors.push(`El archivo es demasiado grande. Máximo ${maxSize / (1024 * 1024)}MB`);
   }
 
   return {

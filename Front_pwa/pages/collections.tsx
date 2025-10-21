@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { 
   ArrowLeft, 
@@ -12,8 +13,14 @@ import {
   Grid,
   List
 } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
-import { apiClient } from '@/utils/apiClient'
+import { useUser } from '../context/UserContext'
+import apiClient from '../services/apiClient'
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
 
 export default function CollectionsPage() {
   const router = useRouter()
@@ -204,9 +211,11 @@ export default function CollectionsPage() {
                 }`}
               >
                 {post.mediaUrl && (
-                  <img
+                  <Image
                     src={post.mediaUrl}
                     alt={post.description || 'Post'}
+                    width={300}
+                    height={300}
                     className={`w-full object-cover ${
                       viewMode === 'grid' ? 'h-full' : 'w-24 h-full'
                     }`}

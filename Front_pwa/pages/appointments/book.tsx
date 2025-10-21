@@ -12,9 +12,15 @@ import {
   ChevronRight,
   Send
 } from 'lucide-react'
-import { useAlert, AlertContainer } from '@/components/Alert'
+import { useAlert, AlertContainer } from '../../components/Alert'
 
 type AppointmentType = 'presencial' | 'videollamada'
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
 
 export default function BookAppointmentPage() {
   const router = useRouter()

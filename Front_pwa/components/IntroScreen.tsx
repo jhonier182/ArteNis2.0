@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 import { Mail, Lock, Eye, EyeOff, LogIn, Sparkles } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
+import { useUser } from '../context/UserContext'
 
 interface IntroScreenProps {
   onComplete: () => void

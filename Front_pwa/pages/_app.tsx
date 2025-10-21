@@ -1,9 +1,12 @@
 import type { AppProps } from 'next/app'
 import { useEffect } from 'react'
-import { UserProvider } from '@/context/UserContext'
-import { useIntroScreen } from '@/hooks/useIntroScreen'
-import IntroScreen from '@/components/IntroScreen'
-import '@/styles/globals.css'
+import { AuthProvider } from '../context/AuthContext'
+import { UserProvider } from '../context/UserContext'
+import { ThemeProvider } from '../context/ThemeContext'
+import { NotificationProvider } from '../context/NotificationContext'
+import { useIntroScreen } from '../hooks/useIntroScreen'
+import IntroScreen from '../components/IntroScreen'
+import '../styles/globals.css'
 
 export default function App({ Component, pageProps }: AppProps) {
   const { showIntro, completeIntro } = useIntroScreen()
@@ -36,13 +39,19 @@ export default function App({ Component, pageProps }: AppProps) {
   }, [])
 
   return (
-    <UserProvider>
-      {/* Mostrar pantalla de introducción si es necesario */}
-      {showIntro ? (
-        <IntroScreen onComplete={completeIntro} />
-      ) : (
-        <Component {...pageProps} />
-      )}
-    </UserProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <UserProvider>
+          <NotificationProvider>
+            {/* Mostrar pantalla de introducción si es necesario */}
+            {showIntro ? (
+              <IntroScreen onComplete={completeIntro} />
+            ) : (
+              <Component {...pageProps} />
+            )}
+          </NotificationProvider>
+        </UserProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }

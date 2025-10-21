@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import { X, Camera, Upload, Trash2, Check } from 'lucide-react'
-import { apiClient } from '@/utils/apiClient'
+import apiClient from '../services/apiClient'
 
 interface EditProfileModalProps {
   isOpen: boolean
@@ -148,9 +149,11 @@ export default function EditProfileModal({
                     <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
                       <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
                         {selectedImage || currentAvatar ? (
-                          <img
-                            src={selectedImage || currentAvatar}
+                          <Image
+                            src={selectedImage || currentAvatar || ''}
                             alt="Avatar"
+                            width={200}
+                            height={200}
                             className="w-full h-full rounded-full object-cover"
                           />
                         ) : (

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { 
   Search as SearchIcon,
@@ -13,12 +14,12 @@ import {
   MessageCircle,
   UserPlus
 } from 'lucide-react'
-import { apiClient } from '@/utils/apiClient'
-import { useUser } from '@/context/UserContext'
-import { useFollowing } from '@/hooks/useFollowing'
-import { useSearchPosts } from '@/hooks/useSearchPosts'
+import apiClient from '../services/apiClient'
+import { useUser } from '../context/UserContext'
+import { useFollowing } from '../hooks/useFollowing'
+import { useSearchPosts } from '../hooks/useSearchPosts'
 
-// Tipos para los posts
+// Tipos para los posts (compatible con la API)
 interface Post {
   id: string
   title?: string
@@ -45,6 +46,12 @@ interface User {
   avatar?: string
   userType: 'artist' | 'user'
   city?: string
+}
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
 }
 
 export default function Search() {
@@ -78,7 +85,7 @@ export default function Search() {
           const followingIds = followingUsers.map(user => user.id)
           const filteredPosts = await loadFilteredPosts(followingIds, user.id)
           if (isMounted) {
-            setPublicPosts(filteredPosts)
+            setPublicPosts(filteredPosts as Post[])
           }
         } catch (error) {
           console.error('Error cargando posts filtrados:', error)
@@ -165,7 +172,7 @@ export default function Search() {
       if (user?.id) {
         const followingIds = [...followingUsers.map(u => u.id), userId]
         const filteredPosts = await loadFilteredPosts(followingIds, user.id)
-        setPublicPosts(filteredPosts)
+        setPublicPosts(filteredPosts as Post[])
       }
       
       console.log('Usuario seguido exitosamente')
@@ -288,9 +295,11 @@ export default function Search() {
                                 onMouseLeave={(e) => e.currentTarget.pause()}
                               />
                             ) : (
-                              <img
+                              <Image
                                 src={post.mediaUrl}
                                 alt={post.title || 'Post'}
+                                width={400}
+                                height={300}
                                 className="w-full h-full object-cover"
                               />
                             )}
@@ -346,10 +355,12 @@ export default function Search() {
                         >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
                             {user.avatar ? (
-                              <img
+                              <Image
                                 src={user.avatar}
                                 alt={user.username}
-                          className="w-10 h-10 rounded-full object-cover"
+                                width={40}
+                                height={40}
+                                className="w-10 h-10 rounded-full object-cover"
                               />
                             ) : (
                         <User className="w-5 h-5 text-white" />

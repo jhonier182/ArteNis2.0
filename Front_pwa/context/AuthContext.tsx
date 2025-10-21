@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiClient } from '../services/apiClient';
+import apiClient from '../services/apiClient';
 
 // Tipos para el contexto de autenticación
 export interface User {

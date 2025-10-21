@@ -4,7 +4,13 @@ import Link from 'next/link'
 import Head from 'next/head'
 import { motion } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, LogIn, Sparkles } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
+import { useUser } from '../context/UserContext'
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter()

@@ -112,11 +112,11 @@ function shouldRetry(error: AxiosError): boolean {
   ];
 
   return retryableErrors.includes(error.code || '') || 
-         (error.response?.status && error.response.status >= 500);
+         (error.response?.status ? error.response.status >= 500 : false);
 }
 
 // Función para reintentar requests
-async function retryRequest(originalRequest: AxiosRequestConfig & { _retry?: boolean }): Promise<AxiosResponse> {
+async function retryRequest(originalRequest: AxiosRequestConfig & { _retry?: boolean; _retryCount?: number }): Promise<AxiosResponse> {
   originalRequest._retry = true;
   
   // Esperar antes del reintento con backoff exponencial

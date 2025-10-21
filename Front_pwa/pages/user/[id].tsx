@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { 
   ChevronLeft,
@@ -13,13 +14,13 @@ import {
   MoreVertical,
   Calendar
 } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
-import { apiClient } from '@/utils/apiClient'
-import { useFollowing } from '@/hooks/useFollowing'
-import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
-import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
-import FollowButton from '@/components/FollowButton'
-import { useAlert, AlertContainer } from '@/components/Alert'
+import { useUser } from '../../context/UserContext'
+import apiClient from '../../services/apiClient'
+import { useFollowing } from '../../hooks/useFollowing'
+import { useInfinitePosts } from '../../hooks/useInfiniteScroll'
+import { InfiniteScrollTrigger } from '../../components/LoadingIndicator'
+import FollowButton from '../../components/FollowButton'
+import { useAlert, AlertContainer } from '../../components/Alert'
 
 interface PublicUser {
   id: number
@@ -38,6 +39,12 @@ interface PublicUser {
   pricePerHour?: number | null
   experience?: number | null
   specialties?: string | null
+}
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
 }
 
 export default function PublicProfilePage() {
@@ -168,9 +175,11 @@ export default function PublicProfilePage() {
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-blue-600 p-0.5">
                   <div className="w-full h-full rounded-full bg-[#0f1419] p-0.5">
                     {profileUser.avatar ? (
-                      <img
+                      <Image
                         src={profileUser.avatar}
                         alt={profileUser.username}
+                        width={200}
+                        height={200}
                         className="w-full h-full rounded-full object-cover"
                       />
                     ) : (
@@ -270,9 +279,11 @@ export default function PublicProfilePage() {
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
                 <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
                   {profileUser.avatar ? (
-                    <img
+                    <Image
                       src={profileUser.avatar}
                       alt={profileUser.username}
+                      width={200}
+                      height={200}
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
@@ -514,9 +525,11 @@ export default function PublicProfilePage() {
                       <>
                         {post.type === 'video' ? (
                           <div className="relative w-full h-full">
-                            <img
+                            <Image
                               src={post.thumbnailUrl || post.mediaUrl}
                               alt={post.title || 'Post'}
+                              width={300}
+                              height={300}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                             />
                             {/* Overlay con icono de play para videos */}
@@ -529,9 +542,11 @@ export default function PublicProfilePage() {
                             </div>
                           </div>
                         ) : (
-                          <img
+                          <Image
                             src={post.mediaUrl}
                             alt={post.title || 'Post'}
+                            width={300}
+                            height={300}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                         )}
