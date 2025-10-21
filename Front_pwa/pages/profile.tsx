@@ -67,13 +67,57 @@ export default function ProfilePage() {
     }
   }, [isLoading, isAuthenticated, router])
 
+  // Refrescar publicaciones cuando se navega al perfil
+  useEffect(() => {
+    if (isAuthenticated && user?.userType === 'artist') {
+      // Pequeño delay para asegurar que el usuario esté completamente cargado
+      const timer = setTimeout(() => {
+        resetPosts()
+      }, 100)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [router.asPath, isAuthenticated, user?.userType, resetPosts])
+
   useEffect(() => {
     if (isAuthenticated) {
       if (user?.userType !== 'artist') {
         fetchSavedPosts()
+      } else {
+        // Para tatuadores, refrescar publicaciones cuando se carga el perfil
+        resetPosts()
       }
     }
   }, [isAuthenticated, user])
+
+  // Escuchar eventos de nueva publicación para refrescar automáticamente
+  useEffect(() => {
+    if (user?.userType === 'artist') {
+      const handleNewPost = () => {
+        console.log('🔄 Nueva publicación detectada, refrescando perfil...')
+        resetPosts()
+      }
+
+      // Escuchar eventos personalizados de nueva publicación
+      window.addEventListener('newPostCreated', handleNewPost)
+      
+      // También escuchar cambios en el localStorage (backup)
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'newPostCreated' && e.newValue) {
+          handleNewPost()
+          // Limpiar el flag
+          localStorage.removeItem('newPostCreated')
+        }
+      }
+      
+      window.addEventListener('storage', handleStorageChange)
+
+      return () => {
+        window.removeEventListener('newPostCreated', handleNewPost)
+        window.removeEventListener('storage', handleStorageChange)
+      }
+    }
+  }, [user?.userType, resetPosts])
 
 
   const fetchSavedPosts = async () => {

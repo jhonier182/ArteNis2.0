@@ -417,6 +417,11 @@ export default function EditImagePage() {
       localStorage.removeItem('draft_visibility')
 
       success('¡Publicación creada!', 'Tu imagen ha sido publicada exitosamente')
+      
+      // Disparar evento para refrescar el perfil
+      window.dispatchEvent(new CustomEvent('newPostCreated'))
+      localStorage.setItem('newPostCreated', Date.now().toString())
+      
       router.push('/profile')
     } catch (error: any) {
       console.error('Error al publicar:', error)

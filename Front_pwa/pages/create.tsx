@@ -168,6 +168,11 @@ export default function CreatePostPage() {
       localStorage.removeItem('draft_visibility')
 
       success('¡Publicación creada!', 'Tu publicación se ha subido exitosamente')
+      
+      // Disparar evento para refrescar el perfil
+      window.dispatchEvent(new CustomEvent('newPostCreated'))
+      localStorage.setItem('newPostCreated', Date.now().toString())
+      
       setTimeout(() => {
         router.push('/profile')
       }, 2000)
