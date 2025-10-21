@@ -90,14 +90,34 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Login exitoso para:', userData.username, userData.id);
       
-      // No necesitamos esperar aquí, el estado ya está establecido
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error en login:', error);
-      // Asegurar que el estado esté limpio en caso de error
+      
       setUser(null);
       setIsAuthenticated(false);
-      throw error;
+      
+      const errorMessages = {
+        'ECONNABORTED': 'La conexión tardó demasiado. Verifica tu conexión a internet e intenta nuevamente.',
+        'ECONNREFUSED': 'No se pudo conectar con el servidor. Verifica que el backend esté ejecutándose.',
+        'ERR_NETWORK': 'No se pudo conectar con el servidor. Verifica que el backend esté ejecutándose.'
+      };
+      
+      const statusMessages = {
+        401: 'Credenciales incorrectas. Verifica tu email/usuario y contraseña.',
+        429: 'Demasiados intentos. Espera un momento antes de intentar nuevamente.'
+      };
+      
+      const errorMessage = errorMessages[error.code as keyof typeof errorMessages] || 
+                          statusMessages[error.response?.status as keyof typeof statusMessages] ||
+                          (error.response?.status >= 500 ? 'Error del servidor. Intenta nuevamente en unos minutos.' : 'Error al iniciar sesión') ||
+                          error.response?.data?.message ||
+                          'Error al iniciar sesión';
+      
+      const customError = new Error(errorMessage) as any;
+      customError.name = error.name || 'LoginError';
+      customError.code = error.code;
+      
+      throw customError;
     }
   }, []);
 

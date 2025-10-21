@@ -24,6 +24,8 @@ class ApiClient {
     resolve: (value?: any) => void;
     reject: (error?: any) => void;
   }> = [];
+  private maxRetries = 3;
+  private retryDelay = 1000; // 1 segundo
 
   constructor() {
     this.client = axios.create({
@@ -40,25 +42,19 @@ class ApiClient {
   private setupInterceptors() {
     // Interceptor para agregar token a las requests
     this.client.interceptors.request.use(
-      async (config) => {
+      (config) => {
         const token = getStorageItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-        
-        
         return config;
       },
-      (error) => {
-        return Promise.reject(error);
-      }
+      (error) => Promise.reject(error)
     );
 
     // Interceptor para manejar respuestas y renovar tokens
     this.client.interceptors.response.use(
-      (response) => {
-        return response;
-      },
+      (response) => response,
       async (error) => {
         const originalRequest = error.config;
 
@@ -127,24 +123,54 @@ class ApiClient {
     multiRemoveStorage(['token', 'refreshToken', 'userProfile']);
   }
 
+  private async retryRequest<T>(
+    requestFn: () => Promise<T>,
+    retryCount: number = 0
+  ): Promise<T> {
+    try {
+      return await requestFn();
+    } catch (error: any) {
+      // Solo reintentar en casos específicos de error de red
+      const shouldRetry = 
+        retryCount < this.maxRetries && 
+        (error.code === 'ECONNABORTED' || 
+         error.code === 'ECONNREFUSED' || 
+         error.code === 'ERR_NETWORK' ||
+         error.code === 'ETIMEDOUT' ||
+         (error.response?.status >= 500 && error.response?.status < 600));
+
+      if (shouldRetry) {
+        console.log(`Reintentando petición (${retryCount + 1}/${this.maxRetries})...`);
+        
+        // Esperar con delay exponencial
+        const delay = this.retryDelay * Math.pow(2, retryCount);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        return this.retryRequest(requestFn, retryCount + 1);
+      }
+      
+      throw error;
+    }
+  }
+
   async get(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse> {
-    return this.client.get(url, config);
+    return this.retryRequest(() => this.client.get(url, config));
   }
 
   async post(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse> {
-    return this.client.post(url, data, config);
+    return this.retryRequest(() => this.client.post(url, data, config));
   }
 
   async put(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse> {
-    return this.client.put(url, data, config);
+    return this.retryRequest(() => this.client.put(url, data, config));
   }
 
   async delete(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse> {
-    return this.client.delete(url, config);
+    return this.retryRequest(() => this.client.delete(url, config));
   }
 
   async patch(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse> {
-    return this.client.patch(url, data, config);
+    return this.retryRequest(() => this.client.patch(url, data, config));
   }
 }
 

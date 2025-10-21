@@ -12,50 +12,18 @@ const { metricsMiddleware, databaseMetricsMiddleware, metricsEndpoint, healthEnd
 const logger = require('./utils/logger');
 const { sequelize } = require('./config/db');
 
-// Middleware simple para log de tiempo de respuesta con análisis de velocidad
+// Middleware simple para log de tiempo de respuesta
 const responseTimeLogger = (req, res, next) => {
   const startTime = Date.now();
   
   res.on('finish', () => {
     const responseTime = Date.now() - startTime;
+    const status = res.statusCode >= 400 ? '🔴' : res.statusCode >= 300 ? '🟡' : '🟢';
+    const speed = responseTime < 100 ? '⚡' : responseTime < 500 ? '✅' : responseTime < 1000 ? '⚠️' : '🐌';
     
-    // Determinar color según código de estado
-    let statusColor = '🟢'; // Verde por defecto
-    if (res.statusCode >= 400) {
-      statusColor = '🔴'; // Rojo para errores
-    } else if (res.statusCode >= 300) {
-      statusColor = '🟡'; // Amarillo para redirecciones
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`${status} ${speed} ${req.method} ${req.path} - ${responseTime}ms`);
     }
-    
-    // Determinar velocidad de respuesta
-    let speedIndicator = '';
-    if (responseTime < 100) {
-      speedIndicator = '⚡'; // Excelente (< 100ms)
-    } else if (responseTime < 500) {
-      speedIndicator = '✅'; // Buena (100-500ms)
-    } else if (responseTime < 1000) {
-      speedIndicator = '⚠️'; // Lenta (500ms-1s)
-    } else if (responseTime < 3000) {
-      speedIndicator = '🐌'; // Muy lenta (1-3s)
-    } else {
-      speedIndicator = '🚨'; // Crítica (> 3s)
-    }
-    
-    // Crear mensaje con análisis de velocidad
-    let speedText = '';
-    if (responseTime < 100) {
-      speedText = 'EXCELENTE';
-    } else if (responseTime < 500) {
-      speedText = 'BUENA';
-    } else if (responseTime < 1000) {
-      speedText = 'LENTA';
-    } else if (responseTime < 3000) {
-      speedText = 'MUY LENTA';
-    } else {
-      speedText = 'CRÍTICA';
-    }
-    
-
   });
   
   next();
@@ -64,7 +32,6 @@ const responseTimeLogger = (req, res, next) => {
 // Importar rutas
 const postRoutes = require('./routes/postRoutes');
 const boardRoutes = require('./routes/boardRoutes');
-const searchRoutes = require('./routes/searchRoutes');
 
 // Importar modelos y establecer asociaciones
 const { setupAssociations } = require('./models');
@@ -101,6 +68,12 @@ const allowedOriginsDev = [
 	'http://127.0.0.1:3000',
 	'http://127.0.0.1:3001',
 	'http://127.0.0.1:8081',
+	'http://192.168.1.2:3000',
+	'http://192.168.1.2:3001',
+	'http://192.168.1.2:8081',
+	'http://192.168.1.3:3000',
+	'http://192.168.1.3:3001',
+	'http://192.168.1.3:8081',
 	...corsOrigins, // Agregar orígenes desde variables de entorno
 ];
 
@@ -176,21 +149,14 @@ if (process.env.NODE_ENV === 'production') {
   app.use('/api', devRateLimit);
 }
 
-// Middleware de compresión optimizado
+// Middleware de compresión
 app.use(compression({
-  level: 6, // Nivel de compresión balanceado (1-9)
-  threshold: 1024, // Comprimir archivos mayores a 1KB
+  level: 6,
+  threshold: 1024,
   filter: (req, res) => {
-    // No comprimir si ya está comprimido
-    if (req.headers['x-no-compression']) {
-      return false;
-    }
-    // Usar compresión estándar
+    if (req.headers['x-no-compression']) return false;
     return compression.filter(req, res);
-  },
-  // Configuraciones adicionales
-  chunkSize: 16 * 1024, // 16KB chunks
-  memLevel: 8 // Uso de memoria moderado
+  }
 }));
 
 // Middleware de logging simple para tiempo de respuesta
@@ -208,8 +174,6 @@ app.use(metricsMiddleware);
 // Middleware de métricas de base de datos
 app.use(databaseMetricsMiddleware(sequelize));
 
-// Middleware de monitoreo de rendimiento (integrado en metricsMiddleware)
-
 // Parseo de JSON y URL encoded
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -223,53 +187,22 @@ setupAssociations();
 // Health check
 app.get('/health', async (req, res) => {
   try {
-    // Intentar autenticar una conexión ligera
-    try {
-      await sequelize.authenticate();
-    } catch (e) {
-      return res.status(503).json({
-        success: false,
-        message: 'Servicio parcialmente disponible - Base de datos desconectada',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-        database: {
-          status: 'disconnected',
-          host: process.env.DB_HOST,
-          port: process.env.DB_PORT || 3306,
-          name: process.env.DB_NAME,
-        }
-      });
-    }
-
+    await sequelize.authenticate();
     res.status(200).json({
       success: true,
       message: 'ArteNis API funcionando correctamente',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
-      database: {
-        status: 'connected',
-        host: process.env.DB_HOST,
-        port: process.env.DB_PORT || 3306,
-        name: process.env.DB_NAME,
-      },
-      uptime: process.uptime(),
-      memory: {
-        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
-        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
-      }
+      uptime: process.uptime()
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(503).json({
       success: false,
-      message: 'Error en health check',
-      timestamp: new Date().toISOString(),
-      error: error.message
+      message: 'Servicio no disponible - Base de datos desconectada',
+      timestamp: new Date().toISOString()
     });
   }
 });
-
-// Ruta para métricas de rendimiento (usando metricsMiddleware)
-app.get('/metrics', metricsEndpoint);
 
 // Rutas de la API
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -281,7 +214,6 @@ app.use('/api/boards', boardRoutes);
 
 // Rutas de métricas y monitoreo
 app.get('/metrics', metricsEndpoint);
-app.get('/health', healthEndpoint);
 app.get('/dashboard', metricsDashboard);
 
 // Ruta raíz
