@@ -169,6 +169,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     loadUser();
+    
+    // Limpiar memoria cada 5 minutos
+    const memoryCleanup = setInterval(() => {
+      if (typeof window !== 'undefined' && window.gc) {
+        window.gc();
+      }
+    }, 5 * 60 * 1000);
+    
+    return () => {
+      clearInterval(memoryCleanup);
+    };
   }, [loadUser]);
 
   const value: UserContextValue = {

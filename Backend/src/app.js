@@ -8,7 +8,6 @@ const path = require('path');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { devRateLimit, strictRateLimit } = require('./middlewares/devRateLimit');
 const { smartCacheMiddleware, cacheStatsMiddleware } = require('./middlewares/httpCache');
-const { metricsMiddleware, databaseMetricsMiddleware, metricsEndpoint, healthEndpoint, metricsDashboard } = require('./middlewares/metricsMiddleware');
 const logger = require('./utils/logger');
 const { sequelize } = require('./config/db');
 
@@ -168,11 +167,6 @@ app.use(smartCacheMiddleware);
 // Middleware de estadísticas de caché
 app.use(cacheStatsMiddleware);
 
-// Middleware de métricas
-app.use(metricsMiddleware);
-
-// Middleware de métricas de base de datos
-app.use(databaseMetricsMiddleware(sequelize));
 
 // Parseo de JSON y URL encoded
 app.use(express.json({ limit: '10mb' }));
@@ -212,9 +206,6 @@ app.use('/api/follow', require('./routes/followRoutes'));
 app.use('/api/posts', postRoutes);
 app.use('/api/boards', boardRoutes);
 
-// Rutas de métricas y monitoreo
-app.get('/metrics', metricsEndpoint);
-app.get('/dashboard', metricsDashboard);
 
 // Ruta raíz
 app.get('/', (req, res) => {
@@ -229,9 +220,7 @@ app.get('/', (req, res) => {
       follow: '/api/follow',
       posts: '/api/posts',
       boards: '/api/boards',
-      health: '/health',
-      metrics: '/metrics',
-      dashboard: '/dashboard'
+      health: '/health'
     }
   });
 });
