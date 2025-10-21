@@ -483,10 +483,6 @@ export default function PostDetailPage() {
                 }}
               />
               <span className="text-sm font-medium">{likesCount}</span>
-              {/* Debug temporal */}
-              <span className="text-xs text-gray-500 ml-1">
-                ({isLiked ? 'L' : 'N'})
-              </span>
             </button>
 
             <button className="flex items-center space-x-2 group">
