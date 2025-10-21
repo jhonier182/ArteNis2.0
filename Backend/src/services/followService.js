@@ -104,21 +104,26 @@ class FollowService {
 
       // Eliminar la relación de seguimiento
       await sequelize.transaction(async (t) => {
-        await follow.destroy({ transaction: t });
-        console.log(`🗑️ FollowService: Relación eliminada de la base de datos`);
+        try {
+          await follow.destroy({ transaction: t });
+          console.log(`🗑️ FollowService: Relación eliminada de la base de datos`);
 
-        // Decrementar contadores
-        await User.decrement('followersCount', {
-          where: { id: followingId },
-          transaction: t
-        });
+          // Decrementar contadores
+          await User.decrement('followersCount', {
+            where: { id: followingId },
+            transaction: t
+          });
 
-        await User.decrement('followingCount', {
-          where: { id: followerId },
-          transaction: t
-        });
-        
-        console.log(`📉 FollowService: Contadores decrementados`);
+          await User.decrement('followingCount', {
+            where: { id: followerId },
+            transaction: t
+          });
+          
+          console.log(`📉 FollowService: Contadores decrementados`);
+        } catch (transactionError) {
+          console.error(`❌ FollowService: Error en transacción:`, transactionError);
+          throw transactionError;
+        }
       });
 
       // OPTIMIZACIÓN: Invalidar cache de follows
@@ -129,6 +134,29 @@ class FollowService {
       return { message: 'Has dejado de seguir al usuario' };
     } catch (error) {
       console.error(`❌ FollowService: Error en unfollowUser:`, error);
+      console.error(`❌ FollowService: Stack trace:`, error.stack);
+      console.error(`❌ FollowService: Error message:`, error.message);
+      throw error;
+    }
+  }
+
+  // Verificar si sigues a un usuario específico (OPTIMIZADO)
+  static async checkFollowingStatus(followerId, followingId) {
+    try {
+      console.log(`🔍 FollowService: Verificando seguimiento ${followerId} -> ${followingId}`);
+      
+      const follow = await Follow.findOne({
+        where: { followerId, followingId },
+        attributes: ['id'],
+        limit: 1
+      });
+      
+      const isFollowing = !!follow;
+      console.log(`📊 FollowService: Resultado verificación: ${isFollowing}`);
+      
+      return isFollowing;
+    } catch (error) {
+      console.error('❌ FollowService: Error verificando estado de seguimiento:', error);
       throw error;
     }
   }
@@ -136,14 +164,18 @@ class FollowService {
   // Obtener usuarios que sigues (ULTRA OPTIMIZADO CON CACHE)
   static async getFollowingUsers(userId) {
     try {
+      console.log(`🔍 FollowService: Obteniendo usuarios seguidos para ${userId}`);
+      
       // OPTIMIZACIÓN 1: Verificar cache primero
       const cacheKey = `following:${userId}`;
       const cachedData = cache.get(cacheKey);
       
       if (cachedData) {
-
+        console.log(`📊 FollowService: Datos encontrados en caché: ${cachedData.length} usuarios`);
         return cachedData;
       }
+
+      console.log(`🔍 FollowService: Caché vacío, consultando base de datos...`);
 
       // OPTIMIZACIÓN 2: Eliminar consulta innecesaria de verificación de usuario
       // OPTIMIZACIÓN 3: Consulta optimizada con JOIN manual
@@ -152,11 +184,15 @@ class FollowService {
         attributes: ['followingId']
       });
 
+      console.log(`📊 FollowService: Follows encontrados en DB: ${follows.length}`);
+
       if (follows.length === 0) {
+        console.log(`📭 FollowService: No hay follows, devolviendo array vacío`);
         return [];
       }
 
       const followingIds = follows.map(follow => follow.followingId);
+      console.log(`📊 FollowService: IDs de usuarios seguidos:`, followingIds);
       
       // Obtener usuarios seguidos en una sola consulta
       const followingUsers = await User.findAll({
@@ -165,9 +201,12 @@ class FollowService {
         order: [['username', 'ASC']]
       });
 
+      console.log(`📊 FollowService: Usuarios encontrados: ${followingUsers.length}`);
+      console.log(`📊 FollowService: Usuarios seguidos:`, followingUsers.map(u => ({ id: u.id, username: u.username })));
+
       // OPTIMIZACIÓN 4: Guardar en cache
       cache.put(cacheKey, followingUsers, 300000); // 5 minutos en ms
-
+      console.log(`💾 FollowService: Datos guardados en caché`);
 
       return followingUsers;
     } catch (error) {

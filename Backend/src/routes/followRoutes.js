@@ -22,4 +22,10 @@ router.get('/following',
   FollowController.getFollowingUsers
 );
 
+// GET /api/follow/status/:userId - Verificar si sigues a un usuario específico
+router.get('/status/:userId',
+  verifyToken,
+  FollowController.checkFollowingStatus
+);
+
 module.exports = router;

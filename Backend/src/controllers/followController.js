@@ -57,6 +57,27 @@ class FollowController {
     }
   }
 
+  // Verificar si sigues a un usuario específico
+  static async checkFollowingStatus(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const followerId = req.user.id;
+      
+      console.log(`🔍 FollowController: Verificando estado de seguimiento ${followerId} -> ${userId}`);
+      
+      const result = await FollowService.checkFollowingStatus(followerId, userId);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Estado de seguimiento obtenido exitosamente',
+        data: { isFollowing: result }
+      });
+    } catch (error) {
+      console.error('❌ FollowController: Error en checkFollowingStatus:', error);
+      next(error);
+    }
+  }
+
   // Obtener usuarios que sigues
   static async getFollowingUsers(req, res, next) {
     try {
