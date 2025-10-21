@@ -551,7 +551,7 @@ export default function ProfilePage() {
                         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                           <div className="flex items-center gap-3 text-white text-sm">
                             <div className="flex items-center gap-1">
-                              <Heart className="w-4 h-4" />
+                              <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                               <span>{post.likesCount || 0}</span>
                             </div>
                             <div className="flex items-center gap-1">

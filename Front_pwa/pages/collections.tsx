@@ -58,7 +58,30 @@ export default function CollectionsPage() {
       console.log('Publicaciones guardadas:', response.data)
       
       // Extraer todas las publicaciones de todos los boards
-      const allPosts = response.data?.data?.boards?.flatMap((board: any) => board.Posts || []) || []
+      let allPosts = response.data?.data?.boards?.flatMap((board: any) => board.Posts || []) || []
+      
+      // Cargar información de likes para cada post si hay posts
+      if (allPosts.length > 0 && isAuthenticated) {
+        const likesPromises = allPosts.map(async (post: any) => {
+          try {
+            const likesResponse = await apiClient.get(`/api/posts/${post.id}/likes`)
+            if (likesResponse.data.success) {
+              const { liked, likesCount } = likesResponse.data.data
+              return {
+                ...post,
+                isLiked: liked,
+                likesCount: likesCount
+              }
+            }
+          } catch (error) {
+            console.log(`No se pudo cargar likes para post ${post.id}:`, error)
+          }
+          return post
+        })
+        
+        allPosts = await Promise.all(likesPromises)
+      }
+      
       setSavedPosts(allPosts)
       setFilteredPosts(allPosts)
     } catch (error) {
@@ -219,7 +242,7 @@ export default function CollectionsPage() {
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 text-white text-sm">
                       <div className="flex items-center gap-1">
-                        <Heart className="w-4 h-4" />
+                        <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                         <span>{post.likesCount || 0}</span>
                       </div>
                       <div className="flex items-center gap-1">

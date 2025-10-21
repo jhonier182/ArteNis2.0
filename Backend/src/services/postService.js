@@ -343,14 +343,13 @@ class PostService {
     }
   }
 
-  // Dar like a una publicación
-  static async likePost(userId, postId, type = 'like') {
+  // Toggle like a una publicación (AGREGAR O QUITAR)
+  static async toggleLike(userId, postId, type = 'like') {
     const maxRetries = 3;
     let attempt = 0;
 
     while (attempt < maxRetries) {
       try {
-        
         // Verificar si la publicación existe
         const post = await Post.findByPk(postId);
         if (!post) {
@@ -361,14 +360,43 @@ class PostService {
         const existingLike = await Like.exists(userId, postId);
         
         if (existingLike) {
-          // Si ya existe, actualizar el tipo de like
-          existingLike.type = type;
-          await existingLike.save();
-          return { message: 'Like actualizado' };
-        } else {
-          // Crear nuevo like con transacción optimizada
+          // Si ya existe, ELIMINAR el like (toggle OFF)
           const result = await sequelize.transaction(async (t) => {
+            // Usar lock optimista para evitar deadlocks
+            const lockedPost = await Post.findByPk(postId, { 
+              lock: true, 
+              transaction: t 
+            });
             
+            if (!lockedPost) {
+              throw new Error('Publicación no encontrada');
+            }
+
+            // Eliminar el like
+            await existingLike.destroy({ transaction: t });
+
+            // Decrementar contador de likes
+            await Post.decrement('likesCount', {
+              where: { id: postId },
+              transaction: t
+            });
+
+            // Verificar que el decremento funcionó
+            await lockedPost.reload({ transaction: t });
+
+            return { 
+              message: 'Like removido',
+              liked: false,
+              likesCount: lockedPost.likesCount
+            };
+          }, {
+            timeout: 10000
+          });
+
+          return result;
+        } else {
+          // Si no existe, CREAR el like (toggle ON)
+          const result = await sequelize.transaction(async (t) => {
             // Usar lock optimista para evitar deadlocks
             const lockedPost = await Post.findByPk(postId, { 
               lock: true, 
@@ -386,7 +414,7 @@ class PostService {
               type
             }, { transaction: t });
 
-            // Incrementar contador de likes usando el método directo de Sequelize
+            // Incrementar contador de likes
             await Post.increment('likesCount', {
               where: { id: postId },
               transaction: t
@@ -395,17 +423,19 @@ class PostService {
             // Verificar que el incremento funcionó
             await lockedPost.reload({ transaction: t });
 
-            return { message: 'Like agregado' };
+            return { 
+              message: 'Like agregado',
+              liked: true,
+              likesCount: lockedPost.likesCount
+            };
           }, {
-            timeout: 10000 // 10 segundos de timeout para transacciones
+            timeout: 10000
           });
 
           return result;
         }
       } catch (error) {
         attempt++;
-        
-        // Error silencioso - continuar con siguiente intento
         
         // Si es un deadlock y no hemos agotado los reintentos, esperar y reintentar
         if (error.message.includes('Deadlock') && attempt < maxRetries) {
@@ -419,7 +449,7 @@ class PostService {
       }
     }
     
-    throw new Error('No se pudo procesar el like después de múltiples intentos');
+    throw new Error('No se pudo procesar el toggle de like después de múltiples intentos');
   }
 
   // Quitar like de una publicación
@@ -902,10 +932,33 @@ class PostService {
 
       console.log(`📝 Posts encontrados: ${posts.count}`);
 
-      // Transformar posts para el frontend
-      const transformedPosts = posts.rows.map(post => 
-        this.transformPostForFrontendSync(post, userId)
-      );
+      // Obtener likes del usuario para todos los posts de una vez (OPTIMIZACIÓN)
+      let userLikes = new Set();
+      if (userId && posts.rows.length > 0) {
+        const postIds = posts.rows.map(post => post.id);
+        const likes = await Like.findAll({
+          where: {
+            userId: userId,
+            postId: { [Op.in]: postIds }
+          },
+          attributes: ['postId']
+        });
+        userLikes = new Set(likes.map(like => like.postId));
+      }
+
+      // Transformar posts para el frontend con información de likes
+      const transformedPosts = posts.rows.map(post => {
+        const postData = post.toJSON();
+        
+        // Agregar información de likes
+        if (userId) {
+          postData.isLiked = userLikes.has(post.id);
+        } else {
+          postData.isLiked = false;
+        }
+        
+        return this.transformPostForFrontendSync(postData, userId);
+      });
 
       return {
         posts: transformedPosts,

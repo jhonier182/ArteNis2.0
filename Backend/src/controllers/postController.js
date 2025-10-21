@@ -194,22 +194,24 @@ class PostController {
   }
 
   // Dar like a una publicación
-  static async likePost(req, res, next) {
+  static async toggleLike(req, res, next) {
     try {
       const { id } = req.params;
       const { type = 'like' } = req.body;
       
-      const result = await PostService.likePost(req.user.id, id, type);
+      const result = await PostService.toggleLike(req.user.id, id, type);
       
       res.status(200).json({
         success: true,
-        message: 'Like agregado exitosamente',
-        data: result
+        message: result.message,
+        data: {
+          liked: result.liked,
+          likesCount: result.likesCount
+        }
       });
     } catch (error) {
       // Manejo específico para deadlocks
       if (error.message.includes('Deadlock')) {
-
         return res.status(409).json({
           success: false,
           message: 'Error temporal al procesar el like. Por favor, inténtalo de nuevo.',
@@ -229,7 +231,42 @@ class PostController {
     }
   }
 
-  // Quitar like de una publicación
+  // Obtener información de likes de una publicación
+  static async getLikeInfo(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id; // Opcional, puede ser null si no está autenticado
+      
+      // Verificar que la publicación existe
+      const post = await PostService.getPostById(id, userId);
+      if (!post) {
+        return res.status(404).json({
+          success: false,
+          message: 'La publicación no existe'
+        });
+      }
+      
+      res.status(200).json({
+        success: true,
+        data: {
+          likesCount: post.likesCount || 0,
+          isLiked: post.isLiked || false,
+          postId: id
+        }
+      });
+    } catch (error) {
+      if (error.message.includes('Publicación no encontrada')) {
+        return res.status(404).json({
+          success: false,
+          message: 'La publicación no existe'
+        });
+      }
+      
+      next(error);
+    }
+  }
+
+  // Quitar like de una publicación (mantener para compatibilidad)
   static async unlikePost(req, res, next) {
     try {
       const { id } = req.params;
@@ -244,7 +281,6 @@ class PostController {
     } catch (error) {
       // Manejo específico para deadlocks
       if (error.message.includes('Deadlock')) {
-
         return res.status(409).json({
           success: false,
           message: 'Error temporal al procesar el unlike. Por favor, inténtalo de nuevo.',

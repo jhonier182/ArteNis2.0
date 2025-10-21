@@ -129,13 +129,19 @@ router.post('/',
   PostController.createPost
 );
 
-// POST /api/posts/:id/like - Dar like a una publicación
-router.post('/:id/like',
-  verifyToken,
-  PostController.likePost
+// GET /api/posts/:id/likes - Obtener información de likes de una publicación
+router.get('/:id/likes',
+  optionalAuth,
+  PostController.getLikeInfo
 );
 
-// DELETE /api/posts/:id/like - Quitar like de una publicación
+// POST /api/posts/:id/like - Toggle like a una publicación (agregar o quitar)
+router.post('/:id/like',
+  verifyToken,
+  PostController.toggleLike
+);
+
+// DELETE /api/posts/:id/like - Quitar like de una publicación (mantener para compatibilidad)
 router.delete('/:id/like',
   verifyToken,
   PostController.unlikePost

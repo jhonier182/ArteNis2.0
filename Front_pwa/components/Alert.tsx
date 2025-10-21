@@ -18,11 +18,11 @@ export default function Alert({ id, type, title, message, duration = 1300, onClo
   const playSound = () => {
     try {
       // Reutilizar el contexto de audio global si existe
-      if (!window.alertAudioContext) {
-        window.alertAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      if (!(window as any).alertAudioContext) {
+        (window as any).alertAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
       }
       
-      const audioContext = window.alertAudioContext
+      const audioContext = (window as any).alertAudioContext
       const frequencies = {
         success: [523, 659],
         error: [392, 311],

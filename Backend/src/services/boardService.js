@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Board, BoardPost, BoardCollaborator, BoardFollow, Post, User } = require('../models');
+const { Board, BoardPost, BoardCollaborator, BoardFollow, Post, User, Like } = require('../models');
 const { sequelize } = require('../config/db');
 
 class BoardService {
@@ -251,8 +251,36 @@ class BoardService {
         offset: parseInt(offset)
       });
 
+      // Obtener likes del usuario para todos los posts de una vez (OPTIMIZACIÓN)
+      let userLikes = new Set();
+      if (requesterId && posts.rows.length > 0) {
+        const postIds = posts.rows.map(post => post.id);
+        const likes = await Like.findAll({
+          where: {
+            userId: requesterId,
+            postId: { [Op.in]: postIds }
+          },
+          attributes: ['postId']
+        });
+        userLikes = new Set(likes.map(like => like.postId));
+      }
+
+      // Agregar información de likes a cada post
+      const postsWithLikes = posts.rows.map(post => {
+        const postData = post.toJSON();
+        
+        // Agregar información de likes
+        if (requesterId) {
+          postData.isLiked = userLikes.has(post.id);
+        } else {
+          postData.isLiked = false;
+        }
+        
+        return postData;
+      });
+
       return {
-        posts: posts.rows,
+        posts: postsWithLikes,
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(posts.count / limit),

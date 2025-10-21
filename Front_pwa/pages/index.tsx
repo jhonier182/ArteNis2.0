@@ -191,6 +191,7 @@ export default function HomePage() {
       const updatedPosts = posts.map((post: Post) => {
         if (post.id === postId) {
           const isCurrentlyLiked = post.isLiked || false
+          console.log(`🔄 Toggle like para post ${postId}: ${isCurrentlyLiked} -> ${!isCurrentlyLiked}`)
           return {
             ...post,
             isLiked: !isCurrentlyLiked,
@@ -201,13 +202,30 @@ export default function HomePage() {
       })
       setPosts(updatedPosts)
 
-      // Hacer la petición al backend
-      await apiClient.post(`/api/posts/${postId}/like`)
+      // Hacer la petición al backend (toggle)
+      const response = await apiClient.post(`/api/posts/${postId}/like`)
+      
+      // Actualizar con la respuesta real del servidor
+      if (response.data.success) {
+        const { liked, likesCount } = response.data.data
+        console.log(`✅ Respuesta del servidor para post ${postId}: liked=${liked}, likesCount=${likesCount}`)
+        const finalPosts = updatedPosts.map((post: Post) => {
+          if (post.id === postId) {
+            return {
+              ...post,
+              isLiked: liked,
+              likesCount: likesCount
+            }
+          }
+          return post
+        })
+        setPosts(finalPosts)
+      }
     } catch (error) {
       console.error('Error al dar like:', error)
       
       // Revertir cambios en caso de error
-      const revertedPosts = posts.map((post: Post) => {
+      const revertedPosts = updatedPosts.map((post: Post) => {
         if (post.id === postId) {
           const isCurrentlyLiked = post.isLiked || false
           return {
@@ -219,6 +237,8 @@ export default function HomePage() {
         return post
       })
       setPosts(revertedPosts)
+      
+      showAlert('Error', 'No se pudo actualizar el like')
     }
   }
 

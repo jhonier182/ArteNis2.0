@@ -54,11 +54,30 @@ export default function PostDetailPage() {
   const loadPost = async () => {
     try {
       setIsLoading(true)
-      const response = await apiClient.get(`/api/posts/${id}`)
-      const postData = response.data.data.post
-      setPost(postData)
-      setIsLiked(postData.isLiked || false)
-      setLikesCount(postData.likesCount || 0)
+      
+      // Cargar post principal y información de likes en paralelo
+      const [postResponse, likesResponse] = await Promise.allSettled([
+        apiClient.get(`/api/posts/${id}`),
+        isAuthenticated ? apiClient.get(`/api/posts/${id}/likes`) : Promise.resolve(null)
+      ])
+      
+      // Procesar respuesta del post
+      if (postResponse.status === 'fulfilled') {
+        const postData = postResponse.value.data.data.post
+        setPost(postData)
+        setIsLiked(postData.isLiked || false)
+        setLikesCount(postData.likesCount || 0)
+      } else {
+        throw new Error('No se pudo cargar la publicación')
+      }
+      
+      // Procesar respuesta de likes si está autenticado
+      if (isAuthenticated && likesResponse.status === 'fulfilled' && likesResponse.value) {
+        const { liked, likesCount } = likesResponse.value.data.data
+        setIsLiked(liked)
+        setLikesCount(likesCount)
+      }
+      
     } catch (err) {
       console.error('Error al cargar post:', err)
       error('Error al cargar', 'No se pudo cargar la publicación')
@@ -174,17 +193,30 @@ export default function PostDetailPage() {
     }
 
     try {
-      if (isLiked) {
-        await apiClient.delete(`/api/posts/${id}/like`)
-        setIsLiked(false)
-        setLikesCount(prev => prev - 1)
-      } else {
-        await apiClient.post(`/api/posts/${id}/like`)
-        setIsLiked(true)
-        setLikesCount(prev => prev + 1)
+      // Actualización optimista
+      const newIsLiked = !isLiked
+      const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1
+      
+      setIsLiked(newIsLiked)
+      setLikesCount(newLikesCount)
+
+      // Hacer la petición al backend (toggle)
+      const response = await apiClient.post(`/api/posts/${id}/like`)
+      
+      // Actualizar con la respuesta real del servidor
+      if (response.data.success) {
+        const { liked, likesCount: serverLikesCount } = response.data.data
+        setIsLiked(liked)
+        setLikesCount(serverLikesCount)
       }
     } catch (error) {
       console.error('Error al dar like:', error)
+      
+      // Revertir cambios en caso de error
+      setIsLiked(!isLiked)
+      setLikesCount(prev => prev + (isLiked ? 1 : -1))
+      
+      error('Error', 'No se pudo actualizar el like')
     }
   }
 
