@@ -22,9 +22,15 @@ src/app/
 │   ├── directives/         # Directivas personalizadas
 │   └── pipes/              # Pipes de transformación
 │
-├── app.config.ts           # Configuración de la aplicación
+├── app.config.ts           # Configuración de la aplicación (+ Service Worker)
 ├── app.routes.ts           # Rutas principales
 └── app.ts                  # Componente raíz
+
+public/                      # Recursos públicos (PWA)
+├── icons/                  # Iconos para PWA (8 tamaños)
+└── manifest.webmanifest    # Configuración PWA
+
+ngsw-config.json            # Service Worker config
 ```
 
 ## 🎯 Core
@@ -181,6 +187,43 @@ import { ButtonComponent } from '@app/shared';
 4. **Lazy Loading**: Todas las features cargan de forma diferida
 5. **Standalone Components**: Usar componentes standalone (Angular 15+)
 
+## 📱 Configuración PWA
+
+El proyecto incluye **Progressive Web App (PWA)** configurado con:
+
+- **Service Worker**: Configurado automáticamente para cache offline
+- **Web App Manifest**: `manifest.webmanifest` con iconos en múltiples tamaños
+- **Iconos**: 8 tamaños diferentes (72x72 hasta 512x512) para diferentes dispositivos
+- **Modo Standalone**: Configurado para instalación como app nativa
+- **Offline Support**: Prefetch de recursos esenciales para funcionar sin conexión
+
+### Archivos PWA
+
+- `public/manifest.webmanifest` - Configuración de la app instalable
+- `public/icons/` - Iconos para la PWA (8 tamaños)
+- `ngsw-config.json` - Configuración del service worker
+- `app.config.ts` - Provider de service worker configurado
+
+### Uso del Service Worker
+
+El service worker se habilita automáticamente en producción. En desarrollo, puedes forzarlo creando un archivo `ngsw.json` o usando:
+
+```bash
+npm run build
+npm run serve:ssr:inkedinFront
+```
+
+### Características PWA Implementadas
+
+1. **Offline First**: La app funciona sin conexión a internet
+2. **Instalable**: Los usuarios pueden "instalar" la app en sus dispositivos
+3. **Iconos Adaptativos**: Iconos en 8 tamaños para diferentes plataformas
+4. **Cache Strategy**: 
+   - **app**: Prefetch inmediato de recursos críticos
+   - **assets**: Carga lazy de imágenes y fuentes
+5. **SSR Ready**: Compatible con Server-Side Rendering
+6. **Update Handling**: El SW actualiza automáticamente cuando hay nueva versión
+
 ## 🚦 Estado Actual
 
 - ✅ Estructura de carpetas creada
@@ -190,6 +233,9 @@ import { ButtonComponent } from '@app/shared';
 - ✅ Componentes de ejemplo creados
 - ✅ Rutas con lazy loading configuradas
 - ✅ Componentes compartidos de ejemplo
+- ✅ PWA configurado y listo para producción
+- ✅ Service Worker habilitado
+- ✅ SSR (Server-Side Rendering) configurado
 
 ## 🎯 Próximos Pasos
 
@@ -198,4 +244,7 @@ import { ButtonComponent } from '@app/shared';
 - [ ] Implementar feature de admin
 - [ ] Agregar tests unitarios
 - [ ] Configurar variables de entorno
+- [ ] Personalizar iconos de la PWA
+- [ ] Implementar estrategias de caché avanzadas
+- [ ] Agregar notificaciones push (opcional)
 
