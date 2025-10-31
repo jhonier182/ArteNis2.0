@@ -18,11 +18,13 @@ import {
   Bell
 } from 'lucide-react'
 import { useUser } from '../context/UserContext'
-import apiClient from '../services/apiClient'
+import { boardService } from '../services/boardService'
 import { useInfinitePosts } from '../hooks/useInfiniteScroll'
 import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
 import { useAlert, AlertContainer } from '../components/Alert'
 import { useFollowing } from '../hooks/useFollowing'
+import { useSavePost } from '../hooks/useSavePost'
+import { postService } from '../services/postService'
 
 interface Post {
   id: string
@@ -57,8 +59,12 @@ export default function HomePage() {
   const { followingUsers } = useFollowing()
   const { alerts, success, error: showAlert, removeAlert } = useAlert()
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
-  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set())
+  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set())
   const router = useRouter()
+  
+  // Hook para manejar guardados (reemplaza handleSavePost)
+  // Nota: Este hook maneja un solo post, pero podemos crear uno para múltiples
+  // Por ahora, usaremos el servicio directamente para mantener compatibilidad
 
   // Hook de scroll infinito para posts de usuarios seguidos
   const {
@@ -90,7 +96,7 @@ export default function HomePage() {
     if (isAuthenticated && user?.userType !== 'artist') {
       loadSavedPosts()
     }
-  }, [isAuthenticated, user])
+  }, [isAuthenticated, user?.userType]) // Optimizado: solo userType, no el objeto completo
 
   // Refrescar el feed cuando cambien los usuarios seguidos (OPTIMIZADO)
   useEffect(() => {
@@ -117,21 +123,13 @@ export default function HomePage() {
 
   const loadSavedPosts = async () => {
     try {
-      const response = await apiClient.get('/api/boards/me/boards')
-      const boards = response.data.data?.boards || []
-      const savedPostIds = new Set<string>()
-      
-      boards.forEach((board: any) => {
-        board.Posts?.forEach((post: any) => {
-          savedPostIds.add(post.id.toString())
-        })
-      })
-      
-      setSavedPosts(savedPostIds)
+      // Usar boardService en lugar de llamada directa
+      const savedIds = await boardService.getSavedPostIds()
+      setSavedPostIds(savedIds)
     } catch (error) {
       console.error('Error al cargar posts guardados:', error)
       // No mostrar error al usuario, simplemente no cargar guardados
-      setSavedPosts(new Set())
+      setSavedPostIds(new Set())
     }
   }
 
@@ -143,52 +141,46 @@ export default function HomePage() {
     }
 
     try {
-      if (savedPosts.has(postId)) {
-        // Remover de guardados - buscar el board que contiene este post
-        const response = await apiClient.get('/api/boards/me/boards')
-        const boards = response.data?.data?.boards || []
+      if (savedPostIds.has(postId)) {
+        // Remover de guardados
+        const savedInfo = await boardService.isPostSaved(postId)
         
-        for (const board of boards) {
-          const hasPost = board.Posts?.some((post: any) => post.id === postId)
-          if (hasPost) {
-            await apiClient.delete(`/api/boards/${board.id}/posts/${postId}`)
-            break
+        if (savedInfo.isSaved && savedInfo.boardId) {
+          await boardService.removePostFromBoard(savedInfo.boardId, postId)
+          setSavedPostIds(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(postId)
+            return newSet
+          })
+        } else {
+          // Si no encontramos el board, buscar manualmente
+          const boardsResponse = await boardService.getMyBoards()
+          const boards = boardsResponse.data?.boards || []
+          
+          for (const board of boards) {
+            const hasPost = board.Posts?.some((post) => post.id === postId)
+            if (hasPost) {
+              await boardService.removePostFromBoard(board.id, postId)
+              setSavedPostIds(prev => {
+                const newSet = new Set(prev)
+                newSet.delete(postId)
+                return newSet
+              })
+              break
+            }
           }
         }
-        
-        setSavedPosts(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(postId)
-          return newSet
-        })
       } else {
-        // Agregar a guardados - usar el board por defecto o crear uno
-        let defaultBoard = null
-        
-        // Buscar un board por defecto o crear uno
-        const response = await apiClient.get('/api/boards/me/boards')
-        const boards = response.data?.data?.boards || []
-        
-        if (boards.length === 0) {
-          // Crear board por defecto
-          const createResponse = await apiClient.post('/api/boards', {
-            name: 'Mis Favoritos',
-            description: 'Publicaciones que me gustan'
-          })
-          defaultBoard = createResponse.data?.data?.board
-        } else {
-          // Usar el primer board disponible
-          defaultBoard = boards[0]
-        }
-        
-        if (defaultBoard) {
-          await apiClient.post(`/api/boards/${defaultBoard.id}/posts`, { postId })
-          setSavedPosts(prev => new Set([...prev, postId]))
-        }
+        // Agregar a guardados
+        const defaultBoard = await boardService.getOrCreateDefaultBoard()
+        await boardService.addPostToBoard(defaultBoard.id, postId)
+        setSavedPostIds(prev => new Set([...prev, postId]))
       }
-    } catch (error: any) {
-      console.error('Error al guardar post:', error)
-      showAlert('Error al guardar', error.response?.data?.message || 'No se pudo guardar la publicación')
+    } catch (error: unknown) {
+      const errorObj = error as { response?: { data?: { message?: string } } }
+      const errorMessage = errorObj.response?.data?.message || 'No se pudo guardar la publicación'
+      console.error('Error al guardar post:', errorMessage)
+      showAlert('Error al guardar', errorMessage)
     }
   }
 
@@ -198,7 +190,6 @@ export default function HomePage() {
       const updatedPosts = posts.map((post: Post) => {
         if (post.id === postId) {
           const isCurrentlyLiked = post.isLiked || false
-          console.log(`🔄 Toggle like para post ${postId}: ${isCurrentlyLiked} -> ${!isCurrentlyLiked}`)
           return {
             ...post,
             isLiked: !isCurrentlyLiked,
@@ -209,13 +200,12 @@ export default function HomePage() {
       })
       setPosts(updatedPosts)
 
-      // Hacer la petición al backend (toggle)
-      const response = await apiClient.post(`/api/posts/${postId}/like`)
+      // Usar postService en lugar de llamada directa
+      const response = await postService.toggleLike(postId)
       
       // Actualizar con la respuesta real del servidor
-      if (response.data.success) {
-        const { isLiked, likesCount } = response.data.data
-        console.log(`✅ Respuesta del servidor para post ${postId}: isLiked=${isLiked}, likesCount=${likesCount}`)
+      if (response.success && response.data) {
+        const { isLiked, likesCount } = response.data
         const finalPosts = updatedPosts.map((post: Post) => {
           if (post.id === postId) {
             return {

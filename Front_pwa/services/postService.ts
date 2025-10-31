@@ -154,12 +154,22 @@ export const postService = {
   },
 
   // Dar/quitar like a un post
-  async toggleLike(postId: string): Promise<{ success: boolean; message: string; data: { liked: boolean; likesCount: number } }> {
+  async toggleLike(postId: string): Promise<{ success: boolean; message?: string; data: { isLiked: boolean; likesCount: number } }> {
     try {
-      const response = await api.post<{ success: boolean; message: string; data: { liked: boolean; likesCount: number } }>(`/api/posts/${postId}/like`);
-      return response;
-    } catch (error: any) {
-      console.error('Error toggleando like:', error);
+      const response = await api.post<{ success: boolean; message?: string; data: { liked?: boolean; isLiked?: boolean; likesCount: number } }>(`/api/posts/${postId}/like`);
+      // Normalizar respuesta para que coincida con el formato esperado por el hook
+      const likeStatus = response.data?.isLiked ?? response.data?.liked ?? false;
+      return {
+        success: response.success,
+        message: response.message,
+        data: {
+          isLiked: likeStatus,
+          likesCount: response.data?.likesCount ?? 0
+        }
+      };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      console.error('Error toggleando like:', errorMessage);
       throw error;
     }
   },

@@ -487,12 +487,30 @@ Front_pwa/
 
 **Problema**: Múltiples formas de obtener la misma información:
 
-1. **Obtener Posts** - 4 formas diferentes:
+1. **Obtener Posts** - 4 formas diferentes (PROBLEMA: Métodos del servicio NO USADOS):
 
-   - ✅ `postService.getFeed()` → `/api/posts`
-   - ✅ `postService.getFollowingPosts()` → `/api/posts/following`
-   - ⚠️ `apiClient.get('/api/posts')` (uso directo en componentes)
-   - ✅ `useInfinitePosts('/api/posts/following')` (hook)
+   - ⚠️ `postService.getFeed()` → `/api/posts` **DEFINIDO PERO NO USADO** (código muerto)
+   - ⚠️ `postService.getFollowingPosts()` → `/api/posts/following` **DEFINIDO PERO NO USADO** (código muerto)
+   - ⚠️ `apiClient.get('/api/posts/...')` **USO DIRECTO dentro de `useInfinitePosts` hook** (línea 164 de `useInfiniteScroll.ts`)
+   - ✅ `useInfinitePosts('/api/posts/following')` **Este SÍ se usa** en `index.tsx` pero hace llamadas directas en lugar de usar `postService`
+
+**Explicación del problema**:
+
+   - **¿Por qué hay 4 formas?** Porque hay **duplicación innecesaria**:
+
+     1. Métodos en `postService` que nunca se usan (líneas 73-110 de `postService.ts`)
+     2. El hook `useInfinitePosts` hace llamadas directas a `apiClient.get()` (línea 164) en lugar de usar los métodos del servicio
+
+   - **¿Por qué es problemático?**
+     - Código muerto: métodos definidos que nadie usa
+     - Duplicación: misma lógica en dos lugares (servicio + hook)
+     - Mantenimiento difícil: si cambia la API, hay que actualizar en múltiples lugares
+     - Inconsistencia: algunos usan servicio, otros hacen llamadas directas
+
+   - **Solución recomendada**:
+     - Refactorizar `useInfinitePosts` para usar `postService.getFollowingPosts()` internamente
+     - O eliminar métodos no usados si no se necesitan
+     - Centralizar toda la lógica de obtención de posts en `postService`
 
 2. **Obtener Usuario/Perfil** - 3 formas diferentes:
 
@@ -1248,12 +1266,19 @@ responses(res).ok('Operación exitosa', result);
 
 **Ejemplos identificados**:
 
-1. **Obtener Posts** - 4 formas diferentes:
+1. **Obtener Posts** - 4 formas diferentes (PROBLEMA: Inconsistencia y duplicación):
 
-   - `postService.getFeed()` → `/api/posts`
-   - `postService.getFollowingPosts()` → `/api/posts/following`
-   - ⚠️ `apiClient.get('/api/posts')` (uso directo en componentes)
-   - `useInfinitePosts('/api/posts/following')` (hook)
+   - `postService.getFeed()` → `/api/posts` ⚠️ **Definido pero NO USADO en ningún componente**
+   - `postService.getFollowingPosts()` → `/api/posts/following` ⚠️ **Definido pero NO USADO en ningún componente**
+   - ⚠️ `apiClient.get('/api/posts/...')` **Uso directo dentro de `useInfinitePosts` hook** (no usa `postService`)
+   - `useInfinitePosts('/api/posts/following')` (hook) ✅ **Este SÍ se usa en `index.tsx`** pero internamente hace llamadas directas a `apiClient` en lugar de usar `postService`
+
+**Problema Real**:
+
+   - Los métodos `postService.getFeed()` y `postService.getFollowingPosts()` existen pero no se usan
+   - El hook `useInfinitePosts` hace llamadas directas a `apiClient.get()` en lugar de usar `postService`
+   - Esto causa duplicación: métodos del servicio que no se usan + llamadas directas en el hook
+   - **Solución**: El hook `useInfinitePosts` debería usar `postService.getFollowingPosts()` internamente, o los métodos del servicio deberían eliminarse si no se van a usar
 
 2. **Obtener Usuario/Perfil** - 3 formas diferentes:
 

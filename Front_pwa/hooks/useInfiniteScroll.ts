@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { apiClient } from '@/utils/apiClient'
+import apiClient from '../services/apiClient'
 
 interface UseInfiniteScrollOptions {
   threshold?: number // Distancia desde el final para cargar más (en píxeles)
@@ -153,7 +153,7 @@ export function useInfiniteScroll<T>(
   }
 }
 
-// Hook específico para posts
+// Hook específico para posts que usa postService en lugar de llamadas directas
 export function useInfinitePosts<T = any>(
   endpoint: string,
   params: Record<string, any> = {},
@@ -161,15 +161,44 @@ export function useInfinitePosts<T = any>(
 ) {
   const fetchPosts = useCallback(async (page: number, limit: number) => {
     try {
-      const response = await apiClient.get(endpoint, {
-        params: {
-          page,
-          limit,
-          ...params
+      // Importar postService dinámicamente para evitar circular dependencies
+      const { postService } = await import('../services/postService')
+      
+      let response;
+      
+      // Mapear endpoints a métodos del servicio
+      if (endpoint.includes('/api/posts/following')) {
+        // Usar método del servicio para posts de seguidos
+        response = await postService.getFollowingPosts(page, limit);
+      } else if (endpoint.includes('/api/posts/user/')) {
+        // Extraer userId del endpoint
+        const userIdMatch = endpoint.match(/\/user\/([^\/]+)/);
+        const userId = userIdMatch ? userIdMatch[1] : null;
+        
+        if (userId) {
+          // Usar método del servicio para posts de usuario
+          response = await postService.getUserPosts(userId, page, limit);
+        } else {
+          throw new Error('UserId no encontrado en el endpoint');
         }
-      })
+      } else if (endpoint.includes('/api/posts') && !endpoint.includes('/posts/')) {
+        // Usar método del servicio para feed general (solo si no es un post específico)
+        response = await postService.getFeed(page, limit, params);
+      } else {
+        // Para endpoints no mapeados, usar llamada directa (compatibilidad)
+        const responseDirect = await apiClient.get(endpoint, {
+          params: {
+            page,
+            limit,
+            ...params
+          }
+        });
+        response = responseDirect.data;
+      }
 
-      const posts = response.data?.data?.posts || response.data?.data || []
+      // Normalizar estructura de respuesta del servicio
+      // postService retorna PostsResponse que tiene: { success, data: { posts: Post[], pagination } }
+      const posts = response?.data?.posts || []
       
       // Normalizar la estructura de datos (el backend devuelve 'author' en lugar de 'User')
       const normalizedPosts = posts.map((post: any) => ({
@@ -177,14 +206,17 @@ export function useInfinitePosts<T = any>(
         User: post.author || post.User
       }))
       
-      const hasMore = normalizedPosts.length === limit
+      // Determinar si hay más páginas
+      // Si la respuesta tiene pagination, usarlo; sino, asumir que hay más si devolvió el límite completo
+      const hasMore = response?.data?.pagination?.hasNext ?? (normalizedPosts.length === limit)
 
       return {
         data: normalizedPosts as T[],
         hasMore
       }
     } catch (error) {
-      throw new Error('Error al cargar publicaciones')
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      throw new Error(`Error al cargar publicaciones: ${errorMessage}`)
     }
   }, [endpoint, JSON.stringify(params)]) // Usar JSON.stringify para comparar objetos
 

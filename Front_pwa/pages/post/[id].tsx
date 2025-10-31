@@ -12,7 +12,7 @@ import {
   Send
 } from 'lucide-react'
 import { useUser } from '../../context/UserContext'
-import apiClient from '../../services/apiClient'
+import { postService } from '../../services/postService'
 import { useFollowing } from '../../hooks/useFollowing'
 import PostMenu from '../../components/PostMenu'
 import { useAlert, AlertContainer } from '../../components/Alert'
@@ -94,43 +94,19 @@ export default function PostDetailPage() {
 
 
   const loadPost = async () => {
-    console.log('🚀 Iniciando carga del post...')
     try {
       setIsLoading(true)
       
-      // Cargar el post principal
-      const postResponse = await apiClient.get(`/api/posts/${id}`)
+      // Usar postService en lugar de llamada directa a apiClient
+      const postResponse = await postService.getPostById(id as string)
       
-      console.log('📡 Respuesta completa de la API:', postResponse.data)
-      
-      if (postResponse.data.success) {
-        const postData = postResponse.data.data.post
+      if (postResponse.success && postResponse.data.post) {
+        const postData = postResponse.data.post
         setPost(postData)
         
         // Usar los datos del post principal para el estado de like
         setIsLiked(postData.isLiked || false)
         setLikesCount(postData.likesCount || 0)
-        
-        console.log('✅ Post cargado - Estado de like:', { 
-          isLiked: postData.isLiked, 
-          likesCount: postData.likesCount,
-          willBeRed: postData.isLiked ? 'SÍ' : 'NO'
-        })
-        
-        console.log('👤 Información del autor:', {
-          hasAuthor: !!postData.author,
-          authorId: postData.author?.id,
-          authorUsername: postData.author?.username,
-          currentUserId: user?.id,
-          isOwnPost: user?.id?.toString() === postData.author?.id?.toString()
-        })
-        
-        console.log('📊 Datos completos del post:', {
-          id: postData.id,
-          author: postData.author,
-          likesCount: postData.likesCount,
-          isLiked: postData.isLiked
-        })
       } else {
         throw new Error('No se pudo cargar la publicación')
       }
@@ -145,15 +121,15 @@ export default function PostDetailPage() {
   }
 
   const checkIfSaved = async () => {
+    if (!post?.id) return;
     try {
-      const response = await apiClient.get('/api/boards/me/boards')
-      const boards = response.data?.data?.boards || []
-      const isPostSaved = boards.some((board: any) => 
-        board.Posts?.some((savedPost: any) => savedPost.id === post.id)
-      )
-      setIsSaved(isPostSaved)
+      // Usar boardService en lugar de llamada directa
+      const { boardService } = await import('../../services/boardService');
+      const savedInfo = await boardService.isPostSaved(post.id);
+      setIsSaved(savedInfo.isSaved);
     } catch (error) {
-      console.error('Error al verificar guardado:', error)
+      console.error('Error al verificar guardado:', error);
+      setIsSaved(false); // En caso de error, asumir no guardado
     }
   }
 
@@ -201,51 +177,45 @@ export default function PostDetailPage() {
       return
     }
 
+    if (!post?.id) return;
+
     try {
       setIsSaving(true)
       
+      // Usar boardService en lugar de llamadas directas
+      const { boardService } = await import('../../services/boardService');
+      
       if (isSaved) {
         // Remover de guardados
-        const response = await apiClient.get('/api/boards/me/boards')
-        const boards = response.data?.data?.boards || []
+        const savedInfo = await boardService.isPostSaved(post.id);
         
-        for (const board of boards) {
-          const hasPost = board.Posts?.some((savedPost: any) => savedPost.id === post.id)
-          if (hasPost) {
-            await apiClient.delete(`/api/boards/${board.id}/posts/${post.id}`)
-            break
+        if (savedInfo.isSaved && savedInfo.boardId) {
+          await boardService.removePostFromBoard(savedInfo.boardId, post.id);
+          setIsSaved(false);
+        } else {
+          // Si no encontramos el board, buscar manualmente
+          const boardsResponse = await boardService.getMyBoards();
+          const boards = boardsResponse.data?.boards || [];
+          
+          for (const board of boards) {
+            const hasPost = board.Posts?.some((savedPost) => savedPost.id === post.id);
+            if (hasPost) {
+              await boardService.removePostFromBoard(board.id, post.id);
+              setIsSaved(false);
+              break;
+            }
           }
         }
-        
-        setIsSaved(false)
       } else {
         // Agregar a guardados
-        let defaultBoard = null
-        
-        // Buscar un board por defecto o crear uno
-        const response = await apiClient.get('/api/boards/me/boards')
-        const boards = response.data?.data?.boards || []
-        
-        if (boards.length === 0) {
-          // Crear board por defecto
-          const createResponse = await apiClient.post('/api/boards', {
-            name: 'Mis Favoritos',
-            description: 'Publicaciones que me gustan'
-          })
-          defaultBoard = createResponse.data?.data?.board
-        } else {
-          // Usar el primer board disponible
-          defaultBoard = boards[0]
-        }
-        
-        if (defaultBoard) {
-          await apiClient.post(`/api/boards/${defaultBoard.id}/posts`, { postId: post.id })
-          setIsSaved(true)
-        }
+        const defaultBoard = await boardService.getOrCreateDefaultBoard();
+        await boardService.addPostToBoard(defaultBoard.id, post.id);
+        setIsSaved(true);
       }
-    } catch (err: any) {
-      console.error('Error al guardar post:', err)
-      error('Error al guardar', err.response?.data?.message || 'No se pudo guardar la publicación')
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } } };
+      const errorMessage = errorObj.response?.data?.message || 'No se pudo guardar la publicación';
+      error('Error al guardar', errorMessage);
     } finally {
       setIsSaving(false)
     }
@@ -257,40 +227,20 @@ export default function PostDetailPage() {
       return
     }
 
-    try {
-      console.log('🔄 Estado actual antes del like:', { isLiked, likesCount })
-      
-      // Actualización optimista - cambiar estado inmediatamente
-      const newIsLiked = !isLiked
-      const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1
-      
-      console.log('🎯 Cambio optimista:', { 
-        from: { isLiked, likesCount }, 
-        to: { newIsLiked, newLikesCount } 
-      })
-      
-      setIsLiked(newIsLiked)
-      setLikesCount(newLikesCount)
+    if (!id || typeof id !== 'string') return;
 
-      // Hacer la petición al backend
-      const response = await apiClient.post(`/api/posts/${id}/like`)
-      console.log('📡 Respuesta del servidor:', response.data)
+    try {
+      // Usar postService en lugar de llamada directa
+      const response = await postService.toggleLike(id)
       
-      // Confirmar con la respuesta del servidor
-      if (response.data.success) {
-        const { liked: serverLiked, likesCount: serverLikesCount } = response.data.data
-        console.log('✅ Confirmado por servidor:', { liked: serverLiked, likesCount: serverLikesCount })
-        setIsLiked(serverLiked)
-        setLikesCount(serverLikesCount)
+      if (response.success && response.data) {
+        setIsLiked(response.data.isLiked)
+        setLikesCount(response.data.likesCount)
       }
     } catch (err) {
       console.error('Error al dar like:', err)
-      
-      // Revertir cambios en caso de error
-      setIsLiked(!isLiked)
-      setLikesCount(prev => prev + (isLiked ? 1 : -1))
-      
       error('Error', 'No se pudo actualizar el like')
+      // El servicio maneja el revert automático
     }
   }
 
