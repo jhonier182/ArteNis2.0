@@ -3,33 +3,30 @@ const { searchUsers } = require('../config/performanceOptimization');
 const { responses } = require('../utils/apiResponse');
 
 class SearchController {
-  // Buscar usuarios (NO BLOQUEANTE)
+  // Buscar usuarios
   static async searchUsers(req, res, next) {
-    // Usar setImmediate para evitar bloquear el event loop
-    setImmediate(async () => {
-      try {
-        const { q, limit = 15 } = req.query; // Reducir límite por defecto
-        
-        if (!q || q.trim().length < 2) {
-          return responses.badRequest(res, 'La búsqueda debe tener al menos 2 caracteres', 'VALIDATION_ERROR');
-        }
-        
-        // Usar función optimizada con caché
-        const cachedResults = await searchUsers(q.trim(), parseInt(limit));
-        
-        res.status(200).json({
-          success: true,
-          message: 'Búsqueda realizada exitosamente',
-          data: {
-            users: cachedResults || [],
-            total: (cachedResults || []).length,
-            query: q.trim()
-          }
-        });
-      } catch (error) {
-        next(error);
+    try {
+      const { q, limit = 15 } = req.query; // Reducir límite por defecto
+      
+      if (!q || q.trim().length < 2) {
+        return responses.badRequest(res, 'La búsqueda debe tener al menos 2 caracteres', 'VALIDATION_ERROR');
       }
-    });
+      
+      // Usar función optimizada con caché
+      const cachedResults = await searchUsers(q.trim(), parseInt(limit));
+      
+      res.status(200).json({
+        success: true,
+        message: 'Búsqueda realizada exitosamente',
+        data: {
+          users: cachedResults || [],
+          total: (cachedResults || []).length,
+          query: q.trim()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   // Búsqueda global

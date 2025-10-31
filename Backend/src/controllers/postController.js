@@ -344,15 +344,6 @@ class PostController {
 
       const result = await PostService.toggleSave(userId, postId);
 
-      setImmediate(() => {
-        try {
-          // Invalidar cache de posts guardados del usuario
-          // Esto se hace en background para no bloquear la respuesta
-        } catch (error) {
-          // Error silencioso en background
-        }
-      });
-
       res.status(200).json({
         success: true,
         message: result.saved ? 'Post guardado exitosamente' : 'Post eliminado de guardados',

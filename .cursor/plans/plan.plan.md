@@ -803,7 +803,7 @@ Tests
 
 ### 9.1 Backend - Problemas Críticos
 
-#### 9.1.1 Uso Innecesario de `setImmediate` en Controladores
+#### 9.1.1 ✅ **COMPLETADO** - Uso Innecesario de `setImmediate` en Controladores
 
 **Problema**: Uso excesivo de `setImmediate` en controladores que manejan respuestas HTTP, lo cual puede causar problemas:
 
@@ -811,19 +811,20 @@ Tests
 - Errores no capturados correctamente
 - Comportamiento impredecible
 
-**Archivos afectados**:
+**Archivos corregidos**:
 
-- `Backend/src/controllers/searchController.js` - `searchUsers()` usa `setImmediate` innecesariamente
-- `Backend/src/controllers/profileController.js` - Múltiples métodos usan `setImmediate`
-- `Backend/src/routes/postRoutes.js` - `setImmediate` en middleware de invalidación de cache
+- ✅ `Backend/src/controllers/searchController.js` - Eliminado `setImmediate` de `searchUsers()`
+- ✅ `Backend/src/controllers/profileController.js` - Eliminado `setImmediate` de `getProfile()` y `getUserById()`
+- ✅ `Backend/src/controllers/postController.js` - Eliminado `setImmediate` vacío de `toggleSave()`
+- ℹ️ `Backend/src/routes/postRoutes.js` - `setImmediate` mantenido (correcto, invalidación de cache en background)
 
-**Solución**:
+**Solución implementada**:
 
-- Eliminar `setImmediate` de controladores que manejan respuestas HTTP directamente
-- Solo usar `setImmediate` en tareas en background que no afecten la respuesta
-- Mover tareas pesadas a `taskQueue` en lugar de `setImmediate`
+- ✅ Eliminado `setImmediate` de controladores que manejan respuestas HTTP directamente
+- ✅ Solo se mantiene `setImmediate` en tareas en background que no afecten la respuesta (invalidación de cache)
+- ✅ Mantenido uso de `taskQueue` para operaciones de base de datos pesadas
 
-**Prioridad**: 🔴 Alta
+**Estado**: ✅ Completado
 
 #### 9.1.2 Uso de `console.log/error` en lugar de Logger
 
@@ -1036,9 +1037,9 @@ responses(res).ok('Operación exitosa', result);
 
 #### Fase 1 - Crítico (Semana 1-2)
 
-1. ✅ Eliminar `setImmediate` innecesarios en controladores
-2. ✅ Reemplazar `console.log/error` con logger
-3. ✅ Eliminar usos de `any` en TypeScript
+1. ✅ **COMPLETADO** - Eliminar `setImmediate` innecesarios en controladores
+2. ⚠️ Reemplazar `console.log/error` con logger
+3. ⚠️ Eliminar usos de `any` en TypeScript
 4. ⚠️ Configurar y empezar a escribir tests (backend y frontend)
 
 #### Fase 2 - Importante (Semana 3-4)
@@ -1272,7 +1273,7 @@ El proyecto **ArteNis 2.0** está en un estado funcional avanzado con:
 
 **Crítico (Alta Prioridad)**:
 
-- 🔴 Eliminar `setImmediate` innecesarios en controladores (puede romper respuestas HTTP)
+- ✅ **COMPLETADO** - Eliminar `setImmediate` innecesarios en controladores (puede romper respuestas HTTP)
 - 🔴 Reemplazar `console.log/error` con logger en todos los archivos
 - 🔴 Eliminar usos de `any` en TypeScript (18+ ocurrencias)
 - 🔴 Implementar tests (backend y frontend) - actualmente 0 tests
