@@ -575,12 +575,15 @@ Front_pwa/
 ### **ALTA PRIORIDAD**
 
 1. **Corrección de Rutas en Servicios Frontend**
+
     - **Archivo**: `Front_pwa/services/userService.ts`
     - **Problema**: Usa rutas incorrectas (`/api/users/*` en lugar de `/api/profile/*` y `/api/follow`)
     - **Solución**: Actualizar todas las rutas para usar endpoints correctos del backend
     - **Estimación**: 2-3 horas
     - **Dependencias**: Ninguna
+
 2. **Implementación de Endpoints de Autenticación Faltantes**
+
     - **Archivos**: `Backend/src/routes/authRoutes.js`, `Backend/src/controllers/authController.js`, `Backend/src/services/authService.js`
     - **Endpoints a implementar**:
         - `PUT /api/auth/change-password` - Cambiar contraseña
@@ -590,13 +593,17 @@ Front_pwa/
         - `POST /api/auth/resend-verification` - Reenviar verificación
     - **Estimación**: 8-12 horas
     - **Dependencias**: Servicio de email (configurar Nodemailer o similar)
+
 3. **Eliminación/Implementación de Endpoints Faltantes en postService**
+
     - **Archivo**: `Front_pwa/services/postService.ts`
     - **Problema**: Referencia endpoints que no existen
     - **Solución**: Eliminar métodos no implementados o implementar endpoints en backend
     - **Estimación**: 4-6 horas
     - **Dependencias**: Decisión sobre qué funcionalidades mantener
+
 4. **Implementación de Sistema de Guardados de Posts**
+
     - **Archivos**: Backend (nuevo endpoint), Frontend (postService)
     - **Problema**: Actualmente se usa boards como workaround
     - **Solución**: Crear endpoints dedicados `/api/posts/:id/save` y `/api/posts/saved`
@@ -606,21 +613,28 @@ Front_pwa/
 ### **MEDIA PRIORIDAD**
 
 1. **Documentación de API Completa**
+
     - **Archivo**: Nuevo `Backend/API_DOCUMENTATION.md`
     - **Contenido**: Todos los endpoints, parámetros, respuestas, códigos de error
     - **Estimación**: 8-10 horas
     - **Dependencias**: Finalización de correcciones de rutas
+
 2. **Optimización de Queries de Base de Datos**
+
     - **Archivos**: `Backend/src/services/*Service.js`
     - **Acción**: Revisar y optimizar queries lentas, agregar índices faltantes
     - **Estimación**: 6-8 horas
     - **Dependencias**: Análisis de performance
+
 3. **Implementación de Tests**
+
     - **Backend**: Tests unitarios de servicios, tests de integración de endpoints
     - **Frontend**: Tests de componentes, hooks, servicios
     - **Estimación**: 20-30 horas
     - **Dependencias**: Configuración de Jest/Vitest
+
 4. **Mejora del Sistema de Notificaciones**
+
     - **Archivos**: Backend (nuevo módulo), Frontend (NotificationContext)
     - **Acción**: Implementar notificaciones en tiempo real (WebSocket o polling)
     - **Estimación**: 12-16 horas
@@ -629,18 +643,25 @@ Front_pwa/
 ### **BAJA PRIORIDAD**
 
 1. **Refactorización de Código Duplicado**
+
     - **Archivos**: Varios en backend y frontend
     - **Acción**: Extraer lógica común a utilidades
     - **Estimación**: 10-15 horas
+
 2. **Mejora de Manejo de Errores**
+
     - **Archivos**: Backend (errorHandler), Frontend (apiClient)
     - **Acción**: Estandarizar códigos de error, mejorar mensajes
     - **Estimación**: 6-8 horas
+
 3. **Implementación de Caché Avanzado**
+
     - **Archivos**: Backend (middlewares), Frontend (service worker)
     - **Acción**: Mejorar estrategias de caché
     - **Estimación**: 8-12 horas
+
 4. **Optimización de Imágenes**
+
     - **Archivos**: Backend (upload middleware), Frontend (Image component)
     - **Acción**: Implementar lazy loading, formatos modernos (WebP/AVIF)
     - **Estimación**: 6-8 horas
@@ -711,26 +732,39 @@ Tests
 ### 6.4 Recomendaciones de Refactorización
 
 1. **Consolidar Rutas de Usuarios**
+
     - Unificar `/api/users/*` y `/api/profile/*` en una sola ruta base
     - Mantener compatibilidad hacia atrás durante transición
+
 2. **Separar Lógica de Negocio**
+
     - Mover lógica compleja de controladores a servicios
     - Servicios deben ser independientes de Express
+
 3. **Estandarizar Respuestas API**
+
     - Todas las respuestas deben seguir formato: `{ success, message?, data?, error? }`
     - Códigos HTTP consistentes
+
 4. **Mejorar Manejo de Errores**
+
     - Clases de error personalizadas
     - Logging estructurado con Winston
     - Mensajes de error amigables al usuario
+
 5. **Optimizar Queries**
+
     - Usar `include` de Sequelize con `attributes` para evitar over-fetching
     - Implementar paginación en todos los endpoints de listado
     - Agregar índices compuestos para queries frecuentes
+
 6. **TypeScript en Backend**
+
     - Considerar migrar backend a TypeScript para mejor tipado
     - O al menos usar JSDoc para documentar tipos
+
 7. **Validación Centralizada**
+
     - Consolidar validaciones en un solo lugar
     - Reutilizar schemas de validación
 
@@ -776,43 +810,61 @@ Tests
 ### 7.4 Riesgos Técnicos
 
 1. **Escalabilidad de Base de Datos**
+
     - **Riesgo**: Queries sin optimizar pueden causar lentitud con muchos usuarios
     - **Mitigación**: Implementar índices, usar caché, considerar read replicas
+
 2. **Almacenamiento de Archivos**
+
     - **Riesgo**: Cloudinary puede ser costoso con alto volumen
     - **Mitigación**: Optimizar compresión, considerar CDN alternativo
+
 3. **Autenticación JWT**
+
     - **Riesgo**: Tokens en localStorage vulnerables a XSS
     - **Mitigación**: Considerar httpOnly cookies para producción, implementar refresh tokens correctamente
+
 4. **Rate Limiting**
+
     - **Riesgo**: API vulnerable a abuso sin rate limiting adecuado
     - **Mitigación**: Implementar rate limiting más estricto en producción
+
 5. **Sincronización Front-Back**
+
     - **Riesgo**: Endpoints no alineados causan errores
     - **Mitigación**: Implementar plan de alineación priorizado
 
 ### 7.5 Oportunidades de Optimización
 
 1. **Performance**
+
     - Lazy loading de imágenes
     - Code splitting en Next.js
     - Service Worker más agresivo para caché offline
     - Implementar GraphQL para reducir over-fetching
+
 2. **UX/UI**
+
     - Mejorar feedback visual (loading states)
     - Implementar skeleton screens
     - Optimizar animaciones con Framer Motion
     - Mejorar diseño responsive
+
 3. **SEO**
+
     - Meta tags dinámicos en Next.js
     - Sitemap y robots.txt
     - Open Graph tags para compartir
+
 4. **Monitoreo**
+
     - Implementar logging estructurado
     - Métricas de performance (Web Vitals)
     - Error tracking (Sentry o similar)
     - Analytics de uso
+
 5. **Seguridad**
+
     - Validación más estricta de inputs
     - Sanitización de contenido
     - HTTPS obligatorio en producción

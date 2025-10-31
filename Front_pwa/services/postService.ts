@@ -176,14 +176,10 @@ export const postService = {
   },
 
   // Guardar/quitar post de guardados
-  // NOTA: Este endpoint no existe. Actualmente se usa boards como workaround.
-  // Se recomienda implementar este endpoint en el backend para simplificar la lógica.
   async toggleSave(postId: string): Promise<{ success: boolean; message: string; data: { saved: boolean; savesCount: number } }> {
     try {
-      // Endpoint no implementado - usar boards como alternativa
-      // NOTA: Esta funcionalidad está implementada en las páginas usando boards directamente
-      // Se recomienda implementar /api/posts/:id/save en el backend
-      throw new Error('Endpoint /api/posts/:id/save no implementado. Usar boards directamente.');
+      const response = await api.post<{ success: boolean; message: string; data: { saved: boolean; savesCount: number } }>(`/api/posts/${postId}/save`);
+      return response;
     } catch (error: any) {
       console.error('Error toggleando save:', error);
       throw error;
@@ -191,12 +187,15 @@ export const postService = {
   },
 
   // Obtener posts guardados
-  // NOTA: Este endpoint no existe. Se usa /api/boards/me/boards para obtener boards con posts guardados.
   async getSavedPosts(page: number = 1, limit: number = 10): Promise<PostsResponse> {
     try {
-      // NOTA: Endpoint no implementado. Se recomienda crear /api/posts/saved en el backend.
-      // Por ahora, obtener desde boards (implementado en páginas directamente)
-      throw new Error('Endpoint /api/posts/saved no implementado. Usar /api/boards/me/boards para obtener posts guardados.');
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+
+      const response = await api.get<PostsResponse>(`/api/posts/saved?${params}`);
+      return response;
     } catch (error: any) {
       console.error('Error obteniendo posts guardados:', error);
       throw error;

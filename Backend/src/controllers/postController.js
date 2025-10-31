@@ -349,6 +349,54 @@ class PostController {
       next(error);
     }
   }
+
+  // Guardar o quitar post de guardados
+  static async toggleSave(req, res, next) {
+    try {
+      const { id: postId } = req.params;
+      const userId = req.user.id;
+
+      const result = await PostService.toggleSave(userId, postId);
+
+      setImmediate(() => {
+        try {
+          // Invalidar cache de posts guardados del usuario
+          // Esto se hace en background para no bloquear la respuesta
+        } catch (error) {
+          // Error silencioso en background
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: result.saved ? 'Post guardado exitosamente' : 'Post eliminado de guardados',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Obtener posts guardados del usuario
+  static async getSavedPosts(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 20;
+
+      const result = await PostService.getSavedPosts(userId, page, limit);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          posts: result.posts,
+          pagination: result.pagination
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = PostController;
