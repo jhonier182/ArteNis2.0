@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 import { Mail, Lock, Eye, EyeOff, LogIn, Sparkles } from 'lucide-react'
-import { checkUserLoggedIn } from '@/utils/persistentStorage'
+import { useUser } from '../context/UserContext'
 
 interface IntroScreenProps {
   onComplete: () => void
@@ -12,6 +12,7 @@ interface IntroScreenProps {
 
 export default function IntroScreen({ onComplete }: IntroScreenProps) {
   const router = useRouter()
+  const { isAuthenticated, isLoading: userLoading, login } = useUser()
   const [videoEnded, setVideoEnded] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -25,43 +26,62 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
+    let isMounted = true; // Flag para evitar actualizaciones en componentes desmontados
+    
     const initializeApp = async () => {
-      const isLoggedIn = await checkUserLoggedIn()
-      
-      if (isLoggedIn) {
-        // Si el usuario está logueado, saltarse todo y ir directo al perfil
-        onComplete()
-        router.push('/profile')
-        return
-      }
-
-      console.log('Usuario no logueado, iniciando video de introducción')
-      // Si no está logueado, proceder con el video de introducción
-      const video = videoRef.current
-      if (video) {
-        // Configurar el video para reproducción automática
-        video.playbackRate = 1.90 // Aumentar velocidad al 125%
-        video.play().catch(console.error)
+      try {
+        // Esperar a que el UserContext termine de cargar
+        if (userLoading) {
+          return; // Esperar a que termine la carga
+        }
         
-        // Manejar cuando el video termina
-        const handleVideoEnd = () => {
-          setVideoEnded(true)
-          // Mostrar el login después de que termine el video
-          setTimeout(() => {
-            setShowLogin(true)
-          }, 500)
+        if (!isMounted) return; // Evitar actualizaciones si el componente se desmontó
+        
+        if (isAuthenticated) {
+          // Si el usuario está logueado, saltarse todo y ir directo al perfil
+          onComplete()
+          router.push('/profile')
+          return
         }
 
-        video.addEventListener('ended', handleVideoEnd)
-        
-        return () => {
-          video.removeEventListener('ended', handleVideoEnd)
+        console.log('Usuario no logueado, iniciando video de introducción')
+        // Si no está logueado, proceder con el video de introducción
+        const video = videoRef.current
+        if (video && isMounted) {
+          // Configurar el video para reproducción automática
+          video.playbackRate = 1.90 // Aumentar velocidad al 190%
+          video.play().catch(console.error)
+          
+          // Manejar cuando el video termina
+          const handleVideoEnd = () => {
+            if (!isMounted) return;
+            setVideoEnded(true)
+            // Mostrar el login después de que termine el video
+            setTimeout(() => {
+              if (isMounted) {
+                setShowLogin(true)
+              }
+            }, 500)
+          }
+
+          video.addEventListener('ended', handleVideoEnd)
+          
+          return () => {
+            video.removeEventListener('ended', handleVideoEnd)
+          }
         }
+      } catch (error) {
+        console.error('Error inicializando app:', error)
       }
     }
 
     initializeApp()
-  }, [onComplete, router])
+    
+    // Cleanup function
+    return () => {
+      isMounted = false
+    }
+  }, [isAuthenticated, userLoading, onComplete, router]) // Incluir userLoading en las dependencias
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -77,23 +97,12 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
     setError('')
 
     try {
-      // Aquí iría la lógica de login
-      // Por ahora simulamos un login exitoso
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await login(formData.email, formData.password)
       
-      // Verificar si hay datos del usuario en localStorage
-      const userData = localStorage.getItem('user')
-      const token = localStorage.getItem('token')
+      // Redirigir inmediatamente después del login exitoso
+      onComplete()
+      router.push('/profile')
       
-      if (userData && token) {
-        // Si hay datos del usuario, redirigir al perfil
-        onComplete()
-        router.push('/profile')
-      } else {
-        // Si no hay datos, redirigir al login
-        onComplete()
-        router.push('/login')
-      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al iniciar sesión')
     } finally {

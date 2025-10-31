@@ -4,7 +4,13 @@ import Link from 'next/link'
 import Head from 'next/head'
 import { motion } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, LogIn, Sparkles } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
+import { useUser } from '../context/UserContext'
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter()
@@ -19,7 +25,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/')
+      router.push('/profile')
     }
   }, [isAuthenticated, router])
 
@@ -38,7 +44,11 @@ export default function LoginPage() {
 
     try {
       await login(formData.email, formData.password)
-      router.push('/')
+      
+      // Redirigir inmediatamente después del login exitoso
+      // El UserContext ya estableció el estado correctamente
+      router.push('/profile')
+      
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al iniciar sesión')
     } finally {

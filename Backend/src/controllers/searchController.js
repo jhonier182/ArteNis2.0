@@ -1,19 +1,37 @@
 const SearchService = require('../services/searchService');
+const { searchUsers } = require('../config/performanceOptimization');
 
 class SearchController {
-  // Buscar usuarios (método que se usa en las rutas)
+  // Buscar usuarios (NO BLOQUEANTE)
   static async searchUsers(req, res, next) {
-    try {
-      const result = await SearchService.searchUsers(req.query);
-      
-      res.status(200).json({
-        success: true,
-        message: 'Búsqueda realizada exitosamente',
-        data: result
-      });
-    } catch (error) {
-      next(error);
-    }
+    // Usar setImmediate para evitar bloquear el event loop
+    setImmediate(async () => {
+      try {
+        const { q, limit = 15 } = req.query; // Reducir límite por defecto
+        
+        if (!q || q.trim().length < 2) {
+          return res.status(400).json({
+            success: false,
+            message: 'La búsqueda debe tener al menos 2 caracteres'
+          });
+        }
+        
+        // Usar función optimizada con caché
+        const cachedResults = await searchUsers(q.trim(), parseInt(limit));
+        
+        res.status(200).json({
+          success: true,
+          message: 'Búsqueda realizada exitosamente',
+          data: {
+            users: cachedResults || [],
+            total: (cachedResults || []).length,
+            query: q.trim()
+          }
+        });
+      } catch (error) {
+        next(error);
+      }
+    });
   }
 
   // Búsqueda global

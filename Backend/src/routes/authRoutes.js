@@ -1,5 +1,6 @@
 const express = require('express');
 const AuthController = require('../controllers/authController');
+const ProfileController = require('../controllers/profileController');
 const { verifyToken } = require('../middlewares/auth');
 const { 
   validateRegister, 
@@ -30,6 +31,12 @@ router.post('/refresh', AuthController.refresh);
 router.post('/logout', 
   verifyToken,
   AuthController.logout
+);
+
+// GET /api/auth/me - Obtener perfil del usuario (temporal para compatibilidad)
+router.get('/me', 
+  verifyToken,
+  ProfileController.getProfile
 );
 
 module.exports = router;

@@ -1,6 +1,12 @@
 import Head from 'next/head'
 import { WifiOff } from 'lucide-react'
 
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
+
 export default function OfflinePage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

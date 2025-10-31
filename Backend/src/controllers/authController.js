@@ -70,7 +70,6 @@ class AuthController {
         data: result
       });
     } catch (error) {
-      console.error('❌ Error en logout:', error);
       next(error);
     }
   }

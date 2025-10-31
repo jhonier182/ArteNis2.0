@@ -14,7 +14,13 @@ import {
   Check,
   X as XIcon
 } from 'lucide-react'
-import { apiClient } from '@/utils/apiClient'
+import apiClient from '../services/apiClient'
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
 
 export default function RegisterPage() {
   const router = useRouter()

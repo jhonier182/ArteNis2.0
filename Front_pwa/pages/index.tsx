@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { motion } from 'framer-motion'
@@ -16,11 +17,12 @@ import {
   TrendingUp,
   Bell
 } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
-import { apiClient } from '@/utils/apiClient'
-import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
-import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
-import { useAlert, AlertContainer } from '@/components/Alert'
+import { useUser } from '../context/UserContext'
+import apiClient from '../services/apiClient'
+import { useInfinitePosts } from '../hooks/useInfiniteScroll'
+import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
+import { useAlert, AlertContainer } from '../components/Alert'
+import { useFollowing } from '../hooks/useFollowing'
 
 interface Post {
   id: string
@@ -44,8 +46,15 @@ interface Post {
   isLiked?: boolean
 }
 
+export async function getServerSideProps() {
+  return {
+    props: {}, // will be passed to the page component as props
+  }
+}
+
 export default function HomePage() {
   const { user, isAuthenticated, isLoading } = useUser()
+  const { followingUsers } = useFollowing()
   const { alerts, success, error: showAlert, removeAlert } = useAlert()
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set())
@@ -55,11 +64,13 @@ export default function HomePage() {
   const {
     data: posts,
     loading: loadingPosts,
+    isInitialLoading,
     hasMore,
     error,
     loadMore,
     reset: resetPosts,
-    setData: setPosts
+    setData: setPosts,
+    refresh: refreshPosts
   } = useInfinitePosts<Post>('/api/posts/following', {}, {
     enabled: isAuthenticated && user?.userType !== 'artist'
   })
@@ -80,6 +91,14 @@ export default function HomePage() {
       loadSavedPosts()
     }
   }, [isAuthenticated, user])
+
+  // Refrescar el feed cuando cambien los usuarios seguidos (OPTIMIZADO)
+  useEffect(() => {
+    if (isAuthenticated && user?.userType !== 'artist' && followingUsers.length > 0) {
+      console.log('🔄 Refrescando feed por cambio en usuarios seguidos:', followingUsers.length)
+      refreshPosts()
+    }
+  }, [followingUsers.length, isAuthenticated, user?.userType]) // Removido refreshPosts de las dependencias
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -179,6 +198,7 @@ export default function HomePage() {
       const updatedPosts = posts.map((post: Post) => {
         if (post.id === postId) {
           const isCurrentlyLiked = post.isLiked || false
+          console.log(`🔄 Toggle like para post ${postId}: ${isCurrentlyLiked} -> ${!isCurrentlyLiked}`)
           return {
             ...post,
             isLiked: !isCurrentlyLiked,
@@ -189,8 +209,25 @@ export default function HomePage() {
       })
       setPosts(updatedPosts)
 
-      // Hacer la petición al backend
-      await apiClient.post(`/api/posts/${postId}/like`)
+      // Hacer la petición al backend (toggle)
+      const response = await apiClient.post(`/api/posts/${postId}/like`)
+      
+      // Actualizar con la respuesta real del servidor
+      if (response.data.success) {
+        const { isLiked, likesCount } = response.data.data
+        console.log(`✅ Respuesta del servidor para post ${postId}: isLiked=${isLiked}, likesCount=${likesCount}`)
+        const finalPosts = updatedPosts.map((post: Post) => {
+          if (post.id === postId) {
+            return {
+              ...post,
+              isLiked: isLiked,
+              likesCount: likesCount
+            }
+          }
+          return post
+        })
+        setPosts(finalPosts)
+      }
     } catch (error) {
       console.error('Error al dar like:', error)
       
@@ -207,6 +244,8 @@ export default function HomePage() {
         return post
       })
       setPosts(revertedPosts)
+      
+      showAlert('Error', 'No se pudo actualizar el like')
     }
   }
 
@@ -284,11 +323,11 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="container-mobile">
-        {loadingPosts ? (
+        {isInitialLoading ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-            ) : posts.length === 0 ? (
+        ) : posts.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -324,9 +363,11 @@ export default function HomePage() {
                       className="relative group cursor-pointer rounded-lg overflow-hidden"
                       onClick={() => router.push(`/post/${post.id}`)}
                     >
-                      <img
+                      <Image
                         src={post.mediaUrl}
                         alt={post.title || 'Post'}
+                        width={400}
+                        height={256}
                         className="w-full object-cover"
                       />
                       {/* Overlay sutil al hover */}
@@ -334,14 +375,26 @@ export default function HomePage() {
                         {/* Información mínima en hover */}
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-3">
                           <div className="flex items-center gap-3 text-white text-sm font-medium">
-                            <div className="flex items-center gap-1">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleLike(post.id)
+                              }}
+                              className="flex items-center gap-1 hover:scale-110 transition-transform"
+                            >
                               <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                               <span>{post.likesCount}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/post/${post.id}`)
+                              }}
+                              className="flex items-center gap-1 hover:scale-110 transition-transform"
+                            >
                               <MessageCircle className="w-4 h-4" />
                               <span>{post.commentsCount}</span>
-                            </div>
+                            </button>
                           </div>
                         </div>
                       </div>

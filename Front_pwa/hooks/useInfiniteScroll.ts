@@ -16,6 +16,8 @@ interface UseInfiniteScrollReturn<T> {
   reset: () => void
   setData: (data: T[]) => void
   appendData: (newData: T[]) => void
+  refresh: () => Promise<void>
+  isInitialLoading: boolean
 }
 
 export function useInfiniteScroll<T>(
@@ -30,6 +32,7 @@ export function useInfiniteScroll<T>(
 
   const [data, setData] = useState<T[]>([])
   const [loading, setLoading] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -37,12 +40,18 @@ export function useInfiniteScroll<T>(
 
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const isLoadingRef = useRef<boolean>(false)
 
   const loadMore = useCallback(async () => {
-    if (loading || !hasMore || !enabled) return
+    if (loading || !hasMore || !enabled || isLoadingRef.current) return
 
     try {
-      setLoading(true)
+      isLoadingRef.current = true
+      if (isInitialLoad) {
+        setIsInitialLoading(true)
+      } else {
+        setLoading(true)
+      }
       setError(null)
       
       const result = await fetchFunction(page, 10) // 10 items por página
@@ -50,8 +59,10 @@ export function useInfiniteScroll<T>(
       if (isInitialLoad) {
         setData(result.data)
         setIsInitialLoad(false)
+        setIsInitialLoading(false)
       } else {
         setData(prev => [...prev, ...result.data])
+        setLoading(false)
       }
       
       setHasMore(result.hasMore)
@@ -59,10 +70,12 @@ export function useInfiniteScroll<T>(
     } catch (err: any) {
       setError(err.message || 'Error al cargar más datos')
       console.error('Error en scroll infinito:', err)
-    } finally {
+      setIsInitialLoading(false)
       setLoading(false)
+    } finally {
+      isLoadingRef.current = false
     }
-  }, [fetchFunction, page, loading, hasMore, enabled, isInitialLoad])
+  }, [fetchFunction, page, hasMore, enabled, isInitialLoad, loading]) // Agregado loading para evitar renders excesivos
 
   const reset = useCallback(() => {
     setData([])
@@ -70,11 +83,23 @@ export function useInfiniteScroll<T>(
     setHasMore(true)
     setError(null)
     setIsInitialLoad(true)
+    setIsInitialLoading(false)
+    isLoadingRef.current = false
   }, [])
 
   const appendData = useCallback((newData: T[]) => {
     setData(prev => [...prev, ...newData])
   }, [])
+
+  const refresh = useCallback(async () => {
+    setPage(1)
+    setHasMore(true)
+    setError(null)
+    setIsInitialLoad(true)
+    setIsInitialLoading(false)
+    isLoadingRef.current = false
+    await loadMore()
+  }, [loadMore])
 
   // Configurar intersection observer
   useEffect(() => {
@@ -106,12 +131,13 @@ export function useInfiniteScroll<T>(
     }
   }, [enabled, hasMore, loading, loadMore, rootMargin])
 
-  // Cargar datos iniciales
+  // Cargar datos iniciales (OPTIMIZADO)
   useEffect(() => {
-    if (enabled && isInitialLoad) {
+    if (enabled && isInitialLoad && !loading && !isLoadingRef.current) {
+      console.log('🔄 Cargando datos iniciales...')
       loadMore()
     }
-  }, [enabled, isInitialLoad, loadMore])
+  }, [enabled, isInitialLoad, loading]) // Removido loadMore de las dependencias
 
   return {
     data,
@@ -121,7 +147,9 @@ export function useInfiniteScroll<T>(
     loadMore,
     reset,
     setData,
-    appendData
+    appendData,
+    refresh,
+    isInitialLoading
   }
 }
 
@@ -142,16 +170,23 @@ export function useInfinitePosts<T = any>(
       })
 
       const posts = response.data?.data?.posts || response.data?.data || []
-      const hasMore = posts.length === limit
+      
+      // Normalizar la estructura de datos (el backend devuelve 'author' en lugar de 'User')
+      const normalizedPosts = posts.map((post: any) => ({
+        ...post,
+        User: post.author || post.User
+      }))
+      
+      const hasMore = normalizedPosts.length === limit
 
       return {
-        data: posts as T[],
+        data: normalizedPosts as T[],
         hasMore
       }
     } catch (error) {
       throw new Error('Error al cargar publicaciones')
     }
-  }, [endpoint, params])
+  }, [endpoint, JSON.stringify(params)]) // Usar JSON.stringify para comparar objetos
 
   return useInfiniteScroll<T>(fetchPosts, options)
 }

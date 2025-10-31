@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { 
   ArrowLeft, 
@@ -12,8 +13,14 @@ import {
   Grid,
   List
 } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
-import { apiClient } from '@/utils/apiClient'
+import { useUser } from '../context/UserContext'
+import apiClient from '../services/apiClient'
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
 
 export default function CollectionsPage() {
   const router = useRouter()
@@ -43,7 +50,7 @@ export default function CollectionsPage() {
       const filtered = savedPosts.filter(post => 
         post.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.User?.username?.toLowerCase().includes(searchTerm.toLowerCase())
+        post.author?.username?.toLowerCase().includes(searchTerm.toLowerCase())
       )
       setFilteredPosts(filtered)
     } else {
@@ -58,7 +65,30 @@ export default function CollectionsPage() {
       console.log('Publicaciones guardadas:', response.data)
       
       // Extraer todas las publicaciones de todos los boards
-      const allPosts = response.data?.data?.boards?.flatMap((board: any) => board.Posts || []) || []
+      let allPosts = response.data?.data?.boards?.flatMap((board: any) => board.Posts || []) || []
+      
+      // Cargar información de likes para cada post si hay posts
+      if (allPosts.length > 0 && isAuthenticated) {
+        const likesPromises = allPosts.map(async (post: any) => {
+          try {
+            const likesResponse = await apiClient.get(`/api/posts/${post.id}/likes`)
+            if (likesResponse.data.success) {
+              const { isLiked, likesCount } = likesResponse.data.data
+              return {
+                ...post,
+                isLiked: isLiked,
+                likesCount: likesCount
+              }
+            }
+          } catch (error) {
+            console.log(`No se pudo cargar likes para post ${post.id}:`, error)
+          }
+          return post
+        })
+        
+        allPosts = await Promise.all(likesPromises)
+      }
+      
       setSavedPosts(allPosts)
       setFilteredPosts(allPosts)
     } catch (error) {
@@ -79,6 +109,64 @@ export default function CollectionsPage() {
       setFilteredPosts(prev => prev.filter(post => post.id !== postId))
     } catch (error) {
       console.error('Error al remover de colección:', error)
+    }
+  }
+
+  const handleLike = async (postId: string) => {
+    try {
+      // Actualización optimista - actualizar UI inmediatamente
+      const updatedSavedPosts = savedPosts.map((post: any) => {
+        if (post.id === postId) {
+          const isCurrentlyLiked = post.isLiked || false
+          console.log(`🔄 Toggle like para post ${postId}: ${isCurrentlyLiked} -> ${!isCurrentlyLiked}`)
+          return {
+            ...post,
+            isLiked: !isCurrentlyLiked,
+            likesCount: isCurrentlyLiked ? post.likesCount - 1 : post.likesCount + 1
+          }
+        }
+        return post
+      })
+      setSavedPosts(updatedSavedPosts)
+      setFilteredPosts(updatedSavedPosts)
+
+      // Hacer la petición al backend (toggle)
+      const response = await apiClient.post(`/api/posts/${postId}/like`)
+      
+      // Actualizar con la respuesta real del servidor
+      if (response.data.success) {
+        const { isLiked, likesCount } = response.data.data
+        console.log(`✅ Respuesta del servidor para post ${postId}: isLiked=${isLiked}, likesCount=${likesCount}`)
+        const finalPosts = updatedSavedPosts.map((post: any) => {
+          if (post.id === postId) {
+            return {
+              ...post,
+              isLiked: isLiked,
+              likesCount: likesCount
+            }
+          }
+          return post
+        })
+        setSavedPosts(finalPosts)
+        setFilteredPosts(finalPosts)
+      }
+    } catch (error) {
+      console.error('Error al dar like:', error)
+      
+      // Revertir cambios en caso de error
+      const revertedPosts = savedPosts.map((post: any) => {
+        if (post.id === postId) {
+          const isCurrentlyLiked = post.isLiked || false
+          return {
+            ...post,
+            isLiked: !isCurrentlyLiked,
+            likesCount: isCurrentlyLiked ? post.likesCount + 1 : post.likesCount - 1
+          }
+        }
+        return post
+      })
+      setSavedPosts(revertedPosts)
+      setFilteredPosts(revertedPosts)
     }
   }
 
@@ -181,9 +269,11 @@ export default function CollectionsPage() {
                 }`}
               >
                 {post.mediaUrl && (
-                  <img
+                  <Image
                     src={post.mediaUrl}
                     alt={post.description || 'Post'}
+                    width={300}
+                    height={300}
                     className={`w-full object-cover ${
                       viewMode === 'grid' ? 'h-full' : 'w-24 h-full'
                     }`}
@@ -197,7 +287,7 @@ export default function CollectionsPage() {
                         {post.title || post.description || 'Sin título'}
                       </h3>
                       <p className="text-xs text-gray-400">
-                        por @{post.User?.username || 'desconocido'}
+                        por @{post.author?.username || 'desconocido'}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-500">
@@ -218,14 +308,26 @@ export default function CollectionsPage() {
                 }`}>
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 text-white text-sm">
-                      <div className="flex items-center gap-1">
-                        <Heart className="w-4 h-4" />
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleLike(post.id)
+                        }}
+                        className="flex items-center gap-1 hover:scale-110 transition-transform"
+                      >
+                        <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                         <span>{post.likesCount || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/post/${post.id}`)
+                        }}
+                        className="flex items-center gap-1 hover:scale-110 transition-transform"
+                      >
                         <MessageCircle className="w-4 h-4" />
                         <span>{post.commentsCount || 0}</span>
-                      </div>
+                      </button>
                     </div>
                     <button
                       onClick={(e) => {

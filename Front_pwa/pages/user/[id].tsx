@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { 
   ChevronLeft,
@@ -13,11 +14,13 @@ import {
   MoreVertical,
   Calendar
 } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
-import { apiClient } from '@/utils/apiClient'
-import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
-import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
-import { useAlert, AlertContainer } from '@/components/Alert'
+import { useUser } from '../../context/UserContext'
+import apiClient from '../../services/apiClient'
+import { useFollowing } from '../../hooks/useFollowing'
+import { useInfinitePosts } from '../../hooks/useInfiniteScroll'
+import { InfiniteScrollTrigger } from '../../components/LoadingIndicator'
+import FollowButton from '../../components/FollowButton'
+import { useAlert, AlertContainer } from '../../components/Alert'
 
 interface PublicUser {
   id: number
@@ -38,6 +41,12 @@ interface PublicUser {
   specialties?: string | null
 }
 
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
+
 export default function PublicProfilePage() {
   const router = useRouter()
   const { id } = router.query
@@ -45,8 +54,6 @@ export default function PublicProfilePage() {
   const { alerts, success, error: showAlert, removeAlert } = useAlert()
   const [profileUser, setProfileUser] = useState<PublicUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isFollowing, setIsFollowing] = useState(false)
-  const [isFollowLoading, setIsFollowLoading] = useState(false)
   // Hook de scroll infinito para posts del usuario público
   const {
     data: userPosts,
@@ -71,10 +78,6 @@ export default function PublicProfilePage() {
       const response = await apiClient.get(`/api/profile/${id}`)
       setProfileUser(response.data.data.user)
       
-      // Verificar si ya sigue al usuario
-      if (isAuthenticated) {
-        checkIfFollowing()
-      }
 
     } catch (error) {
       console.error('Error al cargar perfil:', error)
@@ -86,43 +89,6 @@ export default function PublicProfilePage() {
   }
 
 
-  const checkIfFollowing = async () => {
-    try {
-      const response = await apiClient.get('/api/follow/following')
-      const followingUsers = response.data.data.followingUsers || []
-      const isUserFollowed = followingUsers.some((u: any) => u.id === id)
-      setIsFollowing(isUserFollowed)
-    } catch (error) {
-      console.error('Error al verificar seguimiento:', error)
-    }
-  }
-
-  const handleFollowToggle = async () => {
-    if (!isAuthenticated) {
-      showAlert('Acceso denegado', 'Debes iniciar sesión para seguir usuarios')
-      router.push('/login')
-      return
-    }
-
-    try {
-      setIsFollowLoading(true)
-      
-      if (isFollowing) {
-        // Dejar de seguir
-        await apiClient.delete(`/api/follow/${id}`)
-        setIsFollowing(false)
-      } else {
-        // Seguir
-        await apiClient.post('/api/follow', { userId: id })
-        setIsFollowing(true)
-      }
-    } catch (error: any) {
-      console.error('Error al cambiar seguimiento:', error)
-      showAlert('Error al seguir', error.response?.data?.message || 'No se pudo actualizar el seguimiento')
-    } finally {
-      setIsFollowLoading(false)
-    }
-  }
 
   // Mock data - Reemplazar con datos reales del backend
   const stats = {
@@ -209,9 +175,11 @@ export default function PublicProfilePage() {
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-blue-600 p-0.5">
                   <div className="w-full h-full rounded-full bg-[#0f1419] p-0.5">
                     {profileUser.avatar ? (
-                      <img
+                      <Image
                         src={profileUser.avatar}
                         alt={profileUser.username}
+                        width={200}
+                        height={200}
                         className="w-full h-full rounded-full object-cover"
                       />
                     ) : (
@@ -274,25 +242,13 @@ export default function PublicProfilePage() {
                 {/* Action Buttons - Solo si NO es tu propio perfil */}
                 {currentUser?.id?.toString() !== profileUser.id?.toString() && (
                   <div className="flex gap-2.5">
-                    <button 
-                      onClick={handleFollowToggle}
-                      disabled={isFollowLoading}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-                        isFollowing
-                          ? 'bg-gray-800/80 text-white hover:bg-gray-700 border border-gray-700'
-                          : 'bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95'
-                      }`}
-                    >
-                      {isFollowLoading ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        </div>
-                      ) : isFollowing ? (
-                        '✓ Siguiendo'
-                      ) : (
-                        '+ Seguir'
-                      )}
-                    </button>
+                    <FollowButton 
+                      userId={id as string}
+                      username={profileUser?.username}
+                      size="md"
+                      variant="primary"
+                      className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95"
+                    />
                     <button 
                       onClick={() => router.push('/appointments/book')}
                       className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-2.5 rounded-xl text-sm font-bold hover:shadow-xl hover:shadow-emerald-500/40 transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
@@ -323,9 +279,11 @@ export default function PublicProfilePage() {
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
                 <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
                   {profileUser.avatar ? (
-                    <img
+                    <Image
                       src={profileUser.avatar}
                       alt={profileUser.username}
+                      width={200}
+                      height={200}
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
@@ -359,25 +317,13 @@ export default function PublicProfilePage() {
             {/* Action Buttons para Usuario Normal - Solo si NO es tu propio perfil */}
             {currentUser?.id?.toString() !== profileUser.id?.toString() && (
               <div className="flex gap-3 mb-8">
-                <button 
-                  onClick={handleFollowToggle}
-                  disabled={isFollowLoading}
-                  className={`flex-1 py-3 rounded-xl font-bold transition-all duration-300 ${
-                    isFollowing
-                      ? 'bg-gray-800/80 text-white hover:bg-gray-700 border border-gray-700'
-                      : 'bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95'
-                  }`}
-                >
-                  {isFollowLoading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    </div>
-                  ) : isFollowing ? (
-                    '✓ Siguiendo'
-                  ) : (
-                    '+ Seguir'
-                  )}
-                </button>
+                <FollowButton 
+                  userId={id as string}
+                  username={profileUser?.username}
+                  size="lg"
+                  variant="primary"
+                  className="flex-1 py-3 rounded-xl font-bold bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95"
+                />
               </div>
             )}
           </>
@@ -579,9 +525,11 @@ export default function PublicProfilePage() {
                       <>
                         {post.type === 'video' ? (
                           <div className="relative w-full h-full">
-                            <img
+                            <Image
                               src={post.thumbnailUrl || post.mediaUrl}
                               alt={post.title || 'Post'}
+                              width={300}
+                              height={300}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                             />
                             {/* Overlay con icono de play para videos */}
@@ -594,9 +542,11 @@ export default function PublicProfilePage() {
                             </div>
                           </div>
                         ) : (
-                          <img
+                          <Image
                             src={post.mediaUrl}
                             alt={post.title || 'Post'}
+                            width={300}
+                            height={300}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                         )}
@@ -610,7 +560,7 @@ export default function PublicProfilePage() {
                       <div className="absolute bottom-2 left-2 right-2">
                         <div className="flex items-center gap-3 text-white text-sm font-medium">
                           <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm">
-                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                            <svg className={`w-3.5 h-3.5 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} viewBox="0 0 24 24" fill="currentColor">
                               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                             </svg>
                             <span>{post.likesCount || 0}</span>
@@ -665,4 +615,3 @@ export default function PublicProfilePage() {
     </div>
   )
 }
-

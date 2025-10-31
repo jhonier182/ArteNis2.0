@@ -14,44 +14,43 @@ export interface AlertProps {
 export default function Alert({ id, type, title, message, duration = 1300, onClose }: AlertProps) {
   const [isVisible, setIsVisible] = useState(true)
 
-  // Función para reproducir sonido 
+  // Función para reproducir sonido (OPTIMIZADA)
   const playSound = () => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      // Reutilizar el contexto de audio global si existe
+      if (!(window as any).alertAudioContext) {
+        (window as any).alertAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      }
       
-      // Sonido - más suave y musical
+      const audioContext = (window as any).alertAudioContext
       const frequencies = {
-        success: [523, 659, 784], // Do, Mi, Sol (acorde mayor)
-        error: [392, 311, 262],   // Sol, Mi♭, Do (acorde menor)
-        warning: [523, 622, 523], // Do, Mi♭, Do (tritono)
-        info: [523, 659]          // Do, Mi (intervalo mayor)
+        success: [523, 659],
+        error: [392, 311],
+        warning: [523, 622],
+        info: [523, 659]
       }
       
       const freqArray = frequencies[type]
-      const duration = 0.3
-      const noteDuration = duration / freqArray.length
+      const duration = 0.2
       
-      freqArray.forEach((freq, index) => {
-        const oscillator = audioContext.createOscillator()
-        const gainNode = audioContext.createGain()
-        
-        oscillator.connect(gainNode)
-        gainNode.connect(audioContext.destination)
-        
-        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + (index * noteDuration))
-        oscillator.type = 'sine'
-        
-        // Envelope suave como Instagram
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime + (index * noteDuration))
-        gainNode.gain.linearRampToValueAtTime(0.08, audioContext.currentTime + (index * noteDuration) + 0.05)
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + (index * noteDuration) + noteDuration)
-        
-        oscillator.start(audioContext.currentTime + (index * noteDuration))
-        oscillator.stop(audioContext.currentTime + (index * noteDuration) + noteDuration)
-      })
+      // Crear solo un oscilador simple
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+      
+      oscillator.frequency.setValueAtTime(freqArray[0], audioContext.currentTime)
+      oscillator.type = 'sine'
+      
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+      gainNode.gain.linearRampToValueAtTime(0.05, audioContext.currentTime + 0.05)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration)
+      
+      oscillator.start(audioContext.currentTime)
+      oscillator.stop(audioContext.currentTime + duration)
     } catch (error) {
-      // Silenciar errores de audio si no está disponible
-      console.log('Audio no disponible')
+      // Silenciar errores de audio
     }
   }
 

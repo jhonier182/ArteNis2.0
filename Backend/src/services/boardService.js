@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Board, BoardPost, BoardCollaborator, BoardFollow, Post, User } = require('../models');
+const { Board, BoardPost, BoardCollaborator, BoardFollow, Post, User, Like } = require('../models');
 const { sequelize } = require('../config/db');
 
 class BoardService {
@@ -78,7 +78,7 @@ class BoardService {
               attributes: ['id', 'title', 'mediaUrl', 'thumbnailUrl', 'createdAt']
             }
           ],
-          order: [['boardId'], ['sortOrder', 'ASC'], ['addedAt', 'DESC']]
+          order: [['boardId'], ['sortOrder', 'ASC'], [{ model: Post, as: 'post' }, 'createdAt', 'DESC']]
         });
 
         // Agrupar posts por board y limitar a 4 por board
@@ -251,8 +251,36 @@ class BoardService {
         offset: parseInt(offset)
       });
 
+      // Obtener likes del usuario para todos los posts de una vez (OPTIMIZACIÓN)
+      let userLikes = new Set();
+      if (requesterId && posts.rows.length > 0) {
+        const postIds = posts.rows.map(post => post.id);
+        const likes = await Like.findAll({
+          where: {
+            userId: requesterId,
+            postId: { [Op.in]: postIds }
+          },
+          attributes: ['postId']
+        });
+        userLikes = new Set(likes.map(like => like.postId));
+      }
+
+      // Agregar información de likes a cada post
+      const postsWithLikes = posts.rows.map(post => {
+        const postData = post.toJSON();
+        
+        // Agregar información de likes
+        if (requesterId) {
+          postData.isLiked = userLikes.has(post.id);
+        } else {
+          postData.isLiked = false;
+        }
+        
+        return postData;
+      });
+
       return {
-        posts: posts.rows,
+        posts: postsWithLikes,
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(posts.count / limit),
@@ -566,6 +594,22 @@ class BoardService {
     } catch (error) {
       throw error;
     }
+  }
+
+  // Obtener categorías disponibles
+  static getCategories() {
+    return [
+      { id: 'traditional', name: 'Tradicional', description: 'Tatuajes tradicionales y old school' },
+      { id: 'realistic', name: 'Realista', description: 'Tatuajes fotorrealistas y retratos' },
+      { id: 'minimalist', name: 'Minimalista', description: 'Diseños simples y líneas finas' },
+      { id: 'geometric', name: 'Geométrico', description: 'Patrones y formas geométricas' },
+      { id: 'watercolor', name: 'Acuarela', description: 'Estilo acuarela y colores difuminados' },
+      { id: 'blackwork', name: 'Blackwork', description: 'Trabajo en negro sólido' },
+      { id: 'dotwork', name: 'Dotwork', description: 'Técnica de puntos y puntillismo' },
+      { id: 'tribal', name: 'Tribal', description: 'Diseños tribales y étnicos' },
+      { id: 'japanese', name: 'Japonés', description: 'Estilo tradicional japonés' },
+      { id: 'other', name: 'Otros', description: 'Otros estilos y categorías' }
+    ];
   }
 }
 

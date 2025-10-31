@@ -1,55 +1,20 @@
 const PostService = require('../services/postService');
-const { uploadPostImage, uploadPostVideo } = require('../config/cloudinary');
+const MediaService = require('../services/mediaService');
 
 class PostController {
-  // Subir imagen o video para post
+  // Subir media para post
   static async uploadPostMedia(req, res, next) {
     try {
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'Se requiere un archivo de imagen o video',
-          debug: {
-            bodyKeys: Object.keys(req.body),
-            files: req.files,
-            file: req.file,
-            contentType: req.headers['content-type']
-          }
-        });
-      }
-
-      // Generar ID único para el post
-      const postId = Date.now().toString();
-      
-      const isVideo = req.file.mimetype.startsWith('video/');
-      
-      let result;
-      if (isVideo) {
-        // Subir video a Cloudinary
-        result = await uploadPostVideo(
-          req.file.buffer,
-          req.user.id,
-          postId,
-          req.file.mimetype
-        );
-      } else {
-        // Subir imagen a Cloudinary
-        result = await uploadPostImage(
-          req.file.buffer,
-          req.user.id,
-          postId
-        );
-      }
+      const result = await MediaService.uploadPostMedia(
+        req.file.buffer,
+        req.user.id,
+        req.file.mimetype
+      );
 
       res.status(200).json({
         success: true,
-        message: isVideo ? 'Video subido exitosamente' : 'Imagen subida exitosamente',
-        data: {
-          url: result.url,
-          publicId: result.publicId,
-          thumbnailUrl: result.thumbnailUrl || null,
-          type: isVideo ? 'video' : 'image'
-        }
+        message: result.type === 'video' ? 'Video subido exitosamente' : 'Imagen subida exitosamente',
+        data: result
       });
     } catch (error) {
       next(error);
@@ -71,7 +36,8 @@ class PostController {
       if (!imageUrl || !cloudinaryPublicId) {
         return res.status(400).json({
           success: false,
-          message: 'Se requiere la URL del media y el ID de Cloudinary'
+          message: 'Se requiere la URL del media y el ID de Cloudinary',
+          error: 'MISSING_REQUIRED_FIELDS'
         });
       }
 
@@ -100,22 +66,19 @@ class PostController {
   // Obtener feed de publicaciones
   static async getFeed(req, res, next) {
     try {
-      // Agregar userId si hay usuario autenticado
       const options = { ...req.query };
       if (req.user) {
         options.userId = req.user.id;
       }
       
-      const result = await PostService.getFeed(options);
+      const result = await PostService.getFeedWithCache(options);
       
-      // Los posts ya están transformados en el servicio
       res.status(200).json({
         success: true,
-        message: 'Feed obtenido exitosamente',
+        message: result.fromCache ? 'Feed obtenido exitosamente (desde caché)' : 'Feed obtenido exitosamente',
         data: result
       });
     } catch (error) {
-      console.error('❌ Error en getFeed:', error);
       next(error);
     }
   }
@@ -128,7 +91,14 @@ class PostController {
       
       const post = await PostService.getPostById(id, userId);
       
-      // El post ya está transformado en el servicio
+      if (!post) {
+        return res.status(404).json({
+          success: false,
+          message: 'Publicación no encontrada',
+          error: 'POST_NOT_FOUND'
+        });
+      }
+      
       res.status(200).json({
         success: true,
         message: 'Publicación obtenida exitosamente',
@@ -140,42 +110,55 @@ class PostController {
   }
 
   // Dar like a una publicación
-  static async likePost(req, res, next) {
+  static async toggleLike(req, res, next) {
     try {
       const { id } = req.params;
       const { type = 'like' } = req.body;
       
-      const result = await PostService.likePost(req.user.id, id, type);
+      const result = await PostService.toggleLike(req.user.id, id, type);
       
       res.status(200).json({
         success: true,
-        message: 'Like agregado exitosamente',
-        data: result
+        message: result.message,
+        data: {
+          liked: result.liked,
+          likesCount: result.likesCount
+        }
       });
     } catch (error) {
-      // Manejo específico para deadlocks
-      if (error.message.includes('Deadlock')) {
-        console.log(`🚨 Deadlock en likePost para usuario ${req.user.id}, post ${req.params.id}`);
-        return res.status(409).json({
-          success: false,
-          message: 'Error temporal al procesar el like. Por favor, inténtalo de nuevo.',
-          error: 'DEADLOCK_DETECTED'
-        });
-      }
-      
-      // Otros errores
-      if (error.message.includes('Publicación no encontrada')) {
-        return res.status(404).json({
-          success: false,
-          message: 'La publicación no existe'
-        });
-      }
-      
       next(error);
     }
   }
 
-  // Quitar like de una publicación
+  // Obtener información de likes de una publicación
+  static async getLikeInfo(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id;
+      
+      const post = await PostService.getPostById(id, userId);
+      if (!post) {
+        return res.status(404).json({
+          success: false,
+          message: 'La publicación no existe',
+          error: 'POST_NOT_FOUND'
+        });
+      }
+      
+      res.status(200).json({
+        success: true,
+        data: {
+          likesCount: post.likesCount || 0,
+          isLiked: post.isLiked || false,
+          postId: id
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Quitar like de una publicación (mantener para compatibilidad)
   static async unlikePost(req, res, next) {
     try {
       const { id } = req.params;
@@ -188,31 +171,6 @@ class PostController {
         data: result
       });
     } catch (error) {
-      // Manejo específico para deadlocks
-      if (error.message.includes('Deadlock')) {
-        console.log(`🚨 Deadlock en unlikePost para usuario ${req.user.id}, post ${req.params.id}`);
-        return res.status(409).json({
-          success: false,
-          message: 'Error temporal al procesar el unlike. Por favor, inténtalo de nuevo.',
-          error: 'DEADLOCK_DETECTED'
-        });
-      }
-      
-      // Otros errores
-      if (error.message.includes('No has dado like')) {
-        return res.status(400).json({
-          success: false,
-          message: error.message
-        });
-      }
-      
-      if (error.message.includes('Publicación no encontrada')) {
-        return res.status(404).json({
-          success: false,
-          message: 'La publicación no existe'
-        });
-      }
-      
       next(error);
     }
   }
@@ -255,17 +213,18 @@ class PostController {
   }
 
   // Obtener publicaciones de un usuario
+  // Obtener publicaciones de un usuario específico
   static async getUserPosts(req, res, next) {
     try {
       const { userId } = req.params;
       const options = {
         ...req.query,
-        requesterId: req.user?.id || null
+        requesterId: req.user?.id || null,
+        limit: parseInt(req.query.limit) || 15
       };
       
       const result = await PostService.getUserPosts(userId, options);
       
-      // Los posts ya están transformados en el servicio
       res.status(200).json({
         success: true,
         message: 'Publicaciones obtenidas exitosamente',
@@ -281,12 +240,12 @@ class PostController {
     try {
       const options = {
         ...req.query,
-        requesterId: req.user.id
+        requesterId: req.user.id,
+        limit: parseInt(req.query.limit) || 15
       };
       
       const result = await PostService.getUserPosts(req.user.id, options);
       
-      // Los posts ya están transformados en el servicio
       res.status(200).json({
         success: true,
         message: 'Publicaciones obtenidas exitosamente',
@@ -368,13 +327,14 @@ class PostController {
     try {
       const userId = req.user.id;
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 20;
+      const limit = parseInt(req.query.limit) || 15;
       const offset = (page - 1) * limit;
 
       const result = await PostService.getFollowingPosts(userId, page, limit, offset);
       
-      res.json({
+      res.status(200).json({
         success: true,
+        message: 'Posts de usuarios seguidos obtenidos exitosamente',
         data: {
           posts: result.posts,
           pagination: {

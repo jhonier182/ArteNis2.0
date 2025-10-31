@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { 
   Search as SearchIcon,
@@ -13,10 +14,12 @@ import {
   MessageCircle,
   UserPlus
 } from 'lucide-react'
-import { apiClient } from '@/utils/apiClient'
-import { useUser } from '@/context/UserContext'
+import apiClient from '../services/apiClient'
+import { useUser } from '../context/UserContext'
+import { useFollowing } from '../hooks/useFollowing'
+import { useSearchPosts } from '../hooks/useSearchPosts'
 
-// Tipos para los posts
+// Tipos para los posts (compatible con la API)
 interface Post {
   id: string
   title?: string
@@ -45,16 +48,23 @@ interface User {
   city?: string
 }
 
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
+
 export default function Search() {
   const router = useRouter()
   const { user } = useUser()
+  const { followingUsers, isFollowing, refreshFollowing } = useFollowing()
+  const { loadFilteredPosts } = useSearchPosts()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [publicPosts, setPublicPosts] = useState<Post[]>([])
   const [loadingPosts, setLoadingPosts] = useState(false)
-  const [followingUsers, setFollowingUsers] = useState<string[]>([])
 
   // Cargar búsquedas recientes del localStorage
   useEffect(() => {
@@ -64,16 +74,38 @@ export default function Search() {
     }
   }, [])
 
-  // Cargar usuarios seguidos y luego publicaciones
+  // Cargar publicaciones cuando se carguen los usuarios seguidos
   useEffect(() => {
+    let isMounted = true
+    
     const loadData = async () => {
-      if (user?.id) {
-        const followingIds = await loadFollowingUsers()
-        await loadPublicPostsWithFollowing(followingIds)
+      if (user?.id && followingUsers.length >= 0 && isMounted) {
+        setLoadingPosts(true)
+        try {
+          const followingIds = followingUsers.map(user => user.id)
+          const filteredPosts = await loadFilteredPosts(followingIds, user.id)
+          if (isMounted) {
+            setPublicPosts(filteredPosts as Post[])
+          }
+        } catch (error) {
+          console.error('Error cargando posts filtrados:', error)
+          if (isMounted) {
+            setPublicPosts([])
+          }
+        } finally {
+          if (isMounted) {
+            setLoadingPosts(false)
+          }
+        }
       }
     }
+    
     loadData()
-  }, [user?.id])
+    
+    return () => {
+      isMounted = false
+    }
+  }, [user?.id, followingUsers, loadFilteredPosts]) // Depende de followingUsers del hook
 
   // Búsqueda reactiva con debounce
   useEffect(() => {
@@ -130,97 +162,20 @@ export default function Search() {
     localStorage.removeItem('recentSearches')
   }
 
-  const loadFollowingUsers = async () => {
-    if (!user?.id) return []
-    
-    try {
-      const response = await apiClient.get('/api/follow/following')
-      const following = response.data.data.followingUsers || []
-      const followingIds = following.map((user: any) => String(user.id))
-      setFollowingUsers(followingIds)
-      return followingIds
-    } catch (error) {
-      console.error('Error loading following users:', error)
-      return []
-    }
-  }
-
-  const loadPublicPostsWithFollowing = async (followingIds: string[]) => {
-    setLoadingPosts(true)
-    try {
-      const response = await apiClient.get('/api/search/posts?limit=50')
-      let posts = response.data.data.posts || []
-      // Normalizar la estructura de datos (el backend devuelve 'author' en lugar de 'User')
-      posts = posts.map((post: any) => ({
-        ...post,
-        User: post.author || post.User
-      }))
-      
-      // Filtrar publicaciones propias del usuario y de usuarios que ya sigue
-      if (user?.id) {
-        const initialCount = posts.length
-        const filteredPosts = posts.filter((post: Post) => {
-          const postUserId = post.User?.id
-          const postUserIdStr = String(postUserId)
-          const userIdStr = String(user.id)
-          
-          
-          // Excluir publicaciones propias
-          if (postUserIdStr === userIdStr) {
-            return false
-          }
-          
-          // Excluir publicaciones de usuarios que ya sigue
-          const isFollowing = followingIds.some(followingId => String(followingId) === postUserIdStr)
-          if (isFollowing) {
-            return false
-          }
-          
-          return true
-        })
-        
-        posts = filteredPosts
-      }
-      
-      // Agrupar por usuario y tomar solo las 2 más recientes de cada uno
-      const userPostsMap = new Map<string, Post[]>()
-      posts.forEach((post: Post) => {
-        const userId = post.User?.id
-        if (userId) {
-          if (!userPostsMap.has(userId)) {
-            userPostsMap.set(userId, [])
-          }
-          userPostsMap.get(userId)!.push(post)
-        }
-      })
-      
-      // Tomar solo las 2 más recientes de cada usuario
-      const filteredPosts: Post[] = []
-      userPostsMap.forEach((userPosts: Post[]) => {
-        const sortedPosts = userPosts.sort((a: Post, b: Post) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        filteredPosts.push(...sortedPosts.slice(0, 2))
-      })
-      
-      // Ordenar por fecha de creación (más recientes primero)
-      filteredPosts.sort((a: Post, b: Post) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      
-      const finalPosts = filteredPosts.slice(0, 20) // Limitar a 20 posts total
-      setPublicPosts(finalPosts)
-    } catch (error) {
-      console.error('Error loading public posts:', error)
-    } finally {
-      setLoadingPosts(false)
-    }
-  }
-
   const handleFollowUser = async (userId: string) => {
     try {
       await apiClient.post('/api/follow', { userId })
-      // Actualizar la lista de usuarios seguidos
-      const newFollowingUsers = [...followingUsers, String(userId)]
-      setFollowingUsers(newFollowingUsers)
-      // Recargar las publicaciones para ocultar las del usuario recién seguido
-      await loadPublicPostsWithFollowing(newFollowingUsers)
+      // Refrescar la lista de usuarios seguidos usando el hook
+      await refreshFollowing()
+      
+      // Refrescar las publicaciones para ocultar las del usuario recién seguido
+      if (user?.id) {
+        const followingIds = [...followingUsers.map(u => u.id), userId]
+        const filteredPosts = await loadFilteredPosts(followingIds, user.id)
+        setPublicPosts(filteredPosts as Post[])
+      }
+      
+      console.log('Usuario seguido exitosamente')
     } catch (error) {
       console.error('Error following user:', error)
     }
@@ -340,9 +295,11 @@ export default function Search() {
                                 onMouseLeave={(e) => e.currentTarget.pause()}
                               />
                             ) : (
-                              <img
+                              <Image
                                 src={post.mediaUrl}
                                 alt={post.title || 'Post'}
+                                width={400}
+                                height={300}
                                 className="w-full h-full object-cover"
                               />
                             )}
@@ -398,10 +355,12 @@ export default function Search() {
                         >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
                             {user.avatar ? (
-                              <img
+                              <Image
                                 src={user.avatar}
                                 alt={user.username}
-                          className="w-10 h-10 rounded-full object-cover"
+                                width={40}
+                                height={40}
+                                className="w-10 h-10 rounded-full object-cover"
                               />
                             ) : (
                         <User className="w-5 h-5 text-white" />

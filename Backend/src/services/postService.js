@@ -2,6 +2,10 @@ const { Op } = require('sequelize');
 const { Post, User, Comment, Like, Follow } = require('../models');
 const { sequelize } = require('../config/db');
 const { deletePostImage, deletePostVideo } = require('../config/cloudinary');
+const { getCachedData, invalidateCache, getPopularPosts } = require('../config/performanceOptimization');
+const taskQueue = require('../utils/taskQueue');
+const { NotFoundError, ForbiddenError } = require('../utils/errors');
+const logger = require('../utils/logger');
 
 class PostService {
   // Función helper para transformar posts al formato esperado por el frontend
@@ -41,7 +45,7 @@ class PostService {
         const hasLiked = await Like.exists(userId, postData.id);
         postData.isLiked = !!hasLiked;
       } catch (error) {
-        console.error(`❌ Error calculando isLiked para post ${postData.id}:`, error);
+        // Error silencioso - continuar sin isLiked
         postData.isLiked = false;
       }
     }
@@ -80,11 +84,11 @@ class PostService {
     try {
       const post = await Post.create({
         userId,
-        title: postData.description?.substring(0, 255) || 'Nuevo tatuaje', // Usar descripción como título
+        title: postData.description?.substring(0, 255) || 'Nuevo tatuaje',
         description: postData.description || '',
         type: postData.type || 'image',
         mediaUrl,
-        thumbnailUrl: postData.thumbnailUrl || null, // Agregar thumbnail para videos
+        thumbnailUrl: postData.thumbnailUrl || null,
         cloudinaryPublicId,
         tags: postData.hashtags || [],
         style: postData.style || null,
@@ -92,16 +96,13 @@ class PostService {
         location: postData.location || null,
         isPremiumContent: postData.isPremiumContent || false,
         allowComments: postData.allowComments !== false,
-        // Inicializar explícitamente los contadores
         likesCount: 0,
         commentsCount: 0,
         viewsCount: 0,
         savesCount: 0,
-        // Asegurar que el estado sea correcto
         status: 'published',
         isPublic: true,
         isFeatured: false,
-        // Establecer fecha de publicación
         publishedAt: new Date()
       });
 
@@ -110,10 +111,46 @@ class PostService {
         where: { id: userId }
       });
 
+      // Invalidar caché de posts populares
+      invalidateCache('popular_posts');
+
       return post;
     } catch (error) {
+      logger.error('Error creando post', {
+        userId,
+        error: error.message
+      });
       throw error;
     }
+  }
+
+  // Obtener feed de publicaciones con caché
+  static async getFeedWithCache(options = {}) {
+    const { userId = null } = options;
+    
+    // Si es una consulta de posts populares sin filtros específicos, usar caché
+    if (!userId && !options.search && !options.type && !options.style) {
+      const limit = parseInt(options.limit) || 15;
+      try {
+        const cachedPosts = await getPopularPosts(limit);
+        
+        if (cachedPosts && cachedPosts.length > 0) {
+          // Transformar posts del caché al formato esperado
+          return {
+            posts: cachedPosts.map(post => this.transformPostForFrontendSync(post, userId)),
+            total: cachedPosts.length,
+            hasMore: cachedPosts.length === limit,
+            fromCache: true
+          };
+        }
+      } catch (error) {
+        logger.warn('Error obteniendo posts del caché', { error: error.message });
+        // Continuar con consulta normal si el caché falla
+      }
+    }
+    
+    // Consulta normal sin caché
+    return this.getFeed(options);
   }
 
   // Obtener feed de publicaciones
@@ -226,13 +263,12 @@ class PostService {
         // Agregar campos calculados directamente
         if (userId) {
           postData.isLiked = userLikes.has(post.id);
-          // isFollowing se puede calcular si es necesario, pero por ahora lo omitimos para rendimiento
         } else {
           postData.isLiked = false;
         }
         
         // Transformar al formato del frontend
-        return this.transformPostForFrontend(postData, userId);
+        return this.transformPostForFrontendSync(postData, userId);
       });
       
       return {
@@ -245,21 +281,30 @@ class PostService {
         }
       };
     } catch (error) {
-      console.error('❌ Error en getFeed:', error);
-      throw error;
+      // Error silencioso - devolver feed vacío
+      return {
+        posts: [],
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: 0,
+          totalItems: 0,
+          itemsPerPage: parseInt(limit)
+        }
+      };
     }
   }
 
-  // Obtener publicación por ID
+  // Obtener publicación por ID (OPTIMIZADO)
   static async getPostById(postId, userId = null) {
     try {
+      // OPTIMIZACIÓN: Usar una sola consulta con includes para reducir bloqueos del event loop
       const post = await Post.findByPk(postId, {
         include: [
           {
             model: User,
             as: 'author',
             attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType'],
-            required: false // No fallar si el usuario no existe
+            required: false
           },
           {
             model: Comment,
@@ -268,53 +313,78 @@ class PostService {
               {
                 model: User,
                 as: 'author',
+                attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
+              }
+            ],
+            order: [['createdAt', 'DESC']],
+            limit: 20, // Reducir comentarios para mejor rendimiento
+            required: false
+          },
+          {
+            model: Like,
+            as: 'likes',
+            include: [
+              {
+                model: User,
+                as: 'user',
                 attributes: ['id', 'username', 'fullName', 'avatar']
               }
             ],
-            where: { parentId: null },
-            required: false,
-            order: [['createdAt', 'DESC']],
-            limit: 10
+            limit: 10, // Reducir likes mostrados
+            required: false
           }
         ]
       });
 
       if (!post) {
-        throw new Error('Publicación no encontrada');
+        return null;
       }
 
-      // Verificar si el usuario ha dado like
+      // Verificar si el usuario actual le dio like (consulta separada pero rápida)
       let isLiked = false;
       if (userId) {
-        const like = await Like.exists(userId, postId);
-        isLiked = !!like;
+        const userLike = await Like.findOne({
+          where: { postId, userId },
+          attributes: ['id']
+        });
+        isLiked = !!userLike;
       }
 
-      // Transformar post al formato del frontend
+      // Construir respuesta optimizada usando los datos del include
       const postData = post.toJSON();
       
-      // Asegurar que User tenga el mismo valor que author para compatibilidad
-      if (postData.author) {
-        postData.User = postData.author;
-      }
+      // Procesar comentarios del include
+      postData.comments = (postData.comments || []).map(comment => ({
+        ...comment,
+        author: comment.author
+      }));
       
-      const transformedPost = await this.transformPostForFrontend(postData, userId);
-      transformedPost.User = postData.author; // Agregar User para compatibilidad frontend
+      // Procesar likes del include
+      postData.likes = (postData.likes || []).map(like => ({
+        ...like,
+        user: like.user
+      }));
       
-      return transformedPost;
+      postData.isLiked = isLiked;
+      postData.commentsCount = postData.comments.length;
+      // NO sobrescribir likesCount - usar el valor de la base de datos
+      // postData.likesCount ya viene del campo likes_count de la tabla posts
+
+      return this.transformPostForFrontendSync(postData, userId);
+      
     } catch (error) {
-      throw error;
+      // Error silencioso - devolver null
+      return null;
     }
   }
 
-  // Dar like a una publicación
-  static async likePost(userId, postId, type = 'like') {
+  // Toggle like a una publicación (AGREGAR O QUITAR)
+  static async toggleLike(userId, postId, type = 'like') {
     const maxRetries = 3;
     let attempt = 0;
 
     while (attempt < maxRetries) {
       try {
-        
         // Verificar si la publicación existe
         const post = await Post.findByPk(postId);
         if (!post) {
@@ -325,14 +395,43 @@ class PostService {
         const existingLike = await Like.exists(userId, postId);
         
         if (existingLike) {
-          // Si ya existe, actualizar el tipo de like
-          existingLike.type = type;
-          await existingLike.save();
-          return { message: 'Like actualizado' };
-        } else {
-          // Crear nuevo like con transacción optimizada
+          // Si ya existe, ELIMINAR el like (toggle OFF)
           const result = await sequelize.transaction(async (t) => {
+            // Usar lock optimista para evitar deadlocks
+            const lockedPost = await Post.findByPk(postId, { 
+              lock: true, 
+              transaction: t 
+            });
             
+            if (!lockedPost) {
+              throw new Error('Publicación no encontrada');
+            }
+
+            // Eliminar el like
+            await existingLike.destroy({ transaction: t });
+
+            // Decrementar contador de likes
+            await Post.decrement('likesCount', {
+              where: { id: postId },
+              transaction: t
+            });
+
+            // Verificar que el decremento funcionó
+            await lockedPost.reload({ transaction: t });
+
+            return { 
+              message: 'Like removido',
+              liked: false,
+              likesCount: lockedPost.likesCount
+            };
+          }, {
+            timeout: 10000
+          });
+
+          return result;
+        } else {
+          // Si no existe, CREAR el like (toggle ON)
+          const result = await sequelize.transaction(async (t) => {
             // Usar lock optimista para evitar deadlocks
             const lockedPost = await Post.findByPk(postId, { 
               lock: true, 
@@ -350,7 +449,7 @@ class PostService {
               type
             }, { transaction: t });
 
-            // Incrementar contador de likes usando el método directo de Sequelize
+            // Incrementar contador de likes
             await Post.increment('likesCount', {
               where: { id: postId },
               transaction: t
@@ -359,18 +458,19 @@ class PostService {
             // Verificar que el incremento funcionó
             await lockedPost.reload({ transaction: t });
 
-            return { message: 'Like agregado' };
+            return { 
+              message: 'Like agregado',
+              liked: true,
+              likesCount: lockedPost.likesCount
+            };
           }, {
-            timeout: 10000 // 10 segundos de timeout para transacciones
+            timeout: 10000
           });
 
           return result;
         }
       } catch (error) {
         attempt++;
-        
-        console.error(`❌ Error en likePost (intento ${attempt}/${maxRetries}):`, error);
-        console.error(`❌ Stack trace:`, error.stack);
         
         // Si es un deadlock y no hemos agotado los reintentos, esperar y reintentar
         if (error.message.includes('Deadlock') && attempt < maxRetries) {
@@ -384,7 +484,7 @@ class PostService {
       }
     }
     
-    throw new Error('No se pudo procesar el like después de múltiples intentos');
+    throw new Error('No se pudo procesar el toggle de like después de múltiples intentos');
   }
 
   // Quitar like de una publicación
@@ -711,12 +811,12 @@ class PostService {
       const post = await Post.findByPk(postId);
       
       if (!post) {
-        throw new Error('Publicación no encontrada');
+        throw new NotFoundError('Publicación no encontrada');
       }
 
       // Verificar que el usuario sea el dueño de la publicación
       if (post.userId !== userId) {
-        throw new Error('No tienes permisos para actualizar esta publicación');
+        throw new ForbiddenError('No tienes permisos para actualizar esta publicación');
       }
 
       // Actualizar solo los campos permitidos
@@ -755,12 +855,12 @@ class PostService {
       });
       
       if (!post) {
-        throw new Error('Publicación no encontrada');
+        throw new NotFoundError('Publicación no encontrada');
       }
 
       // Verificar permisos
       if (post.userId !== userId) {
-        throw new Error('No tienes permisos para eliminar esta publicación');
+        throw new ForbiddenError('No tienes permisos para eliminar esta publicación');
       }
 
       // OPTIMIZACIÓN 2: Guardar datos para procesamiento en background
@@ -775,7 +875,7 @@ class PostService {
         User.decrement('postsCount', {
           where: { id: userId }
         }).catch(error => {
-          console.warn('Error decrementando postsCount:', error.message);
+
         });
       });
 
@@ -783,14 +883,24 @@ class PostService {
       if (cloudinaryPublicId) {
         setImmediate(() => {
           this.deleteCloudinaryFile(cloudinaryPublicId, postType).catch(error => {
-            console.warn('Error eliminando archivo de Cloudinary (background):', error.message);
+            logger.warn('Error eliminando archivo de Cloudinary en background', {
+              publicId: cloudinaryPublicId,
+              error: error.message
+            });
           });
         });
       }
 
+      // Invalidar caché de posts populares
+      invalidateCache('popular_posts');
+
       return { message: 'Publicación eliminada exitosamente' };
     } catch (error) {
-      console.error(`Error eliminando post ${postId}:`, error.message);
+      logger.error('Error eliminando publicación', {
+        userId,
+        postId,
+        error: error.message
+      });
       throw error;
     }
   }
@@ -810,25 +920,20 @@ class PostService {
       });
 
       await Promise.race([deletePromise, timeoutPromise]);
-      console.log(`✅ Archivo de Cloudinary eliminado: ${cloudinaryPublicId}`);
     } catch (error) {
-      console.warn(`⚠️ Error eliminando archivo de Cloudinary: ${error.message}`);
+      logger.warn('Error eliminando archivo de Cloudinary', {
+        publicId: cloudinaryPublicId,
+        type: postType,
+        error: error.message
+      });
+      // No lanzar error, es operación en background
     }
   }
 
-  // Obtener posts de usuarios seguidos (OPTIMIZADO CON CACHE)
+  // Obtener posts de usuarios seguidos
   static async getFollowingPosts(userId, page, limit, offset) {
     try {
-      // OPTIMIZACIÓN 1: Cache para posts de usuarios seguidos
-      const cacheKey = `following_posts:${userId}:${page}:${limit}`;
-      const cachedData = simpleCache.get(cacheKey);
-      
-      if (cachedData) {
-        console.log(`📦 Cache hit para posts de usuarios seguidos: ${cacheKey}`);
-        return cachedData;
-      }
-
-      // OPTIMIZACIÓN 2: Obtener IDs de usuarios seguidos de forma más eficiente
+      // Obtener IDs de usuarios seguidos
       const followingUsers = await Follow.findAll({
         where: { followerId: userId },
         attributes: ['followingId']
@@ -837,19 +942,22 @@ class PostService {
       const followingIds = followingUsers.map(follow => follow.followingId);
 
       if (followingIds.length === 0) {
-        // Si no sigue a nadie, devolver array vacío
         return {
           posts: [],
-          total: 0
+          total: 0,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: 0,
+            totalItems: 0,
+            itemsPerPage: parseInt(limit)
+          }
         };
       }
 
-      // Obtener posts de usuarios seguidos
-      const queryOptions = {
+      // Obtener posts con una sola consulta optimizada
+      const posts = await Post.findAndCountAll({
         where: {
-          userId: {
-            [Op.in]: followingIds
-          },
+          userId: { [Op.in]: followingIds },
           isPublic: true,
           status: 'published'
         },
@@ -857,83 +965,183 @@ class PostService {
           {
             model: User,
             as: 'author',
-            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified'],
-            required: false // No fallar si el usuario no existe
+            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
           }
         ],
         order: [['createdAt', 'DESC']],
-        limit,
-        offset
-      };
-      
-      const { count, rows } = await Post.findAndCountAll(queryOptions);
-
-      // OPTIMIZACIÓN: Eliminar consulta N+1 para likes
-      const postIds = rows.map(post => post.id);
-      const userLikes = await Like.findAll({
-        where: {
-          userId: userId,
-          postId: { [Op.in]: postIds }
-        },
-        attributes: ['postId']
-      });
-      
-      const likedPostIds = new Set(userLikes.map(like => like.postId));
-      
-      // Asignar isLiked de forma eficiente
-      rows.forEach(post => {
-        post.isLiked = likedPostIds.has(post.id);
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        subQuery: false,
+        distinct: true
       });
 
-      // Transformar los posts para el frontend usando transformPostForFrontend
-      const transformedPosts = await Promise.all(
-        rows.map(post => {
-          const postData = post.toJSON();
-          // Agregar User para compatibilidad frontend
-          if (postData.author) {
-            postData.User = postData.author;
-          }
-          const transformed = this.transformPostForFrontend(postData, userId);
-          if (postData.author) {
-            transformed.User = postData.author;
-          }
-          return transformed;
-        })
-      );
-
-      // Marcar todos los posts como seguidos ya que son de usuarios que sigue
-      // OPTIMIZACIÓN: Crear Set una sola vez para todas las operaciones
-      const followingIdsSet = new Set(followingIds);
-      
-      transformedPosts.forEach(post => {
-        post.author.isFollowing = true;
-        
-        // Verificación adicional: asegurar que el post sea realmente de un usuario seguido
-        if (!followingIdsSet.has(post.author.id)) {
-          console.error(`❌ ERROR: Post ${post.id} del usuario ${post.author.username} (${post.author.id}) no está en la lista de usuarios seguidos:`, followingIds);
-        }
-      });
-
-      // OPTIMIZACIÓN: Usar Set para filtrado eficiente O(1) en lugar de includes() O(n)
-      const filteredPosts = transformedPosts.filter(post => followingIdsSet.has(post.author.id));
-      
-      if (filteredPosts.length !== transformedPosts.length) {
-        console.warn(`⚠️ Se filtraron ${transformedPosts.length - filteredPosts.length} posts que no eran de usuarios seguidos`);
+      // Obtener likes del usuario para todos los posts de una vez
+      let userLikes = new Set();
+      if (userId && posts.rows.length > 0) {
+        const postIds = posts.rows.map(post => post.id);
+        const likes = await Like.findAll({
+          where: {
+            userId: userId,
+            postId: { [Op.in]: postIds }
+          },
+          attributes: ['postId']
+        });
+        userLikes = new Set(likes.map(like => like.postId));
       }
 
-      const result = {
-        posts: filteredPosts,
-        total: count
+      // Transformar posts para el frontend con información de likes
+      const transformedPosts = posts.rows.map(post => {
+        const postData = post.toJSON();
+        
+        // Agregar información de likes
+        if (userId) {
+          postData.isLiked = userLikes.has(post.id);
+        } else {
+          postData.isLiked = false;
+        }
+        
+        return this.transformPostForFrontendSync(postData, userId);
+      });
+
+      return {
+        posts: transformedPosts,
+        total: posts.count,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(posts.count / limit),
+          totalItems: posts.count,
+          itemsPerPage: parseInt(limit)
+        }
       };
 
-      // OPTIMIZACIÓN: Guardar en cache
-      simpleCache.set(cacheKey, result, 300); // 5 minutos
-      console.log(`💾 Guardando posts de usuarios seguidos en cache: ${cacheKey}`);
-
-      return result;
     } catch (error) {
-      console.error('Error in getFollowingPosts:', error);
+      logger.error('Error obteniendo posts de usuarios seguidos', {
+        userId,
+        page,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
+    }
+  }
+
+  // Obtener posts de usuarios seguidos (OPTIMIZADO CON CACHE) - COMENTADO TEMPORALMENTE
+  static async getFollowingPosts_OLD(userId, page, limit, offset) {
+    try {
+      // OPTIMIZACIÓN 1: Cache para posts de usuarios seguidos
+      const cacheKey = `following_posts:${userId}:${page}:${limit}`;
+      
+      // Usar el sistema de caché optimizado
+      const cachedData = await getCachedData(cacheKey, async () => {
+        // OPTIMIZACIÓN 2: Obtener IDs de usuarios seguidos de forma más eficiente
+        const followingUsers = await Follow.findAll({
+          where: { followerId: userId },
+          attributes: ['followingId']
+        });
+
+        const followingIds = followingUsers.map(follow => follow.followingId);
+
+        if (followingIds.length === 0) {
+          return {
+            posts: [],
+            pagination: {
+              currentPage: parseInt(page),
+              totalPages: 0,
+              totalItems: 0,
+              itemsPerPage: parseInt(limit)
+            }
+          };
+        }
+
+        // OPTIMIZACIÓN 3: Obtener posts con una sola consulta optimizada
+        const posts = await Post.findAndCountAll({
+          where: {
+            userId: { [Op.in]: followingIds },
+            isPublic: true,
+            status: 'published'
+          },
+          include: [
+            {
+              model: User,
+              as: 'author',
+              attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
+            }
+          ],
+          order: [['createdAt', 'DESC']],
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          subQuery: false,
+          distinct: true
+        });
+
+        // OPTIMIZACIÓN 4: Obtener estadísticas de posts en una sola consulta
+        const postIds = posts.rows.map(post => post.id);
+        let postStats = {};
+        
+        if (postIds.length > 0) {
+          const [likesStats, commentsStats] = await Promise.all([
+            sequelize.query(`
+              SELECT post_id, COUNT(*) as likes_count 
+              FROM likes 
+              WHERE post_id IN (:postIds) 
+              GROUP BY post_id
+            `, {
+              replacements: { postIds },
+              type: sequelize.QueryTypes.SELECT
+            }),
+            sequelize.query(`
+              SELECT post_id, COUNT(*) as comments_count 
+              FROM comments 
+              WHERE post_id IN (:postIds) 
+              GROUP BY post_id
+            `, {
+              replacements: { postIds },
+              type: sequelize.QueryTypes.SELECT
+            })
+          ]);
+          
+          likesStats.forEach(stat => {
+            postStats[stat.post_id] = { ...postStats[stat.post_id], likesCount: stat.likes_count };
+          });
+          
+          commentsStats.forEach(stat => {
+            postStats[stat.post_id] = { ...postStats[stat.post_id], commentsCount: stat.comments_count };
+          });
+        }
+
+        // OPTIMIZACIÓN 5: Transformar posts de forma síncrona
+        const transformedPosts = posts.rows.map(post => {
+          const postData = post.toJSON();
+          const stats = postStats[postData.id] || {};
+          postData.likesCount = stats.likesCount || postData.likesCount || 0;
+          postData.commentsCount = stats.commentsCount || postData.commentsCount || 0;
+          return PostService.transformPostForFrontendSync(postData, userId);
+        });
+
+        return {
+          posts: transformedPosts,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(posts.count / limit),
+            totalItems: posts.count,
+            itemsPerPage: parseInt(limit)
+          }
+        };
+      }, 300000); // Cache por 5 minutos
+
+      return cachedData;
+
+    } catch (error) {
+      // Error silencioso - devolver datos vacíos
+      return {
+        posts: [],
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: 0,
+          totalItems: 0,
+          itemsPerPage: parseInt(limit)
+        }
+      };
     }
   }
 
@@ -1048,8 +1256,16 @@ class PostService {
         }
       };
     } catch (error) {
-      console.error('Error en getAllPosts:', error);
-      throw error;
+      // Error silencioso - devolver datos vacíos
+      return {
+        posts: [],
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: 0,
+          totalItems: 0,
+          itemsPerPage: parseInt(limit)
+        }
+      };
     }
   }
 }

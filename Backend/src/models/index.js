@@ -4,14 +4,10 @@ const Post = require('./Post');
 const Comment = require('./Comment');
 const Like = require('./Like');
 const Follow = require('./Follow');
-const Booking = require('./Booking');
 const Board = require('./Board');
 const BoardPost = require('./BoardPost');
 const BoardCollaborator = require('./BoardCollaborator');
 const BoardFollow = require('./BoardFollow');
-const Quote = require('./Quote');
-const Appointment = require('./Appointment');
-const Availability = require('./Availability');
 const RefreshToken = require('./RefreshToken');
 
 // Establecer asociaciones entre modelos
@@ -35,18 +31,6 @@ const setupAssociations = () => {
     onDelete: 'CASCADE'
   });
 
-  User.hasMany(Booking, {
-    foreignKey: 'clientId',
-    as: 'clientBookings',
-    onDelete: 'CASCADE'
-  });
-
-  User.hasMany(Booking, {
-    foreignKey: 'artistId',
-    as: 'artistBookings',
-    onDelete: 'CASCADE'
-  });
-
   User.hasMany(Board, {
     foreignKey: 'userId',
     as: 'boards',
@@ -55,7 +39,7 @@ const setupAssociations = () => {
 
   User.hasMany(BoardCollaborator, {
     foreignKey: 'userId',
-    as: 'boardCollaborations',
+    as: 'collaborations',
     onDelete: 'CASCADE'
   });
 
@@ -65,55 +49,43 @@ const setupAssociations = () => {
     onDelete: 'CASCADE'
   });
 
-  User.hasMany(Quote, {
-    foreignKey: 'clientId',
-    as: 'sentQuotes',
+  User.hasMany(RefreshToken, {
+    foreignKey: 'userId',
+    as: 'refreshTokens',
     onDelete: 'CASCADE'
   });
 
-  User.hasMany(Quote, {
-    foreignKey: 'artistId',
-    as: 'receivedQuotes',
-    onDelete: 'CASCADE'
-  });
-
-  User.hasMany(Appointment, {
-    foreignKey: 'clientId',
-    as: 'clientAppointments',
-    onDelete: 'CASCADE'
-  });
-
-  User.hasMany(Appointment, {
-    foreignKey: 'artistId',
-    as: 'artistAppointments',
-    onDelete: 'CASCADE'
-  });
-
-  User.hasMany(Availability, {
-    foreignKey: 'artistId',
-    as: 'availability',
-    onDelete: 'CASCADE'
-  });
-
-  // Relaciones de seguimiento
-  User.belongsToMany(User, {
-    through: Follow,
-    as: 'followers',
-    foreignKey: 'followingId',
-    otherKey: 'followerId'
-  });
-
-  User.belongsToMany(User, {
-    through: Follow,
-    as: 'following',
+  // Asociaciones de Follow (seguir usuarios)
+  User.hasMany(Follow, {
     foreignKey: 'followerId',
-    otherKey: 'followingId'
+    as: 'followingRelations',
+    onDelete: 'CASCADE'
+  });
+
+  User.hasMany(Follow, {
+    foreignKey: 'followingId',
+    as: 'followerRelations',
+    onDelete: 'CASCADE'
+  });
+
+  // Asociaciones inversas de Follow
+  Follow.belongsTo(User, {
+    foreignKey: 'followerId',
+    as: 'follower',
+    onDelete: 'CASCADE'
+  });
+
+  Follow.belongsTo(User, {
+    foreignKey: 'followingId',
+    as: 'following',
+    onDelete: 'CASCADE'
   });
 
   // Asociaciones de Post
   Post.belongsTo(User, {
     foreignKey: 'userId',
-    as: 'author'
+    as: 'author',
+    onDelete: 'CASCADE'
   });
 
   Post.hasMany(Comment, {
@@ -128,92 +100,48 @@ const setupAssociations = () => {
     onDelete: 'CASCADE'
   });
 
-  Post.hasMany(Booking, {
+  Post.hasMany(BoardPost, {
     foreignKey: 'postId',
-    as: 'bookings',
-    onDelete: 'SET NULL'
-  });
-
-  // Asociaciones de Comment
-  Comment.belongsTo(Post, {
-    foreignKey: 'postId',
-    as: 'post'
-  });
-
-  Comment.belongsTo(User, {
-    foreignKey: 'userId',
-    as: 'author'
-  });
-
-  Comment.belongsTo(Comment, {
-    foreignKey: 'parentId',
-    as: 'parent'
-  });
-
-  Comment.hasMany(Comment, {
-    foreignKey: 'parentId',
-    as: 'replies',
+    as: 'boardPosts',
     onDelete: 'CASCADE'
   });
 
-  Comment.hasMany(Like, {
-    foreignKey: 'commentId',
-    as: 'likes',
+  // Asociaciones de Comment
+  Comment.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'author',
+    onDelete: 'CASCADE'
+  });
+
+  Comment.belongsTo(Post, {
+    foreignKey: 'postId',
+    as: 'post',
     onDelete: 'CASCADE'
   });
 
   // Asociaciones de Like
   Like.belongsTo(User, {
     foreignKey: 'userId',
-    as: 'user'
+    as: 'user',
+    onDelete: 'CASCADE'
   });
 
   Like.belongsTo(Post, {
     foreignKey: 'postId',
-    as: 'post'
-  });
-
-  Like.belongsTo(Comment, {
-    foreignKey: 'commentId',
-    as: 'comment'
-  });
-
-  // Asociaciones de Follow
-  Follow.belongsTo(User, {
-    foreignKey: 'followerId',
-    as: 'follower'
-  });
-
-  Follow.belongsTo(User, {
-    foreignKey: 'followingId',
-    as: 'following'
-  });
-
-  // Asociaciones de Booking
-  Booking.belongsTo(User, {
-    foreignKey: 'clientId',
-    as: 'client'
-  });
-
-  Booking.belongsTo(User, {
-    foreignKey: 'artistId',
-    as: 'artist'
-  });
-
-  Booking.belongsTo(Post, {
-    foreignKey: 'postId',
-    as: 'referencePost'
+    as: 'post',
+    onDelete: 'CASCADE'
   });
 
   // Asociaciones de Board
   Board.belongsTo(User, {
     foreignKey: 'userId',
-    as: 'owner'
+    as: 'owner',
+    onDelete: 'CASCADE'
   });
 
   Board.hasMany(BoardPost, {
     foreignKey: 'boardId',
-    as: 'boardPosts',
+    as: 'posts',
     onDelete: 'CASCADE'
   });
 
@@ -229,143 +157,70 @@ const setupAssociations = () => {
     onDelete: 'CASCADE'
   });
 
-  // Relación many-to-many para posts en tableros
-  Post.belongsToMany(Board, {
-    through: BoardPost,
-    as: 'boards',
-    foreignKey: 'postId',
-    otherKey: 'boardId'
-  });
-
-  Board.belongsToMany(Post, {
-    through: BoardPost,
-    as: 'posts',
-    foreignKey: 'boardId',
-    otherKey: 'postId'
-  });
-
   // Asociaciones de BoardPost
   BoardPost.belongsTo(Board, {
     foreignKey: 'boardId',
-    as: 'board'
+    as: 'board',
+    onDelete: 'CASCADE'
   });
 
   BoardPost.belongsTo(Post, {
     foreignKey: 'postId',
-    as: 'post'
+    as: 'post',
+    onDelete: 'CASCADE'
   });
 
   BoardPost.belongsTo(User, {
     foreignKey: 'addedBy',
-    as: 'addedByUser'
+    as: 'addedByUser',
+    onDelete: 'CASCADE'
   });
 
   // Asociaciones de BoardCollaborator
   BoardCollaborator.belongsTo(Board, {
     foreignKey: 'boardId',
-    as: 'board'
+    as: 'board',
+    onDelete: 'CASCADE'
   });
 
   BoardCollaborator.belongsTo(User, {
     foreignKey: 'userId',
-    as: 'user'
-  });
-
-  BoardCollaborator.belongsTo(User, {
-    foreignKey: 'invitedBy',
-    as: 'inviter'
+    as: 'user',
+    onDelete: 'CASCADE'
   });
 
   // Asociaciones de BoardFollow
-  BoardFollow.belongsTo(User, {
-    foreignKey: 'userId',
-    as: 'user'
-  });
-
   BoardFollow.belongsTo(Board, {
     foreignKey: 'boardId',
-    as: 'board'
+    as: 'board',
+    onDelete: 'CASCADE'
   });
 
-  // Asociaciones de Quote
-  Quote.belongsTo(User, {
-    foreignKey: 'clientId',
-    as: 'client'
+  BoardFollow.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user',
+    onDelete: 'CASCADE'
   });
 
-  Quote.belongsTo(User, {
-    foreignKey: 'artistId',
-    as: 'artist'
+  // Asociaciones de RefreshToken
+  RefreshToken.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user',
+    onDelete: 'CASCADE'
   });
-
-  Quote.belongsTo(Post, {
-    foreignKey: 'postId',
-    as: 'referencePost'
-  });
-
-  Quote.hasOne(Appointment, {
-    foreignKey: 'quoteId',
-    as: 'appointment',
-    onDelete: 'SET NULL'
-  });
-
-  // Asociaciones de Appointment
-  Appointment.belongsTo(User, {
-    foreignKey: 'clientId',
-    as: 'client'
-  });
-
-  Appointment.belongsTo(User, {
-    foreignKey: 'artistId',
-    as: 'artist'
-  });
-
-  Appointment.belongsTo(Quote, {
-    foreignKey: 'quoteId',
-    as: 'quote'
-  });
-
-  Appointment.belongsTo(User, {
-    foreignKey: 'cancelledBy',
-    as: 'cancelledByUser'
-  });
-
-  Appointment.belongsTo(Appointment, {
-    foreignKey: 'rescheduledFrom',
-    as: 'originalAppointment'
-  });
-
-  Appointment.hasMany(Appointment, {
-    foreignKey: 'rescheduledFrom',
-    as: 'rescheduledAppointments',
-    onDelete: 'SET NULL'
-  });
-
-  // Asociaciones de Availability
-  Availability.belongsTo(User, {
-    foreignKey: 'artistId',
-    as: 'artist'
-  });
-
-  // Refresh tokens
-  RefreshToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-  User.hasMany(RefreshToken, { foreignKey: 'userId', as: 'refreshTokens', onDelete: 'CASCADE' });
 };
 
+// Exportar modelos y función de configuración
 module.exports = {
   User,
   Post,
   Comment,
   Like,
   Follow,
-  Booking,
   Board,
   BoardPost,
   BoardCollaborator,
   BoardFollow,
-  Quote,
-  Appointment,
-  Availability,
   RefreshToken,
   setupAssociations
 };

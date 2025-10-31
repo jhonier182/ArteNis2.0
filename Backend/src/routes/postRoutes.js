@@ -2,7 +2,7 @@ const express = require('express');
 const PostController = require('../controllers/postController');
 const { verifyToken, optionalAuth } = require('../middlewares/auth');
 const { upload, handleMulterError } = require('../middlewares/upload');
-const { trackPostView, trackFeedViews } = require('../middlewares/viewTracking');
+const { validateMediaUpload } = require('../middlewares/mediaValidation');
 const { 
   validateCreatePost, 
   validateComment, 
@@ -24,14 +24,14 @@ const cacheMiddleware = (key, ttl = CACHE_TTL) => {
     const cached = simpleCache.get(cacheKey);
     
     if (cached && Date.now() - cached.timestamp < ttl) {
-      console.log(`📦 Cache hit para ${cacheKey}`);
+
       return res.status(200).json(cached.data);
     }
     
     const originalSend = res.json;
     res.json = function(data) {
       if (res.statusCode === 200 && data.success) {
-        console.log(`💾 Guardando en cache: ${cacheKey}`);
+
         simpleCache.set(cacheKey, {
           data,
           timestamp: Date.now()
@@ -65,10 +65,9 @@ router.get('/',
   PostController.getFeed
 );
 
-// POST /api/posts/track-views - Trackear visualizaciones del feed
+// POST /api/posts/track-views - Trackear visualizaciones del feed (funcionalidad removida)
 router.post('/track-views',
   verifyToken,
-  trackFeedViews,
   (req, res) => {
     res.status(200).json({
       success: true,
@@ -92,7 +91,6 @@ router.get('/following',
 // GET /api/posts/:id - Obtener publicación por ID
 router.get('/:id',
   optionalAuth,
-  trackPostView, // Trackear visualización
   PostController.getPostById
 );
 
@@ -109,6 +107,7 @@ router.post('/upload',
   verifyToken,
   upload.single('image'),
   handleMulterError,
+  validateMediaUpload,
   PostController.uploadPostMedia
 );
 
@@ -123,7 +122,7 @@ router.post('/',
     res.json = function(data) {
       if (res.statusCode === 201) {
         simpleCache.clear();
-        console.log('🗑️ Cache invalidado después de crear post');
+
       }
       return originalSend.call(this, data);
     };
@@ -132,13 +131,19 @@ router.post('/',
   PostController.createPost
 );
 
-// POST /api/posts/:id/like - Dar like a una publicación
-router.post('/:id/like',
-  verifyToken,
-  PostController.likePost
+// GET /api/posts/:id/likes - Obtener información de likes de una publicación
+router.get('/:id/likes',
+  optionalAuth,
+  PostController.getLikeInfo
 );
 
-// DELETE /api/posts/:id/like - Quitar like de una publicación
+// POST /api/posts/:id/like - Toggle like a una publicación (agregar o quitar)
+router.post('/:id/like',
+  verifyToken,
+  PostController.toggleLike
+);
+
+// DELETE /api/posts/:id/like - Quitar like de una publicación (mantener para compatibilidad)
 router.delete('/:id/like',
   verifyToken,
   PostController.unlikePost
@@ -183,7 +188,7 @@ router.delete('/:id',
           try {
             simpleCache.clear();
           } catch (error) {
-            console.warn('Error invalidando cache:', error.message);
+
           }
         });
       }

@@ -9,12 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "^14.0.4",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "axios": "^1.6.2",
     "framer-motion": "^10.16.16",
-    "lucide-react": "^0.303.0"
+    "gsap": "^3.13.0",
+    "lucide-react": "^0.303.0",
+    "next": "^14.0.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",

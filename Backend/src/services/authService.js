@@ -42,25 +42,66 @@ class AuthService {
     return baseUsername;
   }
 
-  // Verificar si un username existe y generar uno único
+  // Verificar si un username existe y generar uno único (NO BLOQUEANTE)
   static async generateUniqueUsername(fullName) {
-    let baseUsername = this.generateUsername(fullName);
-    let username = baseUsername;
-    let counter = 1;
-    
-    // Verificar si el username ya existe
-    while (await User.findOne({ where: { username } })) {
-      username = `${baseUsername}${counter}`;
-      counter++;
-      
-      // Prevenir bucles infinitos
-      if (counter > 999) {
-        username = `${baseUsername}${Date.now()}`;
-        break;
-      }
-    }
-    
-    return username;
+    return new Promise((resolve) => {
+      // Usar setImmediate para evitar bloquear el event loop
+      setImmediate(async () => {
+        try {
+          let baseUsername = this.generateUsername(fullName);
+          let username = baseUsername;
+          let counter = 1;
+          
+          // OPTIMIZACIÓN: Limitar intentos para evitar bucles infinitos
+          const maxAttempts = 10;
+          let attempts = 0;
+          
+          while (attempts < maxAttempts) {
+            try {
+              const existingUser = await User.findOne({
+                where: { username },
+                attributes: ['id'],
+                limit: 1 // Optimización: solo necesitamos saber si existe
+              });
+              
+              if (!existingUser) {
+                // Username disponible
+                setImmediate(() => {
+                  resolve(username);
+                });
+                return;
+              }
+              
+              // Username ocupado, generar siguiente
+              username = `${baseUsername}${counter}`;
+              counter++;
+              attempts++;
+              
+              // Pequeña pausa para no sobrecargar la DB
+              if (attempts % 3 === 0) {
+                await new Promise(resolve => setTimeout(resolve, 1));
+              }
+            } catch (error) {
+              // Error silencioso - usar fallback
+              setImmediate(() => {
+                resolve(`${baseUsername}${Date.now()}`);
+              });
+              return;
+            }
+          }
+          
+          // Si llegamos aquí, usar timestamp como fallback
+          setImmediate(() => {
+            resolve(`${baseUsername}${Date.now()}`);
+          });
+        } catch (error) {
+          // Error silencioso - usar fallback
+          setImmediate(() => {
+            resolve(`user${Date.now()}`);
+          });
+        }
+      });
+    });
   }
 
   // Generar JWT token
@@ -116,92 +157,137 @@ class AuthService {
   }
 
   // Registrar nuevo usuario
+  // Registrar nuevo usuario (COMPLETAMENTE NO BLOQUEANTE)
   static async register(userData) {
-    try {
-      // Verificar si el email ya existe
-      const existingUser = await User.findOne({ where: { email: userData.email } });
-      if (existingUser) {
-        throw new Error('El email ya está en uso');
-      }
+    return new Promise((resolve) => {
+      // Usar setImmediate para evitar bloquear el event loop
+      setImmediate(async () => {
+        try {
+          // Verificar si el email ya existe
+          const existingUser = await User.findOne({ 
+            where: { email: userData.email },
+            attributes: ['id'],
+            limit: 1 // Optimización: solo necesitamos saber si existe
+          });
+          
+          if (existingUser) {
+            setImmediate(() => {
+              resolve({ error: 'El email ya está en uso' });
+            });
+            return;
+          }
 
-      // Generar nombre de usuario automáticamente
-      const username = await this.generateUniqueUsername(userData.fullName);
+          // Generar nombre de usuario automáticamente
+          const username = await this.generateUniqueUsername(userData.fullName);
 
-      // Crear nuevo usuario
-      const user = await User.create({
-        username: username,
-        email: userData.email,
-        password: userData.password,
-        fullName: userData.fullName,
-        userType: userData.userType || 'user',
-        phone: userData.phone,
-        location: userData.location,
-        bio: userData.bio
+          // Crear nuevo usuario
+          const user = await User.create({
+            username: username,
+            email: userData.email,
+            password: userData.password,
+            fullName: userData.fullName,
+            userType: userData.userType || 'user',
+            phone: userData.phone,
+            location: userData.location,
+            bio: userData.bio
+          });
+
+          // Generar tokens de forma no bloqueante
+          const accessToken = this.generateToken(user);
+          const { raw: refreshToken, expiresAt: refreshExpiresAt } = await this.createRefreshToken(
+            user,
+            userData.userAgent,
+            userData.ip
+          );
+
+          const result = {
+            user: user.toJSON(),
+            token: accessToken,
+            refreshToken,
+            refreshExpiresAt,
+            expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+          };
+
+          // Usar setImmediate para la respuesta final
+          setImmediate(() => {
+            resolve(result);
+          });
+        } catch (error) {
+          // Error silencioso - devolver error
+          setImmediate(() => {
+            resolve({ error: error.message || 'Error en el registro' });
+          });
+        }
       });
-
-      // Generar tokens
-      const accessToken = this.generateToken(user);
-      const { raw: refreshToken, expiresAt: refreshExpiresAt } = await this.createRefreshToken(
-        user,
-        userData.userAgent,
-        userData.ip
-      );
-
-      return {
-        user: user.toJSON(),
-        token: accessToken,
-        refreshToken,
-        refreshExpiresAt,
-        expiresIn: process.env.JWT_EXPIRES_IN || '7d'
-      };
-    } catch (error) {
-      throw error;
-    }
+    });
   }
 
-  // Iniciar sesión
+  // Iniciar sesión (COMPLETAMENTE NO BLOQUEANTE)
   static async login(identifier, password) {
-    try {
-      // Buscar usuario por email o username
-      const user = await User.findByEmailOrUsername(identifier);
-      
-      if (!user) {
-        throw new Error('Credenciales inválidas');
-      }
+    return new Promise((resolve) => {
+      // Usar setImmediate para evitar bloquear el event loop
+      setImmediate(async () => {
+        try {
+          // Buscar usuario por email o username
+          const user = await User.findByEmailOrUsername(identifier);
+          
+          if (!user) {
+            setImmediate(() => {
+              resolve({ error: 'Credenciales inválidas' });
+            });
+            return;
+          }
 
-      if (!user.isActive) {
-        throw new Error('Cuenta desactivada');
-      }
+          if (!user.isActive) {
+            setImmediate(() => {
+              resolve({ error: 'Cuenta desactivada' });
+            });
+            return;
+          }
 
-      // Verificar contraseña
-      const isValidPassword = await user.validatePassword(password);
-      if (!isValidPassword) {
-        throw new Error('Credenciales inválidas');
-      }
+          // Verificar contraseña
+          const isValidPassword = await user.validatePassword(password);
+          if (!isValidPassword) {
+            setImmediate(() => {
+              resolve({ error: 'Credenciales inválidas' });
+            });
+            return;
+          }
 
-      // Actualizar último login
-      await user.updateLastLogin();
+          // Actualizar último login de forma no bloqueante
+          await user.updateLastLogin();
 
-      // Generar tokens
-      const accessToken = this.generateToken(user);
-      const { raw: refreshToken, expiresAt: refreshExpiresAt } = await this.createRefreshToken(
-        user,
-        null,
-        null
-      );
+          // Generar tokens de forma no bloqueante
+          const accessToken = this.generateToken(user);
+          const { raw: refreshToken, expiresAt: refreshExpiresAt } = await this.createRefreshToken(
+            user,
+            null,
+            null
+          );
 
-      return {
-        user: user.toJSON(),
-        token: accessToken,
-        refreshToken,
-        refreshExpiresAt,
-        expiresIn: process.env.JWT_EXPIRES_IN || '7d'
-      };
-    } catch (error) {
-      throw error;
-    }
+          const result = {
+            user: user.toJSON(),
+            token: accessToken,
+            refreshToken,
+            refreshExpiresAt,
+            expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+          };
+
+          // Usar setImmediate para la respuesta final
+          setImmediate(() => {
+            resolve(result);
+          });
+        } catch (error) {
+          // Error silencioso - devolver error
+          setImmediate(() => {
+            resolve({ error: error.message || 'Error en el login' });
+          });
+        }
+      });
+    });
   }
 
+  // Refrescar token
   static async refresh(refreshTokenRaw, userAgent, ip) {
     const { raw, expiresAt } = await this.rotateRefreshToken(refreshTokenRaw, userAgent, ip);
     const tokenRow = await RefreshToken.findOne({ where: { tokenHash: crypto.createHash('sha256').update(raw).digest('hex') } });

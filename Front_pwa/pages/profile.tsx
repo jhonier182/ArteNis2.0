@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { 
   Settings, 
@@ -23,12 +24,18 @@ import {
   Bell,
   Heart
 } from 'lucide-react'
-import { useUser } from '@/context/UserContext'
-import { apiClient } from '@/utils/apiClient'
-import EditProfileModal from '@/components/EditProfileModal'
-import SettingsModal from '@/components/SettingsModal'
-import { useInfinitePosts } from '@/hooks/useInfiniteScroll'
-import { InfiniteScrollTrigger } from '@/components/LoadingIndicator'
+import { useUser } from '../context/UserContext'
+import apiClient from '../services/apiClient'
+import EditProfileModal from '../components/EditProfileModal'
+import SettingsModal from '../components/SettingsModal'
+import { useInfinitePosts } from '../hooks/useInfiniteScroll'
+import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, setUser } = useUser()
@@ -60,13 +67,57 @@ export default function ProfilePage() {
     }
   }, [isLoading, isAuthenticated, router])
 
+  // Refrescar publicaciones cuando se navega al perfil
+  useEffect(() => {
+    if (isAuthenticated && user?.userType === 'artist') {
+      // Pequeño delay para asegurar que el usuario esté completamente cargado
+      const timer = setTimeout(() => {
+        resetPosts()
+      }, 100)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [router.asPath, isAuthenticated, user?.userType, resetPosts])
+
   useEffect(() => {
     if (isAuthenticated) {
       if (user?.userType !== 'artist') {
         fetchSavedPosts()
+      } else {
+        // Para tatuadores, refrescar publicaciones cuando se carga el perfil
+        resetPosts()
       }
     }
   }, [isAuthenticated, user])
+
+  // Escuchar eventos de nueva publicación para refrescar automáticamente
+  useEffect(() => {
+    if (user?.userType === 'artist') {
+      const handleNewPost = () => {
+        console.log('🔄 Nueva publicación detectada, refrescando perfil...')
+        resetPosts()
+      }
+
+      // Escuchar eventos personalizados de nueva publicación
+      window.addEventListener('newPostCreated', handleNewPost)
+      
+      // También escuchar cambios en el localStorage (backup)
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'newPostCreated' && e.newValue) {
+          handleNewPost()
+          // Limpiar el flag
+          localStorage.removeItem('newPostCreated')
+        }
+      }
+      
+      window.addEventListener('storage', handleStorageChange)
+
+      return () => {
+        window.removeEventListener('newPostCreated', handleNewPost)
+        window.removeEventListener('storage', handleStorageChange)
+      }
+    }
+  }, [user?.userType, resetPosts])
 
 
   const fetchSavedPosts = async () => {
@@ -120,7 +171,7 @@ export default function ProfilePage() {
 
       const newAvatarUrl = response.data?.data?.avatarUrl || response.data?.data?.user?.avatar
       
-      if (newAvatarUrl && setUser) {
+      if (newAvatarUrl && setUser && user?.id) {
         setUser({ ...user, avatar: newAvatarUrl })
       }
     } catch (error: any) {
@@ -232,9 +283,11 @@ export default function ProfilePage() {
                 >
                   <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
                     {user.avatar ? (
-                      <img
+                      <Image
                         src={user.avatar}
                         alt={user.username}
+                        width={200}
+                        height={200}
                         className="w-full h-full rounded-full object-cover"
                       />
                     ) : (
@@ -315,9 +368,11 @@ export default function ProfilePage() {
                 >
                   <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
                     {user.avatar ? (
-                      <img
+                      <Image
                         src={user.avatar}
                         alt={user.username}
+                        width={200}
+                        height={200}
                         className="w-full h-full rounded-full object-cover"
                       />
                     ) : (
@@ -524,9 +579,11 @@ export default function ProfilePage() {
                         <>
                           {post.type === 'video' ? (
                             <div className="relative w-full h-full">
-                              <img
+                              <Image
                                 src={post.thumbnailUrl || post.mediaUrl}
                                 alt={post.description || 'Post'}
+                                width={300}
+                                height={300}
                                 className="w-full h-full object-cover"
                               />
                               {/* Overlay con icono de play para videos */}
@@ -539,9 +596,11 @@ export default function ProfilePage() {
                               </div>
                             </div>
                           ) : (
-                            <img
+                            <Image
                               src={post.mediaUrl}
                               alt={post.description || 'Post'}
+                              width={300}
+                              height={300}
                               className="w-full h-full object-cover"
                             />
                           )}
@@ -551,7 +610,7 @@ export default function ProfilePage() {
                         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                           <div className="flex items-center gap-3 text-white text-sm">
                             <div className="flex items-center gap-1">
-                              <Heart className="w-4 h-4" />
+                              <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                               <span>{post.likesCount || 0}</span>
                             </div>
                             <div className="flex items-center gap-1">
@@ -606,9 +665,11 @@ export default function ProfilePage() {
                     className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
                   >
                     {post.mediaUrl && (
-                      <img
+                      <Image
                         src={post.mediaUrl}
                         alt={post.description || 'Post'}
+                        width={300}
+                        height={300}
                         className="w-full h-full object-cover"
                       />
                     )}

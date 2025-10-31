@@ -14,11 +14,8 @@ export default function Document() {
         <meta name="theme-color" content="#0f1419" />
         
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png" />
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
-        
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+        <link rel="apple-touch-icon" href="/icon-192x192.svg" />
       </Head>
       <body>
         <Main />

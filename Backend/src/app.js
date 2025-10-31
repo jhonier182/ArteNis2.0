@@ -7,54 +7,22 @@ const path = require('path');
 // Middlewares locales
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { devRateLimit, strictRateLimit } = require('./middlewares/devRateLimit');
-const { performanceMonitor, eventLoopMonitor } = require('./middlewares/performanceMonitor');
+const { smartCacheMiddleware, cacheStatsMiddleware } = require('./middlewares/httpCache');
 const logger = require('./utils/logger');
 const { sequelize } = require('./config/db');
 
-// Middleware simple para log de tiempo de respuesta con análisis de velocidad
+// Middleware simple para log de tiempo de respuesta
 const responseTimeLogger = (req, res, next) => {
   const startTime = Date.now();
   
   res.on('finish', () => {
     const responseTime = Date.now() - startTime;
+    const status = res.statusCode >= 400 ? '🔴' : res.statusCode >= 300 ? '🟡' : '🟢';
+    const speed = responseTime < 100 ? '⚡' : responseTime < 500 ? '✅' : responseTime < 1000 ? '⚠️' : '🐌';
     
-    // Determinar color según código de estado
-    let statusColor = '🟢'; // Verde por defecto
-    if (res.statusCode >= 400) {
-      statusColor = '🔴'; // Rojo para errores
-    } else if (res.statusCode >= 300) {
-      statusColor = '🟡'; // Amarillo para redirecciones
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`${status} ${speed} ${req.method} ${req.path} - ${responseTime}ms`);
     }
-    
-    // Determinar velocidad de respuesta
-    let speedIndicator = '';
-    if (responseTime < 100) {
-      speedIndicator = '⚡'; // Excelente (< 100ms)
-    } else if (responseTime < 500) {
-      speedIndicator = '✅'; // Buena (100-500ms)
-    } else if (responseTime < 1000) {
-      speedIndicator = '⚠️'; // Lenta (500ms-1s)
-    } else if (responseTime < 3000) {
-      speedIndicator = '🐌'; // Muy lenta (1-3s)
-    } else {
-      speedIndicator = '🚨'; // Crítica (> 3s)
-    }
-    
-    // Crear mensaje con análisis de velocidad
-    let speedText = '';
-    if (responseTime < 100) {
-      speedText = 'EXCELENTE';
-    } else if (responseTime < 500) {
-      speedText = 'BUENA';
-    } else if (responseTime < 1000) {
-      speedText = 'LENTA';
-    } else if (responseTime < 3000) {
-      speedText = 'MUY LENTA';
-    } else {
-      speedText = 'CRÍTICA';
-    }
-    
-    console.log(`${statusColor} ${speedIndicator} ${req.method} ${req.url} - ${responseTime}ms - ${res.statusCode} (${speedText})`);
   });
   
   next();
@@ -63,7 +31,6 @@ const responseTimeLogger = (req, res, next) => {
 // Importar rutas
 const postRoutes = require('./routes/postRoutes');
 const boardRoutes = require('./routes/boardRoutes');
-const searchRoutes = require('./routes/searchRoutes');
 
 // Importar modelos y establecer asociaciones
 const { setupAssociations } = require('./models');
@@ -100,6 +67,12 @@ const allowedOriginsDev = [
 	'http://127.0.0.1:3000',
 	'http://127.0.0.1:3001',
 	'http://127.0.0.1:8081',
+	'http://192.168.1.2:3000',
+	'http://192.168.1.2:3001',
+	'http://192.168.1.2:8081',
+	'http://192.168.1.3:3000',
+	'http://192.168.1.3:3001',
+	'http://192.168.1.3:8081',
 	...corsOrigins, // Agregar orígenes desde variables de entorno
 ];
 
@@ -131,7 +104,7 @@ const corsOptions = {
 		}
 
 		// En desarrollo, permitir cualquier origen HTTP/HTTPS
-		console.log(`⚠️ CORS: Permitiendo origen en desarrollo: ${origin}`);
+
 		return callback(null, true);
 	},
 	credentials: true,
@@ -175,29 +148,25 @@ if (process.env.NODE_ENV === 'production') {
   app.use('/api', devRateLimit);
 }
 
-// Middleware de compresión optimizado
+// Middleware de compresión
 app.use(compression({
-  level: 6, // Nivel de compresión balanceado (1-9)
-  threshold: 1024, // Comprimir archivos mayores a 1KB
+  level: 6,
+  threshold: 1024,
   filter: (req, res) => {
-    // No comprimir si ya está comprimido
-    if (req.headers['x-no-compression']) {
-      return false;
-    }
-    // Usar compresión estándar
+    if (req.headers['x-no-compression']) return false;
     return compression.filter(req, res);
-  },
-  // Configuraciones adicionales
-  chunkSize: 16 * 1024, // 16KB chunks
-  memLevel: 8 // Uso de memoria moderado
+  }
 }));
 
 // Middleware de logging simple para tiempo de respuesta
 app.use(responseTimeLogger);
 
-// Middleware de monitoreo de rendimiento
-app.use(performanceMonitor);
-app.use(eventLoopMonitor);
+// Middleware de caché HTTP inteligente
+app.use(smartCacheMiddleware);
+
+// Middleware de estadísticas de caché
+app.use(cacheStatsMiddleware);
+
 
 // Parseo de JSON y URL encoded
 app.use(express.json({ limit: '10mb' }));
@@ -212,100 +181,19 @@ setupAssociations();
 // Health check
 app.get('/health', async (req, res) => {
   try {
-    // Intentar autenticar una conexión ligera
-    try {
-      await sequelize.authenticate();
-    } catch (e) {
-      return res.status(503).json({
-        success: false,
-        message: 'Servicio parcialmente disponible - Base de datos desconectada',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-        database: {
-          status: 'disconnected',
-          host: process.env.DB_HOST,
-          port: process.env.DB_PORT || 3306,
-          name: process.env.DB_NAME,
-        }
-      });
-    }
-
+    await sequelize.authenticate();
     res.status(200).json({
       success: true,
       message: 'ArteNis API funcionando correctamente',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
-      database: {
-        status: 'connected',
-        host: process.env.DB_HOST,
-        port: process.env.DB_PORT || 3306,
-        name: process.env.DB_NAME,
-      },
-      uptime: process.uptime(),
-      memory: {
-        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
-        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
-      }
+      uptime: process.uptime()
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(503).json({
       success: false,
-      message: 'Error en health check',
-      timestamp: new Date().toISOString(),
-      error: error.message
-    });
-  }
-});
-
-// Ruta para métricas de rendimiento
-app.get('/metrics', (req, res) => {
-  try {
-    const { getPerformanceMetrics, generatePerformanceReport } = require('./middlewares/performanceMonitor');
-    
-    if (req.query.format === 'detailed') {
-      res.json({
-        success: true,
-        data: getPerformanceMetrics()
-      });
-    } else {
-      res.json({
-        success: true,
-        data: generatePerformanceReport()
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error obteniendo métricas',
-      error: error.message
-    });
-  }
-});
-
-// Ruta para estadísticas del cluster
-app.get('/cluster', (req, res) => {
-  try {
-    const { getClusterStats, restartWorkers } = require('./config/cluster');
-    
-    if (req.query.action === 'restart') {
-      const result = restartWorkers();
-      res.json({
-        success: true,
-        message: 'Workers reiniciados',
-        data: result
-      });
-    } else {
-      const stats = getClusterStats();
-      res.json({
-        success: true,
-        data: stats
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error obteniendo estadísticas del cluster',
-      error: error.message
+      message: 'Servicio no disponible - Base de datos desconectada',
+      timestamp: new Date().toISOString()
     });
   }
 });
@@ -317,6 +205,7 @@ app.use('/api/search', require('./routes/searchRoutes'));
 app.use('/api/follow', require('./routes/followRoutes'));
 app.use('/api/posts', postRoutes);
 app.use('/api/boards', boardRoutes);
+
 
 // Ruta raíz
 app.get('/', (req, res) => {
