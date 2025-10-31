@@ -69,6 +69,7 @@ export interface PostsResponse {
 // Servicio de posts
 export const postService = {
   // Obtener feed de posts
+  // NOTA: El endpoint correcto es /api/posts (no /api/posts/feed)
   async getFeed(page: number = 1, limit: number = 10, filters?: PostFilters): Promise<PostsResponse> {
     try {
       const params = new URLSearchParams({
@@ -84,7 +85,7 @@ export const postService = {
         })
       });
 
-      const response = await api.get<PostsResponse>(`/api/posts/feed?${params}`);
+      const response = await api.get<PostsResponse>(`/api/posts?${params}`);
       return response;
     } catch (error: any) {
       console.error('Error obteniendo feed:', error);
@@ -218,6 +219,7 @@ export const postService = {
   },
 
   // Buscar posts
+  // NOTA: El endpoint correcto es /api/search/posts (no /api/posts/search)
   async searchPosts(query: string, page: number = 1, limit: number = 10, filters?: PostFilters): Promise<PostsResponse> {
     try {
       const params = new URLSearchParams({
@@ -229,7 +231,7 @@ export const postService = {
         ...(filters?.sortBy && { sortBy: filters.sortBy })
       });
 
-      const response = await api.get<PostsResponse>(`/api/posts/search?${params}`);
+      const response = await api.get<PostsResponse>(`/api/search/posts?${params}`);
       return response;
     } catch (error: any) {
       console.error('Error buscando posts:', error);
@@ -238,6 +240,7 @@ export const postService = {
   },
 
   // Obtener posts populares
+  // NOTA: Este endpoint no existe. Se recomienda usar /api/search/trending como alternativa.
   async getPopularPosts(page: number = 1, limit: number = 10, period: 'day' | 'week' | 'month' | 'all' = 'week'): Promise<PostsResponse> {
     try {
       const params = new URLSearchParams({
@@ -246,7 +249,8 @@ export const postService = {
         period
       });
 
-      const response = await api.get<PostsResponse>(`/api/posts/popular?${params}`);
+      // Usar trending como alternativa
+      const response = await api.get<PostsResponse>(`/api/search/trending?${params}&type=posts`);
       return response;
     } catch (error: any) {
       console.error('Error obteniendo posts populares:', error);
@@ -255,14 +259,18 @@ export const postService = {
   },
 
   // Obtener posts por tags
+  // NOTA: Este endpoint no existe. Se recomienda usar /api/search/posts con filtro de tags.
   async getPostsByTag(tag: string, page: number = 1, limit: number = 10): Promise<PostsResponse> {
     try {
       const params = new URLSearchParams({
+        q: tag,
         page: page.toString(),
-        limit: limit.toString()
+        limit: limit.toString(),
+        tags: tag
       });
 
-      const response = await api.get<PostsResponse>(`/api/posts/tag/${tag}?${params}`);
+      // Usar búsqueda con tag como alternativa
+      const response = await api.get<PostsResponse>(`/api/search/posts?${params}`);
       return response;
     } catch (error: any) {
       console.error('Error obteniendo posts por tag:', error);
@@ -271,10 +279,16 @@ export const postService = {
   },
 
   // Obtener tags populares
+  // NOTA: Este endpoint no existe en el backend. Se recomienda implementarlo.
   async getPopularTags(limit: number = 20): Promise<{ success: boolean; data: { tags: { name: string; count: number }[] } }> {
     try {
-      const response = await api.get<{ success: boolean; data: { tags: { name: string; count: number }[] } }>(`/api/posts/tags/popular?limit=${limit}`);
-      return response;
+      // Endpoint no implementado - retornar estructura vacía por ahora
+      return {
+        success: true,
+        data: {
+          tags: []
+        }
+      };
     } catch (error: any) {
       console.error('Error obteniendo tags populares:', error);
       throw error;

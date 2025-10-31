@@ -1,10 +1,10 @@
 const { Op } = require('sequelize');
-const { Post, User, Comment, Like, Follow } = require('../models');
+const { Post, User, Comment, Like, Follow, SavedPost } = require('../models');
 const { sequelize } = require('../config/db');
 const { deletePostImage, deletePostVideo } = require('../config/cloudinary');
 const { getCachedData, invalidateCache, getPopularPosts } = require('../config/performanceOptimization');
 const taskQueue = require('../utils/taskQueue');
-const { NotFoundError, ForbiddenError } = require('../utils/errors');
+const { NotFoundError, ForbiddenError, BadRequestError } = require('../utils/errors');
 const logger = require('../utils/logger');
 
 class PostService {
@@ -18,6 +18,7 @@ class PostService {
       imageUrl: postData.mediaUrl, // Transformar mediaUrl a imageUrl
       hashtags: postData.tags || [], // Transformar tags a hashtags
       isLiked: postData.isLiked || false, // Usar isLiked ya calculado
+      isSaved: postData.isSaved || false, // Usar isSaved ya calculado
       likesCount: postData.likesCount || 0,
       commentsCount: postData.commentsCount || 0,
       viewsCount: postData.viewsCount || 0,
@@ -79,9 +80,34 @@ class PostService {
     return posts.map(post => this.transformPostForFrontend(post));
   }
 
+  // Construir opciones para el feed
+  static buildFeedOptions(queryParams, userId = null) {
+    const options = { ...queryParams };
+    if (userId) {
+      options.userId = userId;
+    }
+    return options;
+  }
+
+  // Validar datos requeridos para crear post
+  static validateCreatePostData(imageUrl, cloudinaryPublicId) {
+    if (!imageUrl || !cloudinaryPublicId) {
+      throw new BadRequestError('Se requiere la URL del media y el ID de Cloudinary', 'MISSING_REQUIRED_FIELDS');
+    }
+  }
+
+  // Validar datos para actualizar post
+  static validateUpdatePostData(description) {
+    if (!description || !description.trim()) {
+      throw new BadRequestError('Se requiere una descripción para la publicación', 'MISSING_REQUIRED_FIELDS');
+    }
+  }
+
   // Crear nueva publicación
   static async createPost(userId, postData, mediaUrl, cloudinaryPublicId) {
     try {
+      this.validateCreatePostData(mediaUrl, cloudinaryPublicId);
+      
       const post = await Post.create({
         userId,
         title: postData.description?.substring(0, 255) || 'Nuevo tatuaje',
@@ -342,12 +368,20 @@ class PostService {
 
       // Verificar si el usuario actual le dio like (consulta separada pero rápida)
       let isLiked = false;
+      let isSaved = false;
       if (userId) {
-        const userLike = await Like.findOne({
-          where: { postId, userId },
-          attributes: ['id']
-        });
+        const [userLike, savedPost] = await Promise.all([
+          Like.findOne({
+            where: { postId, userId },
+            attributes: ['id']
+          }),
+          SavedPost.findOne({
+            where: { postId, userId },
+            attributes: ['id']
+          })
+        ]);
         isLiked = !!userLike;
+        isSaved = !!savedPost;
       }
 
       // Construir respuesta optimizada usando los datos del include
@@ -366,11 +400,14 @@ class PostService {
       }));
       
       postData.isLiked = isLiked;
+      postData.isSaved = isSaved;
       postData.commentsCount = postData.comments.length;
       // NO sobrescribir likesCount - usar el valor de la base de datos
       // postData.likesCount ya viene del campo likes_count de la tabla posts
 
-      return this.transformPostForFrontendSync(postData, userId);
+      const transformed = this.transformPostForFrontendSync(postData, userId);
+      transformed.isSaved = isSaved;
+      return transformed;
       
     } catch (error) {
       // Error silencioso - devolver null
@@ -808,6 +845,8 @@ class PostService {
   // Actualizar publicación
   static async updatePost(userId, postId, updateData) {
     try {
+      this.validateUpdatePostData(updateData.description);
+      
       const post = await Post.findByPk(postId);
       
       if (!post) {
@@ -930,8 +969,11 @@ class PostService {
     }
   }
 
-  // Obtener posts de usuarios seguidos
-  static async getFollowingPosts(userId, page, limit, offset) {
+  // Obtener posts de usuarios seguidos con paginación
+  static async getFollowingPosts(userId, options = {}) {
+    const page = options.page || 1;
+    const limit = options.limit || 15;
+    const offset = (page - 1) * limit;
     try {
       // Obtener IDs de usuarios seguidos
       const followingUsers = await Follow.findAll({
@@ -1266,6 +1308,178 @@ class PostService {
           itemsPerPage: parseInt(limit)
         }
       };
+    }
+  }
+
+  // Guardar o quitar post de guardados
+  static async toggleSave(userId, postId) {
+    try {
+      // Verificar que el post existe
+      const post = await Post.findByPk(postId);
+      if (!post) {
+        throw new NotFoundError('Post no encontrado');
+      }
+
+      // Verificar si ya está guardado
+      const existing = await SavedPost.findOne({
+        where: {
+          userId,
+          postId
+        }
+      });
+
+      let saved = false;
+      let savesCount = 0;
+
+      if (existing) {
+        // Quitar de guardados
+        await existing.destroy();
+        // Decrementar savesCount del post
+        await post.decrement('savesCount');
+        saved = false;
+        savesCount = Math.max(0, (post.savesCount || 0) - 1);
+      } else {
+        // Guardar post
+        await SavedPost.create({
+          userId,
+          postId
+        });
+        // Incrementar savesCount del post
+        await post.increment('savesCount');
+        saved = true;
+        savesCount = (post.savesCount || 0) + 1;
+      }
+
+      // Recargar el post para obtener el savesCount actualizado
+      await post.reload();
+
+      return {
+        saved,
+        savesCount: post.savesCount || 0
+      };
+    } catch (error) {
+      logger.error('Error en toggleSave:', error);
+      throw error;
+    }
+  }
+
+  // Obtener posts guardados del usuario
+  static async getSavedPosts(userId, page = 1, limit = 20) {
+    try {
+      const offset = (page - 1) * limit;
+
+      const savedPosts = await SavedPost.findAndCountAll({
+        where: { userId },
+        include: [
+          {
+            model: Post,
+            as: 'post',
+            where: { isPublic: true },
+            include: [
+              {
+                model: User,
+                as: 'author',
+                attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
+              }
+            ]
+          }
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+
+      // Obtener likes del usuario para todos los posts
+      let userLikes = new Set();
+      if (savedPosts.rows.length > 0) {
+        const postIds = savedPosts.rows.map(sp => sp.post?.id).filter(Boolean);
+        if (postIds.length > 0) {
+          const likes = await Like.findAll({
+            where: {
+              userId,
+              postId: { [Op.in]: postIds }
+            },
+            attributes: ['postId']
+          });
+          userLikes = new Set(likes.map(like => like.postId));
+        }
+      }
+
+      // Verificar qué posts están guardados (todos deberían estarlo, pero verificamos)
+      let savedPostsSet = new Set();
+      if (savedPosts.rows.length > 0) {
+        const postIds = savedPosts.rows.map(sp => sp.post?.id).filter(Boolean);
+        if (postIds.length > 0) {
+          const saved = await SavedPost.findAll({
+            where: {
+              userId,
+              postId: { [Op.in]: postIds }
+            },
+            attributes: ['postId']
+          });
+          savedPostsSet = new Set(saved.map(sp => sp.postId));
+        }
+      }
+
+      // Transformar posts
+      const posts = savedPosts.rows
+        .map(savedPost => savedPost.post)
+        .filter(Boolean)
+        .map(post => {
+          const postData = this.transformPostForFrontendSync(post, userId);
+          postData.isLiked = userLikes.has(post.id);
+          postData.isSaved = savedPostsSet.has(post.id);
+          return postData;
+        });
+
+      return {
+        posts,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(savedPosts.count / limit),
+          totalItems: savedPosts.count,
+          itemsPerPage: parseInt(limit)
+        }
+      };
+    } catch (error) {
+      logger.error('Error en getSavedPosts:', error);
+      throw error;
+    }
+  }
+
+  // Verificar si un post está guardado por el usuario
+  static async isPostSaved(userId, postId) {
+    try {
+      const saved = await SavedPost.findOne({
+        where: {
+          userId,
+          postId
+        }
+      });
+      return !!saved;
+    } catch (error) {
+      logger.error('Error en isPostSaved:', error);
+      return false;
+    }
+  }
+
+  // Obtener información de likes de una publicación
+  static async getLikeInfo(postId, userId = null) {
+    try {
+      const post = await this.getPostById(postId, userId);
+      
+      if (!post) {
+        return null;
+      }
+
+      return {
+        likesCount: post.likesCount || 0,
+        isLiked: post.isLiked || false,
+        postId
+      };
+    } catch (error) {
+      logger.error('Error obteniendo información de likes', { postId, userId, error: error.message });
+      throw error;
     }
   }
 }

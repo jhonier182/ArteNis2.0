@@ -58,8 +58,8 @@ const CACHE_CONFIG = {
   '/api/search/global': 120000, // 2 minutos
   
   // Perfiles de usuario - caché largo
-  '/api/users/profile': 600000, // 10 minutos
-  '/api/users/stats': 600000, // 10 minutos
+  '/api/profile/me': 600000, // 10 minutos (perfil del usuario autenticado)
+  '/api/profile': 600000, // 10 minutos (perfiles de usuario)
   
   // Estadísticas generales - caché muy largo
   '/api/stats/general': 1800000, // 30 minutos

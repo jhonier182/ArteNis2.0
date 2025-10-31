@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { User, Post, Board } = require('../models');
 const { sequelize } = require('../config/db');
+const { BadRequestError } = require('../utils/errors');
 
 class SearchService {
   // Búsqueda global inteligente (COMPLETAMENTE NO BLOQUEANTE)
@@ -523,6 +524,11 @@ class SearchService {
   // Búsqueda de artistas cercanos por geolocalización
   static async findNearbyArtists(lat, lng, radiusKm = 50, options = {}) {
     try {
+      // Validar coordenadas
+      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        throw new BadRequestError('Las coordenadas de latitud y longitud son requeridas', 'MISSING_REQUIRED_FIELDS');
+      }
+
       const {
         style,
         priceRange,
@@ -815,6 +821,161 @@ class SearchService {
         }
       });
     });
+  }
+
+  // Procesar consulta de voz para extraer intención
+  static async processVoiceQuery(transcription) {
+    try {
+      const query = transcription.toLowerCase();
+      const params = { q: query };
+
+      // Detectar tipo de búsqueda
+      if (query.includes('artista') || query.includes('tatuador')) {
+        params.type = 'artists';
+      } else if (query.includes('tablero') || query.includes('colección')) {
+        params.type = 'boards';
+      } else if (query.includes('tatuaje') || query.includes('diseño')) {
+        params.type = 'posts';
+      }
+
+      // Detectar estilo
+      const styles = {
+        'tradicional': ['tradicional', 'old school', 'clásico'],
+        'realista': ['realista', 'fotorrealista', 'realismo'],
+        'minimalista': ['minimalista', 'simple', 'fino'],
+        'geométrico': ['geométrico', 'geometría', 'formas'],
+        'acuarela': ['acuarela', 'watercolor', 'colores'],
+        'blackwork': ['negro', 'blackwork', 'black work'],
+        'tribal': ['tribal', 'étnico']
+      };
+
+      for (const [style, keywords] of Object.entries(styles)) {
+        if (keywords.some(keyword => query.includes(keyword))) {
+          params.style = style;
+          break;
+        }
+      }
+
+      // Detectar ubicación
+      const locationKeywords = ['cerca', 'cercano', 'en', 'de'];
+      if (locationKeywords.some(keyword => query.includes(keyword))) {
+        const words = query.split(' ');
+        const locationIndex = words.findIndex(word => locationKeywords.includes(word));
+        if (locationIndex !== -1 && words[locationIndex + 1]) {
+          params.location = words[locationIndex + 1];
+        }
+      }
+
+      // Detectar orden
+      if (query.includes('popular') || query.includes('famoso')) {
+        params.sortBy = 'followers';
+      } else if (query.includes('nuevo') || query.includes('reciente')) {
+        params.sortBy = 'recent';
+      } else if (query.includes('mejor calificado') || query.includes('mejor rated')) {
+        params.sortBy = 'rating';
+      }
+
+      return params;
+    } catch (error) {
+      return { q: transcription };
+    }
+  }
+
+  // Búsqueda avanzada con múltiples filtros
+  static async advancedSearch(searchParams) {
+    try {
+      const {
+        q,
+        type = 'all',
+        styles = [],
+        bodyParts = [],
+        sizes = [],
+        colors = [],
+        priceRange,
+        location,
+        radius,
+        lat,
+        lng,
+        rating,
+        isVerified,
+        dateRange,
+        sortBy = 'relevance',
+        page = 1,
+        limit = 20
+      } = searchParams;
+
+      let results;
+
+      // Si hay coordenadas, incluir búsqueda geográfica
+      if (lat && lng && (type === 'all' || type === 'artists')) {
+        const nearbyArtists = await this.findNearbyArtists(
+          parseFloat(lat),
+          parseFloat(lng),
+          parseInt(radius) || 50,
+          {
+            style: styles[0],
+            priceRange,
+            rating: parseFloat(rating),
+            limit: type === 'artists' ? limit : 10
+          }
+        );
+
+        if (type === 'artists') {
+          results = {
+            artists: nearbyArtists,
+            pagination: {
+              currentPage: parseInt(page),
+              totalPages: Math.ceil(nearbyArtists.length / limit),
+              totalItems: nearbyArtists.length,
+              itemsPerPage: parseInt(limit)
+            }
+          };
+        } else {
+          results = await this.globalSearch({
+            q,
+            type,
+            style: styles[0],
+            location,
+            priceRange,
+            sortBy,
+            page,
+            limit
+          });
+          results.nearbyArtists = nearbyArtists.slice(0, 5);
+        }
+      } else {
+        // Búsqueda estándar
+        const processedParams = {
+          q,
+          type,
+          style: styles[0],
+          location,
+          priceRange,
+          sortBy,
+          page,
+          limit,
+          bodyPart: bodyParts[0],
+          size: sizes[0],
+          color: colors.includes('color') ? 'color' : colors.includes('black') ? 'black' : undefined,
+          isVerified: isVerified === 'true',
+          rating: parseFloat(rating),
+          dateRange
+        };
+
+        // Remover parámetros undefined
+        Object.keys(processedParams).forEach(key => {
+          if (processedParams[key] === undefined || processedParams[key] === '') {
+            delete processedParams[key];
+          }
+        });
+
+        results = await this.globalSearch(processedParams);
+      }
+
+      return results;
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

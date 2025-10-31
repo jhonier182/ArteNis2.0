@@ -12,7 +12,6 @@ export const API_CONFIG = {
   ENDPOINTS: {
     AUTH: '/api/auth',
     POSTS: '/api/posts',
-    USERS: '/api/users',
     BOARDS: '/api/boards',
     SEARCH: '/api/search',
     FOLLOW: '/api/follow',

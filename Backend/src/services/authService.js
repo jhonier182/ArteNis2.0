@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { User, RefreshToken } = require('../models');
+const { User, RefreshToken, Token } = require('../models');
 
 class AuthService {
   // Generar nombre de usuario automáticamente
@@ -40,6 +40,15 @@ class AuthService {
     }
     
     return baseUsername;
+  }
+
+  // Construir payload de registro con metadata del request
+  static buildRegisterPayload(body, userAgent, ip) {
+    return {
+      ...body,
+      userAgent,
+      ip
+    };
   }
 
   // Verificar si un username existe y generar uno único (NO BLOQUEANTE)
@@ -315,6 +324,264 @@ class AuthService {
     // Revocar todos los tokens del usuario
     await RefreshToken.update({ revokedAt: new Date() }, { where: { userId, revokedAt: null } });
     return { message: 'Todos los refresh tokens del usuario han sido revocados' };
+  }
+
+  // Cambiar contraseña
+  static async changePassword(userId, currentPassword, newPassword) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    // Verificar contraseña actual
+    const isValidPassword = await user.validatePassword(currentPassword);
+    if (!isValidPassword) {
+      throw new Error('Contraseña actual incorrecta');
+    }
+
+    // Validar nueva contraseña
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error('La nueva contraseña debe tener al menos 6 caracteres');
+    }
+
+    // Actualizar contraseña (el hook de User model la hashea automáticamente)
+    user.password = newPassword;
+    await user.save();
+
+    return { message: 'Contraseña actualizada exitosamente' };
+  }
+
+  // Generar token para verificación/reset
+  static generateTokenValue() {
+    return crypto.randomBytes(32).toString('hex');
+  }
+
+  // Crear token de verificación/reset
+  static async createToken(userId, type, expiresInHours = 24) {
+    const { Op } = require('sequelize');
+    
+    // Invalidar tokens anteriores del mismo tipo
+    await Token.update(
+      { usedAt: new Date() },
+      { where: { userId, type, usedAt: null } }
+    );
+
+    const tokenValue = this.generateTokenValue();
+    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
+
+    await Token.create({
+      userId,
+      token: tokenValue,
+      type,
+      expiresAt
+    });
+
+    return tokenValue;
+  }
+
+  // Solicitar restablecimiento de contraseña
+  // NOTA: Requiere configuración de servicio de email (Nodemailer, SendGrid, etc.)
+  static async requestPasswordReset(email) {
+    const user = await User.findOne({ where: { email } });
+    
+    // Por seguridad, siempre retornar éxito aunque el email no exista
+    if (!user) {
+      return { message: 'Si el email existe, se enviará un enlace para restablecer la contraseña' };
+    }
+
+    // Generar token de reset usando el modelo Token
+    const token = await this.createToken(user.id, 'password_reset', 1); // 1 hora de validez
+
+    // TODO: Enviar email con el token
+    // const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+    // await sendPasswordResetEmail(user.email, resetUrl);
+
+    // Por ahora, retornar mensaje (en producción, nunca exponer el token)
+    if (process.env.NODE_ENV === 'development') {
+      return { 
+        message: 'Token de reset generado (solo en desarrollo)',
+        token: token // Solo en desarrollo
+      };
+    }
+
+    return { message: 'Si el email existe, se enviará un enlace para restablecer la contraseña' };
+  }
+
+  // Restablecer contraseña con token
+  static async resetPassword(tokenValue, newPassword) {
+    if (!tokenValue) {
+      throw new Error('Token de restablecimiento requerido');
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error('La nueva contraseña debe tener al menos 6 caracteres');
+    }
+
+    const tokenRecord = await Token.findValidToken(tokenValue, 'password_reset');
+    
+    if (!tokenRecord) {
+      throw new Error('Token inválido o expirado');
+    }
+
+    if (tokenRecord.isExpired()) {
+      await tokenRecord.destroy();
+      throw new Error('Token expirado');
+    }
+
+    if (tokenRecord.isUsed()) {
+      throw new Error('Token ya utilizado');
+    }
+
+    const user = await User.findByPk(tokenRecord.userId);
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    // Actualizar contraseña
+    user.password = newPassword;
+    await user.save();
+
+    // Marcar token como usado
+    await tokenRecord.markAsUsed();
+
+    // Revocar todos los refresh tokens
+    await RefreshToken.update({ revokedAt: new Date() }, { where: { userId: user.id, revokedAt: null } });
+
+    return { message: 'Contraseña restablecida exitosamente' };
+  }
+
+  // Generar token de verificación de email
+  static async generateEmailVerificationToken(userId) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    if (user.isVerified) {
+      throw new Error('El email ya está verificado');
+    }
+
+    const token = await this.createToken(user.id, 'email_verification', 48); // 48 horas de validez
+
+    // TODO: Enviar email con el token
+    // const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+    // await sendVerificationEmail(user.email, verificationUrl);
+
+    if (process.env.NODE_ENV === 'development') {
+      return { 
+        message: 'Token de verificación generado (solo en desarrollo)',
+        token: token // Solo en desarrollo
+      };
+    }
+
+    return { message: 'Email de verificación enviado' };
+  }
+
+  // Verificar email con token
+  static async verifyEmail(tokenValue) {
+    const { Op } = require('sequelize');
+    
+    if (!tokenValue) {
+      throw new Error('Token de verificación requerido');
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(tokenValue).digest('hex');
+    const tokenRecord = await Token.findOne({
+      where: {
+        tokenHash,
+        type: 'email_verification',
+        usedAt: null,
+        expiresAt: { [Op.gt]: new Date() }
+      }
+    });
+    
+    if (!tokenRecord) {
+      throw new Error('Token inválido o expirado');
+    }
+
+    const user = await User.findByPk(tokenRecord.userId);
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    // Marcar email como verificado
+    user.isVerified = true;
+    await user.save();
+
+    // Marcar token como usado
+    tokenRecord.usedAt = new Date();
+    await tokenRecord.save();
+
+    return { message: 'Email verificado exitosamente' };
+  }
+
+  // Reenviar verificación de email
+  static async resendVerificationEmail(userId) {
+    return await this.generateEmailVerificationToken(userId);
+  }
+
+  // Obtener sesiones activas (refresh tokens activos)
+  static async getActiveSessions(userId) {
+    const { Sequelize } = require('sequelize');
+    const sessions = await RefreshToken.findAll({
+      where: {
+        userId,
+        revokedAt: null,
+        expiresAt: { [Sequelize.Op.gt]: new Date() }
+      },
+      attributes: ['id', 'userAgent', 'ip', 'createdAt', 'expiresAt'],
+      order: [['createdAt', 'DESC']]
+    });
+
+    return sessions.map(session => ({
+      id: session.id,
+      userAgent: session.userAgent || 'Unknown',
+      ip: session.ip || 'Unknown',
+      createdAt: session.createdAt,
+      expiresAt: session.expiresAt,
+      isCurrent: false // Se puede determinar comparando con el refresh token actual
+    }));
+  }
+
+  // Cerrar todas las sesiones excepto la actual
+  static async logoutOtherSessions(userId, currentRefreshTokenRaw = null) {
+    const { Sequelize } = require('sequelize');
+    const whereClause = {
+      userId,
+      revokedAt: null
+    };
+
+    // Si hay un token actual, excluirlo de la revocación
+    if (currentRefreshTokenRaw) {
+      const currentHash = crypto.createHash('sha256').update(currentRefreshTokenRaw).digest('hex');
+      whereClause.tokenHash = { [Sequelize.Op.ne]: currentHash };
+    }
+
+    await RefreshToken.update({ revokedAt: new Date() }, { where: whereClause });
+
+    return { message: 'Sesiones cerradas exitosamente' };
+  }
+
+  // Eliminar cuenta de usuario
+  static async deleteAccount(userId, password) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    const isValidPassword = await user.validatePassword(password);
+    if (!isValidPassword) {
+      throw new Error('Contraseña incorrecta');
+    }
+
+    // Revocar todos los tokens
+    await RefreshToken.update({ revokedAt: new Date() }, { where: { userId, revokedAt: null } });
+    
+    // Marcar cuenta como inactiva en lugar de eliminar (soft delete)
+    user.isActive = false;
+    await user.save();
+
+    return { message: 'Cuenta eliminada exitosamente' };
   }
 }
 

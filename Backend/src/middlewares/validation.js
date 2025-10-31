@@ -148,11 +148,52 @@ const validateComment = [
     .withMessage('ID del comentario padre inválido')
 ];
 
+// Validaciones para cambio de contraseña
+const validateChangePassword = [
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('La contraseña actual es requerida'),
+
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('La nueva contraseña debe tener al menos 6 caracteres')
+];
+
+// Validaciones para solicitar reset de contraseña
+const validateForgotPassword = [
+  body('email')
+    .isEmail()
+    .withMessage('Debe ser un email válido')
+    .normalizeEmail()
+];
+
+// Validaciones para resetear contraseña
+const validateResetPassword = [
+  body('token')
+    .notEmpty()
+    .withMessage('El token de reseteo es requerido'),
+
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('La nueva contraseña debe tener al menos 6 caracteres')
+];
+
+// Validaciones para verificar email
+const validateVerifyEmail = [
+  body('token')
+    .notEmpty()
+    .withMessage('El token de verificación es requerido')
+];
+
 module.exports = {
   handleValidationErrors,
   sanitizeQuery,
   validateRegister,
   validateLogin,
   validateCreatePost,
-  validateComment
+  validateComment,
+  validateChangePassword,
+  validateForgotPassword,
+  validateResetPassword,
+  validateVerifyEmail
 };

@@ -88,16 +88,22 @@ router.get('/following',
   PostController.getFollowingPosts
 );
 
+// GET /api/posts/saved - Obtener posts guardados del usuario (debe estar antes de /:id)
+router.get('/saved',
+  verifyToken,
+  PostController.getSavedPosts
+);
+
+// GET /api/posts/user/:userId - Obtener publicaciones de un usuario (debe estar antes de /:id)
+router.get('/user/:userId',
+  optionalAuth,
+  PostController.getUserPosts
+);
+
 // GET /api/posts/:id - Obtener publicación por ID
 router.get('/:id',
   optionalAuth,
   PostController.getPostById
-);
-
-// GET /api/posts/user/:userId - Obtener publicaciones de un usuario
-router.get('/user/:userId',
-  optionalAuth,
-  PostController.getUserPosts
 );
 
 // Rutas protegidas (requieren autenticación)
@@ -197,6 +203,12 @@ router.delete('/:id',
     next();
   },
   PostController.deletePost
+);
+
+// POST /api/posts/:id/save - Guardar o quitar post de guardados
+router.post('/:id/save',
+  verifyToken,
+  PostController.toggleSave
 );
 
 module.exports = router;
