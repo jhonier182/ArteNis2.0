@@ -461,7 +461,82 @@ Front_pwa/
 
 ## 5. Sincronización Front–Back
 
-### 5.1 Endpoints Utilizados por el Frontend
+> **⚠️ IMPORTANTE**: Se ha creado un plan detallado de refactorización del frontend: `PLAN_FRONTEND_REFACTORING.md`
+
+>
+
+> **Problemas identificados**:
+
+> - APIs con propósito similar no consolidadas
+
+> - Código duplicado extensivo (~300+ líneas)
+
+> - Re-renders innecesarios en componentes
+
+> - Uso excesivo de `any` (18+ ocurrencias)
+
+> - `console.log/error` en producción (30+ ocurrencias)
+
+> - Llamadas API redundantes
+
+> - Falta de caché y optimización
+
+### 5.1 Análisis de APIs y Organización
+
+#### 5.1.1 APIs con Propósito Similar (REQUIERE CONSOLIDACIÓN)
+
+**Problema**: Múltiples formas de obtener la misma información:
+
+1. **Obtener Posts** - 4 formas diferentes:
+
+   - ✅ `postService.getFeed()` → `/api/posts`
+   - ✅ `postService.getFollowingPosts()` → `/api/posts/following`
+   - ⚠️ `apiClient.get('/api/posts')` (uso directo en componentes)
+   - ✅ `useInfinitePosts('/api/posts/following')` (hook)
+
+2. **Obtener Usuario/Perfil** - 3 formas diferentes:
+
+   - ✅ `authService.getCurrentUser()` → `/api/profile/me`
+   - ✅ `userService.getUserById()` → `/api/profile/:id`
+   - ✅ `useUser()` hook (también obtiene usuario)
+   - ⚠️ Llamadas directas a `apiClient.get('/api/profile/me')` en algunos componentes
+
+3. **Guardar Posts** - 2 formas diferentes:
+
+   - ⚠️ `postService.toggleSave()` (no implementado en backend, documentado)
+   - ⚠️ Uso directo de boards: `apiClient.post('/api/boards/:id/posts')` (lógica duplicada en `index.tsx` y `post/[id].tsx`)
+
+4. **Verificar Seguimiento** - 3 formas diferentes:
+
+   - ✅ `userService.isFollowing()` → `/api/follow/status/:userId`
+   - ✅ `useFollowing()` hook (lógica propia)
+   - ⚠️ Llamadas directas en componentes
+
+#### 5.1.2 Servicios con Responsabilidades Solapadas
+
+**Problema**: Servicios que hacen cosas similares:
+
+- **`authService`** y **`userService`**:
+  - Ambos tienen `updateProfile()` (duplicado)
+  - Ambos manejan datos de usuario
+
+- **`postService`** y **llamadas directas**:
+  - Muchos componentes hacen llamadas directas a `apiClient` en lugar de usar el servicio
+  - Ejemplo: `index.tsx` hace llamadas directas para guardados (no usa servicio)
+
+#### 5.1.3 Plan de Consolidación (Prioridad Alta)
+
+**Objetivos**:
+
+1. ✅ Crear `boardService.ts` para centralizar lógica de boards
+2. ✅ Extraer lógica duplicada de guardados a hook `useSavePost()`
+3. ✅ Eliminar llamadas directas a `apiClient` de componentes
+4. ✅ Unificar `authService.updateProfile` y `userService.updateProfile`
+5. ✅ Consolidar verificación de seguimiento en `useFollowing()`
+
+**Ver**: Sección 9.5.1 para plan detallado de implementación
+
+### 5.2 Endpoints Utilizados por el Frontend
 
 **Autenticación:**
 
@@ -553,25 +628,35 @@ Front_pwa/
 - ⚠️ `postService.getPopularTags` - Endpoint `/api/posts/tags/popular` no existe (retorna array vacío, documentado)
 - ✅ `userService` - ✅ Todas las rutas corregidas (0 rutas incorrectas, métodos sin endpoint documentados)
 
-### 5.4 Plan de Alineación
+### 5.4 Plan de Alineación y Refactorización Frontend
 
-**Prioridad Alta:**
+**Prioridad Alta - Backend (COMPLETADO):**
 
 1. ✅ **COMPLETADO** - Corregir rutas en `userService.ts` para usar `/api/profile` y `/api/follow`
 2. ✅ **COMPLETADO** - Implementar endpoints faltantes de autenticación (cambio de contraseña, reset, verificación)
 3. ✅ **COMPLETADO** - Documentar endpoints de `postService` que no existen (con workarounds donde es posible)
-4. ⏳ **PENDIENTE (Fase 2)** - Implementar funcionalidad de guardar posts (actualmente usando boards como workaround - no crítico)
 
-**Prioridad Media:**
+**Prioridad Alta - Frontend (NUEVO - REQUIERE ACCIÓN):**
+
+1. ⚠️ **PENDIENTE** - Consolidar APIs con propósito similar (ver sección 5.1.1)
+2. ⚠️ **PENDIENTE** - Eliminar código duplicado (~300+ líneas de guardados/likes)
+3. ⚠️ **PENDIENTE** - Crear `boardService.ts` y hooks reutilizables
+4. ⚠️ **PENDIENTE** - Eliminar llamadas directas a `apiClient` de componentes
+
+**Prioridad Media - Frontend:**
+
+1. ⚠️ Optimizar renderizados (eliminar re-renders innecesarios)
+2. ⚠️ Implementar caché (React Query o SWR)
+3. ⚠️ Eliminar todos los `any` de TypeScript
+4. ⚠️ Reemplazar `console.log/error` con logger
+
+**Prioridad Baja:**
 
 1. Crear endpoint unificado `/api/posts/saved` si se quiere mantener funcionalidad de guardados
 2. Implementar endpoints de posts populares y por tags si se necesitan
 3. Revisar y alinear endpoints de búsqueda con uso real del frontend
 
-**Prioridad Baja:**
-
-1. Documentar endpoints no usados para posible uso futuro
-2. Consolidar endpoints similares (ej: toggle follow vs follow/unfollow)
+**📄 Ver**: Secciones 9.3, 9.4, 9.5, 9.6, 9.7, 9.8 de este documento para análisis completo
 
 ---
 
@@ -965,23 +1050,52 @@ responses(res).ok('Operación exitosa', result);
 
 ### 9.3 Frontend - Problemas Críticos
 
+> **📄 Plan detallado disponible**: `.cursor/plans/PLAN_FRONTEND_REFACTORING.md`
+
+>
+
+> **Resumen de problemas identificados**:
+
+> - 🔴 Código duplicado extensivo (~300+ líneas)
+
+> - 🔴 APIs con propósito similar no consolidadas
+
+> - 🔴 Re-renders innecesarios en múltiples componentes
+
+> - 🔴 Uso excesivo de `any` (18+ ocurrencias)
+
+> - 🔴 `console.log/error` en producción (30+ ocurrencias)
+
+> - 🟡 Llamadas API redundantes sin caché
+
+> - 🟡 Falta de hooks reutilizables
+
 #### 9.3.1 Uso Excesivo de `any` en TypeScript
 
-**Problema**: Uso de `any` en múltiples lugares, eliminando los beneficios de TypeScript.
+**Problema**: Uso de `any` en múltiples lugares (18+ ocurrencias), eliminando los beneficios de TypeScript.
 
 **Archivos afectados**:
 
-- `Front_pwa/services/postService.ts` - 14+ usos de `any`
+- `Front_pwa/services/postService.ts` - 14 usos de `any` (en catch blocks)
 - `Front_pwa/services/userService.ts` - 2+ usos de `any`
+- `Front_pwa/services/authService.ts` - Múltiples `any`
+- `Front_pwa/pages/post/[id].tsx` - `useState<any>(null)`
 - `Front_pwa/services/apiClient.ts` - Uso de `any` en funciones genéricas
 
 **Solución**:
 
-- Definir interfaces/tipos apropiados para todos los errores
-- Crear tipos específicos para respuestas API
-- Eliminar todos los usos de `any` excepto donde sea absolutamente necesario
+- Definir interfaces/tipos apropiados para todos los errores (`ApiError`, `NetworkError`)
+- Crear tipos específicos para respuestas API (tipos compartidos en `types/api.ts`)
+- Eliminar todos los usos de `any`, usar `unknown` donde sea necesario
+- Validar tipos en runtime con Zod o similar
 
 **Prioridad**: 🔴 Alta
+
+**Impacto**:
+
+- Pérdida de type safety
+- Errores descubiertos solo en runtime
+- Autocompletado no funciona correctamente
 
 #### 9.3.2 Falta de Tests
 
@@ -998,32 +1112,333 @@ responses(res).ok('Operación exitosa', result);
 
 #### 9.3.3 Manejo de Errores Inconsistente
 
-**Problema**: Los servicios capturan errores pero no siempre los manejan de forma consistente.
+**Problema**: Los servicios capturan errores pero no siempre los manejan de forma consistente. Cada componente maneja errores de forma diferente.
+
+**Archivos afectados**:
+
+- Todos los servicios (`postService.ts`, `authService.ts`, `userService.ts`)
+- Todos los componentes de páginas
+- Falta sistema centralizado
 
 **Solución**:
 
-- Crear un sistema centralizado de manejo de errores
+- Crear un sistema centralizado de manejo de errores (`utils/errorHandler.ts`)
 - Mostrar mensajes de error amigables al usuario
 - Implementar retry automático donde sea apropiado
+- Crear tipos de error específicos
 
 **Prioridad**: 🟡 Media
 
-### 9.4 Frontend - Mejoras de Calidad
+#### 9.3.4 Código Duplicado Extensivo (CRÍTICO)
 
-#### 9.4.1 Optimización de Rendimiento
+**Problema**: Código duplicado en múltiples archivos (~300+ líneas).
 
-**Problema**: Posibles problemas de rendimiento con componentes grandes.
+**Ejemplos identificados**:
+
+1. **Lógica de Guardar Posts** (~150 líneas duplicadas):
+
+   - `Front_pwa/pages/index.tsx` (líneas 138-193)
+   - `Front_pwa/pages/post/[id].tsx` (función similar)
+   - Misma lógica de obtener boards, buscar/crear board por defecto, agregar/remover post
+
+2. **Lógica de Likes** (~80 líneas duplicadas):
+
+   - `Front_pwa/pages/index.tsx` (función `handleLike`)
+   - `Front_pwa/pages/post/[id].tsx` (función similar)
+   - Actualización optimista duplicada
+
+3. **Verificación de Seguimiento**:
+
+   - `Front_pwa/pages/post/[id].tsx` (múltiples `useEffect`)
+   - `Front_pwa/components/FollowButton.tsx`
+   - `Front_pwa/hooks/useFollowing.ts`
 
 **Solución**:
 
-- Implementar React.memo donde sea apropiado
+- ✅ Crear hook `useSavePost()` para lógica de guardados
+- ✅ Crear hook `useLikePost()` para lógica de likes
+- ✅ Consolidar verificación de seguimiento en `useFollowing()`
+- ✅ Crear `boardService.ts` para centralizar llamadas de boards
+
+**Prioridad**: 🔴 Alta
+
+**Impacto**:
+
+- Mantenimiento difícil (cambios en múltiples lugares)
+- Bugs inconsistentes
+- Aumento innecesario de código
+
+#### 9.3.5 Re-renders Innecesarios
+
+**Problema**: Componentes se re-renderizan innecesariamente, causando problemas de performance.
+
+**Ejemplos identificados**:
+
+1. **`index.tsx`** - Múltiples `useEffect` sin optimización:
+   ```typescript
+   useEffect(() => {
+     // ...
+   }, [isAuthenticated, user])  // ⚠️ user es objeto, puede cambiar referencia
+   
+   useEffect(() => {
+     // ...
+   }, [followingUsers.length, isAuthenticated, user?.userType])  // ⚠️ Dependencias complejas
+   ```
+
+2. **`post/[id].tsx`** - Múltiples `useEffect` con dependencias anidadas:
+   ```typescript
+   useEffect(() => {
+     // ...
+   }, [post?.author?.id, isAuthenticated, user?.id, isFollowingUser])  // ⚠️ Dependencias anidadas
+   ```
+
+3. **Falta de Memoización**:
+
+   - Componentes sin `React.memo` (PostMenu, FollowButton)
+   - Funciones sin `useCallback` (handleLike, handleSavePost)
+   - Valores sin `useMemo` (cálculos derivados)
+
+**Solución**:
+
+- Agregar `React.memo` a componentes de lista
+- Usar `useCallback` para funciones pasadas como props
+- Usar `useMemo` para cálculos costosos
+- Optimizar dependencias de `useEffect` (extraer valores primitivos)
+- Consolidar múltiples `useEffect` donde sea posible
+
+**Prioridad**: 🟡 Media
+
+**Impacto**:
+
+- Performance degradada
+- Posibles loops infinitos
+- Consumo excesivo de recursos
+
+#### 9.3.6 Llamadas API Redundantes
+
+**Problema**: Múltiples llamadas a la misma API sin caché.
+
+**Ejemplos**:
+
+1. **`index.tsx`** hace múltiples llamadas a `/api/boards/me/boards`:
+
+   - En `loadSavedPosts()`
+   - En `handleSavePost()` (varias veces dentro de la función)
+   - No hay caché entre llamadas
+
+2. **`post/[id].tsx`** hace llamadas redundantes:
+
+   - `checkIfSaved()` llama a boards cada vez
+   - No reutiliza datos ya cargados
+
+**Solución**:
+
+- Implementar React Query o SWR para caché automático
+- Reutilizar datos ya cargados entre componentes
+- Implementar debounce en búsquedas
+- Cachear datos de boards en estado global o contexto
+
+**Prioridad**: 🟡 Media
+
+### 9.4 Frontend - Análisis Detallado de Problemas
+
+#### 9.4.1 APIs Duplicadas y Desorganizadas
+
+**Problema**: Múltiples formas de obtener la misma información sin consolidación.
+
+**Ejemplos identificados**:
+
+1. **Obtener Posts** - 4 formas diferentes:
+
+   - `postService.getFeed()` → `/api/posts`
+   - `postService.getFollowingPosts()` → `/api/posts/following`
+   - ⚠️ `apiClient.get('/api/posts')` (uso directo en componentes)
+   - `useInfinitePosts('/api/posts/following')` (hook)
+
+2. **Obtener Usuario/Perfil** - 3 formas diferentes:
+
+   - `authService.getCurrentUser()` → `/api/profile/me`
+   - `userService.getUserById()` → `/api/profile/:id`
+   - `useUser()` hook (también obtiene usuario)
+   - ⚠️ Llamadas directas a `apiClient.get('/api/profile/me')`
+
+3. **Guardar Posts** - 2 formas diferentes:
+
+   - ⚠️ `postService.toggleSave()` (no implementado en backend, documentado)
+   - ⚠️ Uso directo de boards: `apiClient.post('/api/boards/:id/posts')` (lógica duplicada)
+
+4. **Verificar Seguimiento** - 3 formas diferentes:
+
+   - `userService.isFollowing()` → `/api/follow/status/:userId`
+   - `useFollowing()` hook (lógica propia)
+   - ⚠️ Llamadas directas en componentes
+
+**Servicios con Responsabilidades Solapadas**:
+
+- `authService` y `userService`: Ambos tienen `updateProfile()` (duplicado)
+- `postService` y llamadas directas: Muchos componentes hacen llamadas directas a `apiClient`
+
+**Solución**:
+
+1. ✅ Crear `boardService.ts` para centralizar lógica de boards
+2. ✅ Consolidar lógica de guardar posts en hook `useSavePost()`
+3. ✅ Eliminar llamadas directas a `apiClient` de componentes
+4. ✅ Unificar `authService.updateProfile` y `userService.updateProfile`
+
+**Prioridad**: 🔴 Alta
+
+#### 9.4.2 Optimización de Rendimiento
+
+**Problema**: Posibles problemas de rendimiento con componentes grandes y re-renders innecesarios.
+
+**Problemas identificados**:
+
+1. **Componentes grandes sin memoización**:
+
+   - `index.tsx` - 460 líneas (múltiples `useEffect` sin optimización)
+   - `post/[id].tsx` - 595 líneas (5+ `useEffect` con dependencias complejas)
+
+2. **Re-renders innecesarios**:
+
+   - Múltiples `useEffect` con objetos como dependencias (cambian referencia)
+   - Falta de `React.memo` en componentes de lista
+   - Funciones sin `useCallback` pasadas como props
+   - Valores sin `useMemo` para cálculos costosos
+
+3. **Dependencias complejas en `useEffect`**:
+   ```typescript
+   // ❌ Problema: user es objeto, puede cambiar referencia
+   useEffect(() => {
+     // ...
+   }, [isAuthenticated, user])
+   
+   // ❌ Problema: Dependencias anidadas
+   useEffect(() => {
+     // ...
+   }, [post?.author?.id, isAuthenticated, user?.id, isFollowingUser])
+   ```
+
+
+**Solución**:
+
+- Implementar React.memo donde sea apropiado (PostMenu, FollowButton, componentes de lista)
+- Usar `useCallback` para funciones pasadas como props
+- Usar `useMemo` para cálculos costosos
+- Optimizar dependencias de `useEffect` (extraer valores primitivos)
+- Consolidar múltiples `useEffect` donde sea posible
 - Lazy loading de componentes pesados
-- Optimizar re-renders innecesarios
 - Implementar virtualización para listas largas
 
 **Prioridad**: 🟡 Media
 
-#### 9.4.2 Accesibilidad
+**Archivos afectados**:
+
+- `Front_pwa/pages/index.tsx`
+- `Front_pwa/pages/post/[id].tsx`
+- `Front_pwa/components/PostMenu.tsx`
+- `Front_pwa/components/FollowButton.tsx`
+
+#### 9.4.3 Llamadas API Redundantes y Falta de Caché
+
+**Problema**: Múltiples llamadas a la misma API sin caché, causando requests innecesarios.
+
+**Ejemplos identificados**:
+
+1. **`index.tsx`** hace múltiples llamadas a `/api/boards/me/boards`:
+
+   - En `loadSavedPosts()`
+   - En `handleSavePost()` (varias veces dentro de la función)
+   - No hay caché entre llamadas
+
+2. **`post/[id].tsx`** hace llamadas redundantes:
+
+   - `checkIfSaved()` llama a boards cada vez que se monta el componente
+   - No reutiliza datos ya cargados
+
+3. **Falta de debounce en búsquedas**:
+
+   - Búsquedas pueden disparar muchas requests
+   - Scroll infinito puede cargar demasiado rápido
+
+**Solución**:
+
+- Implementar React Query o SWR para caché automático
+- Reutilizar datos ya cargados entre componentes
+- Implementar debounce en búsquedas
+- Cachear datos de boards en estado global o contexto
+- Implementar paginación optimizada
+
+**Prioridad**: 🟡 Media
+
+**Librerías sugeridas**: React Query o SWR
+
+#### 9.4.4 Problemas de Arquitectura y Organización
+
+**Problema**: Falta de abstracción y manejo de estado inconsistente.
+
+**Problemas identificados**:
+
+1. **Lógica de negocio mezclada en componentes**:
+
+   - Ejemplo: `handleSavePost` en `index.tsx` tiene 50+ líneas de lógica de negocio
+   - Lógica de API directamente en componentes en lugar de servicios/hooks
+
+2. **Estado inconsistente**:
+
+   - Estado local (`useState`) para datos del servidor
+   - No hay estado global para datos compartidos (posts guardados)
+   - Cada componente mantiene su propio estado de loading/error
+
+3. **Falta de error handling centralizado**:
+
+   - Cada componente maneja errores de forma diferente
+   - Mensajes de error hardcodeados
+   - No hay retry automático
+   - No hay manejo de errores de red
+
+**Solución**:
+
+- Extraer lógica de negocio a hooks personalizados
+- Crear sistema de estado global para datos compartidos (React Query/Context)
+- Crear sistema centralizado de manejo de errores
+- Implementar retry automático donde sea apropiado
+
+**Prioridad**: 🟡 Media
+
+#### 9.4.5 Problemas de TypeScript
+
+**Problema**: Tipos duplicados, incompletos y uso excesivo de `any`.
+
+**Problemas identificados**:
+
+1. **Tipos duplicados**:
+
+   - `User` definido en `authService.ts` y `userService.ts`
+   - `Post` definido en `postService.ts` y en componentes
+   - Interfaces de respuesta duplicadas
+
+2. **Tipos incompletos**:
+
+   - `any` usado donde deberían haber tipos específicos
+   - Tipos de respuesta API no están completamente definidos
+   - Falta tipado para errores
+
+3. **Falta de validación de tipos en runtime**:
+
+   - No hay validación de respuestas API con Zod o similar
+   - Errores de tipo se descubren en runtime
+
+**Solución**:
+
+- Crear carpeta `types/` para tipos compartidos
+- Consolidar tipos duplicados
+- Definir tipos completos para todas las respuestas API
+- Usar Zod o similar para validación en runtime
+- Eliminar todos los `any`, usar `unknown` donde sea necesario
+
+**Prioridad**: 🔴 Alta (para `any`) / 🟡 Media (para organización)
+
+#### 9.4.6 Accesibilidad
 
 **Problema**: Posible falta de atributos de accesibilidad.
 
@@ -1033,9 +1448,9 @@ responses(res).ok('Operación exitosa', result);
 - Asegurar navegación por teclado
 - Probar con lectores de pantalla
 
-**Prioridad**: 🟡 Media
+**Prioridad**: 🟢 Baja
 
-#### 9.4.3 Optimización de Bundle
+#### 9.4.7 Optimización de Bundle
 
 **Problema**: Bundle size puede optimizarse.
 
@@ -1052,17 +1467,38 @@ responses(res).ok('Operación exitosa', result);
 
 #### Fase 1 - Crítico (Semana 1-2)
 
+**Backend:**
+
 1. ✅ **COMPLETADO** - Eliminar `setImmediate` innecesarios en controladores
 2. ⚠️ Reemplazar `console.log/error` con logger
-3. ⚠️ Eliminar usos de `any` en TypeScript
-4. ⚠️ Configurar y empezar a escribir tests (backend y frontend)
+
+**Frontend:**
+
+1. ⚠️ **NUEVO** - Consolidar APIs duplicadas y crear `boardService.ts`
+2. ⚠️ **NUEVO** - Eliminar código duplicado (guardados, likes) - crear hooks `useSavePost()`, `useLikePost()`
+3. ⚠️ **NUEVO** - Eliminar llamadas directas a `apiClient` de componentes
+4. ⚠️ Reemplazar `console.log/error` con logger en frontend
+5. ⚠️ Eliminar usos de `any` en TypeScript (18+ ocurrencias)
+
+**Tests:**
+
+6. ⚠️ Configurar y empezar a escribir tests (backend y frontend)
 
 #### Fase 2 - Importante (Semana 3-4)
 
-5. ✅ **COMPLETADO** - Refactorizar controladores para usar `apiResponse` helper
-6. ✅ **COMPLETADO** - Consolidar código duplicado en transformaciones
-7. ✅ **COMPLETADO** - Mover lógica compleja de controladores a servicios (refactorización completa)
-8. ⚠️ Validación completa de inputs (mayoría movida a servicios)
+**Backend:**
+
+1. ✅ **COMPLETADO** - Refactorizar controladores para usar `apiResponse` helper
+2. ✅ **COMPLETADO** - Consolidar código duplicado en transformaciones
+3. ✅ **COMPLETADO** - Mover lógica compleja de controladores a servicios (refactorización completa)
+4. ⚠️ Validación completa de inputs (mayoría movida a servicios)
+
+**Frontend:**
+
+1. ⚠️ **NUEVO** - Optimizar renderizados (eliminar re-renders innecesarios)
+2. ⚠️ **NUEVO** - Implementar caché (React Query o SWR)
+3. ⚠️ **NUEVO** - Memoizar componentes y funciones
+4. ⚠️ Mejorar manejo de errores (sistema centralizado)
 
 #### Fase 3 - Mejoras (Semana 5-6)
 
@@ -1071,9 +1507,156 @@ responses(res).ok('Operación exitosa', result);
 11. ⚠️ Mejoras de accesibilidad
 12. ⚠️ Optimización de bundle
 
+### 9.6 Archivos Específicos a Refactorizar - Frontend
+
+#### 9.6.1 `Front_pwa/pages/index.tsx`
+
+**Problemas**:
+
+- 460 líneas (demasiado largo)
+- 4 `useEffect` sin optimización
+- Lógica de negocio mezclada (guardados, likes)
+- Llamadas API redundantes a `/api/boards/me/boards`
+- Múltiples `console.log` de debug
+
+**Refactorización**:
+
+1. ✅ Extraer lógica de guardados a `useSavePost()`
+2. ✅ Extraer lógica de likes a `useLikePost()`
+3. ✅ Separar en componentes más pequeños
+4. ✅ Optimizar `useEffect` (extraer valores primitivos)
+5. ✅ Implementar caché para boards
+6. ✅ Eliminar `console.log` de debug
+
+**Reducción esperada**: De 460 líneas a ~200 líneas
+
+#### 9.6.2 `Front_pwa/pages/post/[id].tsx`
+
+**Problemas**:
+
+- 595 líneas (demasiado largo)
+- 5+ `useEffect` con dependencias complejas
+- Muchos `console.log` de debug (10+)
+- Estado `any` para post
+- Lógica duplicada de guardados (igual a `index.tsx`)
+- Llamadas redundantes a boards
+
+**Refactorización**:
+
+1. ✅ Extraer lógica de guardados y likes (usar hooks)
+2. ✅ Consolidar `useEffect`
+3. ✅ Eliminar logs de debug
+4. ✅ Tipar correctamente (eliminar `any`)
+5. ✅ Separar en componentes más pequeños
+
+**Reducción esperada**: De 595 líneas a ~250 líneas
+
+#### 9.6.3 `Front_pwa/services/postService.ts`
+
+**Problemas**:
+
+- 14 usos de `any` (en catch blocks)
+- 14 `console.error` (sin logger)
+- Algunos métodos sin usar
+- Tipos inconsistentes
+
+**Refactorización**:
+
+1. ✅ Eliminar todos los `any`
+2. ✅ Reemplazar `console.error` con logger
+3. ✅ Tipar todas las respuestas
+4. ✅ Documentar métodos
+
+#### 9.6.4 `Front_pwa/services/userService.ts`
+
+**Problemas**:
+
+- Métodos con propósitos similares a `authService`
+- `any` en errores
+- Lógica duplicada con `authService`
+
+**Refactorización**:
+
+1. ✅ Consolidar con `authService` (eliminar duplicación)
+2. ✅ Eliminar `any`
+3. ✅ Tipar correctamente
+
+#### 9.6.5 `Front_pwa/services/authService.ts`
+
+**Problemas**:
+
+- Múltiples `any`
+- `console.error` sin logger
+- `updateProfile` duplicado con `userService`
+
+**Refactorización**:
+
+1. ✅ Eliminar `any`
+2. ✅ Reemplazar `console.error` con logger
+3. ✅ Consolidar `updateProfile` (usar solo `userService` o `authService`)
+
 ---
 
-### 9.6 Recomendaciones Adicionales
+### 9.7 Métricas Objetivo - Frontend
+
+#### Antes de Refactorización:
+
+- **Líneas de código duplicado**: ~300+
+- **Usos de `any`**: 18+
+- **Usos de `console.log/error`**: 30+
+- **Componentes grandes (>300 líneas)**: 2 (`index.tsx`, `post/[id].tsx`)
+- **Hooks personalizados**: 6
+- **Servicios**: 3 (`authService`, `postService`, `userService`)
+- **Llamadas directas a `apiClient`**: 19+ (en páginas)
+- **Re-renders innecesarios**: Múltiples (sin optimizar)
+
+#### Después de Refactorización:
+
+- **Líneas de código duplicado**: <50
+- **Usos de `any`**: 0
+- **Usos de `console.log/error`**: 0
+- **Componentes grandes**: 0 (máx 200 líneas)
+- **Hooks personalizados**: 12+ (lógica extraída)
+- **Servicios**: 4 (incluyendo `boardService.ts`)
+- **Llamadas directas a `apiClient`**: 0 (todo a través de servicios)
+- **Re-renders innecesarios**: Mínimos (optimizados)
+
+---
+
+### 9.8 Checklist de Verificación - Frontend
+
+#### Fase 1 - Crítico Frontend
+
+- [ ] `boardService.ts` creado
+- [ ] `useSavePost()` hook creado y usado en `index.tsx` y `post/[id].tsx`
+- [ ] `useLikePost()` hook creado y usado
+- [ ] Código duplicado de guardados eliminado
+- [ ] Llamadas directas a `apiClient` eliminadas de componentes (0 ocurrencias)
+- [ ] `console.log/error` reemplazados con logger
+- [ ] Logger configurado (`Front_pwa/utils/logger.ts`)
+
+#### Fase 2 - Importante Frontend
+
+- [ ] Todos los `any` eliminados (0 ocurrencias)
+- [ ] Tipos completos para respuestas API (`types/api.ts`)
+- [ ] Componentes memoizados donde corresponde (`React.memo`)
+- [ ] `useCallback` usado para funciones pasadas como props
+- [ ] `useMemo` usado para cálculos costosos
+- [ ] `useEffect` optimizados (dependencias primitivas)
+- [ ] React Query o SWR implementado
+- [ ] Caché funcionando (verificar reducción de llamadas API)
+
+#### Fase 3 - Mejoras Frontend
+
+- [ ] Estructura de archivos reorganizada (`types/`, `lib/`)
+- [ ] Error handling centralizado (`utils/errorHandler.ts`)
+- [ ] Lazy loading implementado
+- [ ] Performance optimizada (verificar métricas)
+- [ ] Bundle size optimizado (verificar tamaño)
+
+---
+
+### 9.9 Recomendaciones Adicionales
 
 6. **TypeScript en Backend**
 
@@ -1300,17 +1883,22 @@ El proyecto **ArteNis 2.0** está en un estado funcional avanzado con:
 **Crítico (Alta Prioridad)**:
 
 - ✅ **COMPLETADO** - Eliminar `setImmediate` innecesarios en controladores (puede romper respuestas HTTP)
-- 🔴 Reemplazar `console.log/error` con logger en todos los archivos
-- 🔴 Eliminar usos de `any` en TypeScript (18+ ocurrencias)
+- 🔴 **NUEVO** - Eliminar código duplicado en frontend (~300+ líneas) - crear hooks reutilizables
+- 🔴 **NUEVO** - Consolidar APIs duplicadas y crear servicios faltantes (`boardService.ts`)
+- 🔴 Reemplazar `console.log/error` con logger en todos los archivos (backend y frontend)
+- 🔴 Eliminar usos de `any` en TypeScript (18+ ocurrencias en frontend)
 - 🔴 Implementar tests (backend y frontend) - actualmente 0 tests
 
 **Importante (Media Prioridad)**:
 
 - ⚠️ **Parcial** - Helper `apiResponse` implementado y usado para errores, respuestas exitosas aún manuales (opcional, mejora de consistencia)
-- ✅ **COMPLETADO** - Consolidar código duplicado en transformaciones
-- ✅ **COMPLETADO** - Mover lógica compleja de controladores a servicios (refactorización profunda)
-- 🟡 Validación completa de inputs (mayoría movida a servicios)
-- 🟡 Mejorar manejo de errores en frontend
+- ✅ **COMPLETADO** - Consolidar código duplicado en transformaciones (backend)
+- ✅ **COMPLETADO** - Mover lógica compleja de controladores a servicios (refactorización profunda - backend)
+- 🟡 **NUEVO** - Optimizar renderizados en frontend (eliminar re-renders innecesarios)
+- 🟡 **NUEVO** - Implementar caché en frontend (React Query o SWR) para reducir llamadas API
+- 🟡 **NUEVO** - Memoizar componentes y funciones en frontend
+- 🟡 Validación completa de inputs (mayoría movida a servicios - backend)
+- 🟡 Mejorar manejo de errores en frontend (sistema centralizado)
 
 **Mejoras (Baja Prioridad)**:
 
@@ -1340,3 +1928,4 @@ El proyecto **ArteNis 2.0** está en un estado funcional avanzado con:
 - **Cobertura de tests**: 0% (pendiente implementación)
 - **Documentación API**: Parcial (pendiente Swagger/OpenAPI)
 - Ver sección 9 para plan detallado de mejoras y refactorizaciones
+- **Frontend**: Ver secciones 9.3, 9.4, 9.5, 9.6, 9.7, 9.8 para análisis completo del frontend
