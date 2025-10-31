@@ -79,13 +79,54 @@ Front_pwa/
 
 ### Variables de Entorno
 
-La URL del API se configura en `next.config.js`:
+Para acceder desde dispositivos móviles, necesitas configurar la IP local de tu red.
 
-```javascript
-env: {
-  NEXT_PUBLIC_API_URL: 'http://192.168.0.8:3000',
-}
+#### 1. Obtener tu IP local
+
+**Windows:**
+```bash
+ipconfig
 ```
+Busca la dirección IPv4 de tu adaptador de red (ej: `192.168.1.100`)
+
+**Mac/Linux:**
+```bash
+ifconfig
+```
+o
+```bash
+ip addr show
+```
+
+#### 2. Crear archivo `.env.local`
+
+Crea un archivo `.env.local` en la raíz del proyecto `Front_pwa/` con:
+
+```env
+# Reemplaza TU_IP_LOCAL con tu IP local (ej: 192.168.1.100)
+NEXT_PUBLIC_API_URL=http://TU_IP_LOCAL:3000
+
+# Opcional: habilitar debug
+NEXT_PUBLIC_DEBUG=false
+```
+
+**Ejemplo:**
+```env
+NEXT_PUBLIC_API_URL=http://192.168.1.100:3000
+```
+
+#### 3. Acceder desde tu móvil
+
+1. Asegúrate de que tu móvil esté en la **misma red WiFi** que tu computadora
+2. Inicia el servidor con `npm start`
+3. Abre en tu navegador móvil: `http://TU_IP_LOCAL:3001`
+   - Ejemplo: `http://192.168.1.100:3001`
+
+#### ⚠️ Importante
+
+- El backend también debe estar escuchando en `0.0.0.0` (ya configurado por defecto)
+- Ambos dispositivos deben estar en la misma red local
+- Tu firewall podría bloquear las conexiones - permite el puerto 3001 si es necesario
 
 ### Iconos de la PWA
 
@@ -166,6 +207,35 @@ Edita `public/manifest.json` para cambiar:
 - Soporte para compartir contenido
 
 ## 🐛 Troubleshooting
+
+### No puedo conectarme desde el móvil
+
+1. **Verifica que el servidor esté escuchando en todas las interfaces:**
+   - El script `npm start` ahora incluye `-H 0.0.0.0` automáticamente
+   - Reinicia el servidor si lo habías iniciado antes del cambio
+
+2. **Verifica tu IP local:**
+   ```bash
+   ipconfig  # Windows
+   ifconfig  # Mac/Linux
+   ```
+
+3. **Asegúrate de que el `.env.local` tenga la IP correcta:**
+   - Debe ser tu IP local, NO `localhost` ni `127.0.0.1`
+   - Formato: `http://192.168.X.X:3000`
+
+4. **Verifica el firewall:**
+   - Windows: Permite Next.js a través del firewall
+   - Mac: Verifica en Preferencias del Sistema → Seguridad
+
+5. **Asegúrate de estar en la misma red WiFi:**
+   - Tu PC y móvil deben estar en la misma red local
+
+6. **Reconstruye la app después de cambiar .env.local:**
+   ```bash
+   npm run build
+   npm start
+   ```
 
 ### El Service Worker no se registra
 
