@@ -1,196 +1,112 @@
 const PostService = require('../services/postService');
-const { uploadPostImage, uploadPostVideo } = require('../config/cloudinary');
-const { getPopularPosts, invalidateCache } = require('../config/performanceOptimization');
-const taskQueue = require('../utils/taskQueue');
+const MediaService = require('../services/mediaService');
 
 class PostController {
-  // Subir imagen o video para post
-  // Subir media para post (COMPLETAMENTE NO BLOQUEANTE CON TASK QUEUE)
+  // Subir media para post
   static async uploadPostMedia(req, res, next) {
-    // Usar setImmediate para evitar bloquear el event loop
-    setImmediate(async () => {
-      try {
-        if (!req.file) {
-          return res.status(400).json({
-            success: false,
-            message: 'Se requiere un archivo de imagen o video',
-            debug: {
-              bodyKeys: Object.keys(req.body),
-              files: req.files,
-              file: req.file,
-              contentType: req.headers['content-type']
-            }
-          });
-        }
+    try {
+      const result = await MediaService.uploadPostMedia(
+        req.file.buffer,
+        req.user.id,
+        req.file.mimetype
+      );
 
-        // Generar ID único para el post
-        const postId = Date.now().toString();
-        
-        const isVideo = req.file.mimetype.startsWith('video/');
-        
-        // Usar task queue para operaciones pesadas de Cloudinary
-        const uploadTask = async () => {
-          let result;
-          if (isVideo) {
-            // Subir video a Cloudinary
-            result = await uploadPostVideo(
-              req.file.buffer,
-              req.user.id,
-              postId,
-              req.file.mimetype
-            );
-          } else {
-            // Subir imagen a Cloudinary
-            result = await uploadPostImage(
-              req.file.buffer,
-              req.user.id,
-              postId
-            );
-          }
-          return result;
-        };
-
-        // Procesar upload en task queue con prioridad alta
-        const result = await taskQueue.add(uploadTask, 'high');
-
-        res.status(200).json({
-          success: true,
-          message: isVideo ? 'Video subido exitosamente' : 'Imagen subida exitosamente',
-          data: {
-            url: result.url,
-            publicId: result.publicId,
-            thumbnailUrl: result.thumbnailUrl || null,
-            type: isVideo ? 'video' : 'image'
-          }
-        });
-      } catch (error) {
-        next(error);
-      }
-    });
+      res.status(200).json({
+        success: true,
+        message: result.type === 'video' ? 'Video subido exitosamente' : 'Imagen subida exitosamente',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   // Crear nueva publicación
-  // Crear nueva publicación (NO BLOQUEANTE)
   static async createPost(req, res, next) {
-    // Usar setImmediate para evitar bloquear el event loop
-    setImmediate(async () => {
-      try {
-        const { 
-          imageUrl, 
-          cloudinaryPublicId, 
-          description, 
-          hashtags, 
-          type, 
-          thumbnailUrl 
-        } = req.body;
+    try {
+      const { 
+        imageUrl, 
+        cloudinaryPublicId, 
+        description, 
+        hashtags, 
+        type, 
+        thumbnailUrl 
+      } = req.body;
 
-        if (!imageUrl || !cloudinaryPublicId) {
-          return res.status(400).json({
-            success: false,
-            message: 'Se requiere la URL del media y el ID de Cloudinary'
-          });
-        }
-
-        // Usar task queue para operaciones de base de datos
-        const post = await taskQueue.add(async () => {
-          return await PostService.createPost(
-            req.user.id,
-            {
-              description,
-              hashtags,
-              type,
-              thumbnailUrl
-            },
-            imageUrl,
-            cloudinaryPublicId
-          );
-        }, 'high');
-
-        // Invalidar caché de posts populares
-        invalidateCache('popular_posts');
-
-        res.status(201).json({
-          success: true,
-          message: 'Publicación creada exitosamente',
-          data: { post }
+      if (!imageUrl || !cloudinaryPublicId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Se requiere la URL del media y el ID de Cloudinary',
+          error: 'MISSING_REQUIRED_FIELDS'
         });
-      } catch (error) {
-        next(error);
       }
-    });
+
+      const post = await PostService.createPost(
+        req.user.id,
+        {
+          description,
+          hashtags,
+          type,
+          thumbnailUrl
+        },
+        imageUrl,
+        cloudinaryPublicId
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Publicación creada exitosamente',
+        data: { post }
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   // Obtener feed de publicaciones
-  // Obtener feed de publicaciones (NO BLOQUEANTE)
   static async getFeed(req, res, next) {
-    // Usar setImmediate para evitar bloquear el event loop
-    setImmediate(async () => {
-      try {
-        // Agregar userId si hay usuario autenticado
-        const options = { ...req.query };
-        if (req.user) {
-          options.userId = req.user.id;
-        }
-        
-        // Si es una consulta de posts populares sin filtros específicos, usar caché
-        if (!options.userId && !options.search && !options.type && !options.style) {
-          const limit = parseInt(options.limit) || 15; // Reducir límite por defecto
-          const cachedPosts = await getPopularPosts(limit);
-          
-          if (cachedPosts && cachedPosts.length > 0) {
-            return res.status(200).json({
-              success: true,
-              message: 'Feed obtenido exitosamente (desde caché)',
-              data: {
-                posts: cachedPosts,
-                total: cachedPosts.length,
-                hasMore: cachedPosts.length === limit
-              }
-            });
-          }
-        }
-        
-        const result = await PostService.getFeedWithWorkers(options);
-        
-        // Los posts ya están transformados en el servicio
-        res.status(200).json({
-          success: true,
-          message: 'Feed obtenido exitosamente',
-          data: result
-        });
-      } catch (error) {
-        next(error);
+    try {
+      const options = { ...req.query };
+      if (req.user) {
+        options.userId = req.user.id;
       }
-    });
+      
+      const result = await PostService.getFeedWithCache(options);
+      
+      res.status(200).json({
+        success: true,
+        message: result.fromCache ? 'Feed obtenido exitosamente (desde caché)' : 'Feed obtenido exitosamente',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
-  // Obtener publicación por ID (NO BLOQUEANTE)
+  // Obtener publicación por ID
   static async getPostById(req, res, next) {
-    // Usar setImmediate para evitar bloquear el event loop
-    setImmediate(async () => {
-      try {
-        const { id } = req.params;
-        const userId = req.user?.id || null;
-        
-        const post = await PostService.getPostById(id, userId);
-        
-        if (!post) {
-          return res.status(404).json({
-            success: false,
-            message: 'Publicación no encontrada'
-          });
-        }
-        
-        // El post ya está transformado en el servicio
-        res.status(200).json({
-          success: true,
-          message: 'Publicación obtenida exitosamente',
-          data: { post }
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || null;
+      
+      const post = await PostService.getPostById(id, userId);
+      
+      if (!post) {
+        return res.status(404).json({
+          success: false,
+          message: 'Publicación no encontrada',
+          error: 'POST_NOT_FOUND'
         });
-      } catch (error) {
-        next(error);
       }
-    });
+      
+      res.status(200).json({
+        success: true,
+        message: 'Publicación obtenida exitosamente',
+        data: { post }
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   // Dar like a una publicación
@@ -210,23 +126,6 @@ class PostController {
         }
       });
     } catch (error) {
-      // Manejo específico para deadlocks
-      if (error.message.includes('Deadlock')) {
-        return res.status(409).json({
-          success: false,
-          message: 'Error temporal al procesar el like. Por favor, inténtalo de nuevo.',
-          error: 'DEADLOCK_DETECTED'
-        });
-      }
-      
-      // Otros errores
-      if (error.message.includes('Publicación no encontrada')) {
-        return res.status(404).json({
-          success: false,
-          message: 'La publicación no existe'
-        });
-      }
-      
       next(error);
     }
   }
@@ -235,20 +134,16 @@ class PostController {
   static async getLikeInfo(req, res, next) {
     try {
       const { id } = req.params;
-      const userId = req.user?.id; // Opcional, puede ser null si no está autenticado
+      const userId = req.user?.id;
       
-      console.log(`📡 getLikeInfo - postId: ${id}, userId: ${userId}, user:`, req.user);
-      
-      // Verificar que la publicación existe
       const post = await PostService.getPostById(id, userId);
       if (!post) {
         return res.status(404).json({
           success: false,
-          message: 'La publicación no existe'
+          message: 'La publicación no existe',
+          error: 'POST_NOT_FOUND'
         });
       }
-      
-      console.log(`📊 Post data:`, { likesCount: post.likesCount, isLiked: post.isLiked });
       
       res.status(200).json({
         success: true,
@@ -259,13 +154,6 @@ class PostController {
         }
       });
     } catch (error) {
-      if (error.message.includes('Publicación no encontrada')) {
-        return res.status(404).json({
-          success: false,
-          message: 'La publicación no existe'
-        });
-      }
-      
       next(error);
     }
   }
@@ -283,30 +171,6 @@ class PostController {
         data: result
       });
     } catch (error) {
-      // Manejo específico para deadlocks
-      if (error.message.includes('Deadlock')) {
-        return res.status(409).json({
-          success: false,
-          message: 'Error temporal al procesar el unlike. Por favor, inténtalo de nuevo.',
-          error: 'DEADLOCK_DETECTED'
-        });
-      }
-      
-      // Otros errores
-      if (error.message.includes('No has dado like')) {
-        return res.status(400).json({
-          success: false,
-          message: error.message
-        });
-      }
-      
-      if (error.message.includes('Publicación no encontrada')) {
-        return res.status(404).json({
-          success: false,
-          message: 'La publicación no existe'
-        });
-      }
-      
       next(error);
     }
   }
@@ -349,55 +213,47 @@ class PostController {
   }
 
   // Obtener publicaciones de un usuario
-  // Obtener publicaciones de un usuario específico (NO BLOQUEANTE)
+  // Obtener publicaciones de un usuario específico
   static async getUserPosts(req, res, next) {
-    // Usar setImmediate para evitar bloquear el event loop
-    setImmediate(async () => {
-      try {
-        const { userId } = req.params;
-        const options = {
-          ...req.query,
-          requesterId: req.user?.id || null,
-          limit: parseInt(req.query.limit) || 15 // Reducir límite por defecto
-        };
-        
-        const result = await PostService.getUserPosts(userId, options);
-        
-        // Los posts ya están transformados en el servicio
-        res.status(200).json({
-          success: true,
-          message: 'Publicaciones obtenidas exitosamente',
-          data: result
-        });
-      } catch (error) {
-        next(error);
-      }
-    });
+    try {
+      const { userId } = req.params;
+      const options = {
+        ...req.query,
+        requesterId: req.user?.id || null,
+        limit: parseInt(req.query.limit) || 15
+      };
+      
+      const result = await PostService.getUserPosts(userId, options);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Publicaciones obtenidas exitosamente',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
-  // Obtener publicaciones del usuario autenticado (NO BLOQUEANTE)
+  // Obtener publicaciones del usuario autenticado
   static async getMyPosts(req, res, next) {
-    // Usar setImmediate para evitar bloquear el event loop
-    setImmediate(async () => {
-      try {
-        const options = {
-          ...req.query,
-          requesterId: req.user.id,
-          limit: parseInt(req.query.limit) || 15 // Reducir límite por defecto
-        };
-        
-        const result = await PostService.getUserPosts(req.user.id, options);
+    try {
+      const options = {
+        ...req.query,
+        requesterId: req.user.id,
+        limit: parseInt(req.query.limit) || 15
+      };
       
-        // Los posts ya están transformados en el servicio
-        res.status(200).json({
-          success: true,
-          message: 'Publicaciones obtenidas exitosamente',
-          data: result
-        });
-      } catch (error) {
-        next(error);
-      }
-    });
+      const result = await PostService.getUserPosts(req.user.id, options);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Publicaciones obtenidas exitosamente',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   // Dar like a un comentario
@@ -466,7 +322,7 @@ class PostController {
     }
   }
 
-  // Obtener posts de usuarios seguidos (SIMPLIFICADO)
+  // Obtener posts de usuarios seguidos
   static async getFollowingPosts(req, res, next) {
     try {
       const userId = req.user.id;
@@ -474,12 +330,11 @@ class PostController {
       const limit = parseInt(req.query.limit) || 15;
       const offset = (page - 1) * limit;
 
-      console.log(`📡 Endpoint /api/posts/following llamado para usuario ${userId}`);
-
       const result = await PostService.getFollowingPosts(userId, page, limit, offset);
       
-      res.json({
+      res.status(200).json({
         success: true,
+        message: 'Posts de usuarios seguidos obtenidos exitosamente',
         data: {
           posts: result.posts,
           pagination: {
@@ -491,7 +346,6 @@ class PostController {
         }
       });
     } catch (error) {
-      console.error('❌ Error en getFollowingPosts:', error);
       next(error);
     }
   }

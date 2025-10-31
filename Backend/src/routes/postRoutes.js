@@ -2,6 +2,7 @@ const express = require('express');
 const PostController = require('../controllers/postController');
 const { verifyToken, optionalAuth } = require('../middlewares/auth');
 const { upload, handleMulterError } = require('../middlewares/upload');
+const { validateMediaUpload } = require('../middlewares/mediaValidation');
 const { 
   validateCreatePost, 
   validateComment, 
@@ -106,6 +107,7 @@ router.post('/upload',
   verifyToken,
   upload.single('image'),
   handleMulterError,
+  validateMediaUpload,
   PostController.uploadPostMedia
 );
 

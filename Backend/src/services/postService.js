@@ -2,8 +2,10 @@ const { Op } = require('sequelize');
 const { Post, User, Comment, Like, Follow } = require('../models');
 const { sequelize } = require('../config/db');
 const { deletePostImage, deletePostVideo } = require('../config/cloudinary');
-const { getCachedData, invalidateCache } = require('../config/performanceOptimization');
+const { getCachedData, invalidateCache, getPopularPosts } = require('../config/performanceOptimization');
 const taskQueue = require('../utils/taskQueue');
+const { NotFoundError, ForbiddenError } = require('../utils/errors');
+const logger = require('../utils/logger');
 
 class PostService {
   // Función helper para transformar posts al formato esperado por el frontend
@@ -82,11 +84,11 @@ class PostService {
     try {
       const post = await Post.create({
         userId,
-        title: postData.description?.substring(0, 255) || 'Nuevo tatuaje', // Usar descripción como título
+        title: postData.description?.substring(0, 255) || 'Nuevo tatuaje',
         description: postData.description || '',
         type: postData.type || 'image',
         mediaUrl,
-        thumbnailUrl: postData.thumbnailUrl || null, // Agregar thumbnail para videos
+        thumbnailUrl: postData.thumbnailUrl || null,
         cloudinaryPublicId,
         tags: postData.hashtags || [],
         style: postData.style || null,
@@ -94,16 +96,13 @@ class PostService {
         location: postData.location || null,
         isPremiumContent: postData.isPremiumContent || false,
         allowComments: postData.allowComments !== false,
-        // Inicializar explícitamente los contadores
         likesCount: 0,
         commentsCount: 0,
         viewsCount: 0,
         savesCount: 0,
-        // Asegurar que el estado sea correcto
         status: 'published',
         isPublic: true,
         isFeatured: false,
-        // Establecer fecha de publicación
         publishedAt: new Date()
       });
 
@@ -112,10 +111,46 @@ class PostService {
         where: { id: userId }
       });
 
+      // Invalidar caché de posts populares
+      invalidateCache('popular_posts');
+
       return post;
     } catch (error) {
+      logger.error('Error creando post', {
+        userId,
+        error: error.message
+      });
       throw error;
     }
+  }
+
+  // Obtener feed de publicaciones con caché
+  static async getFeedWithCache(options = {}) {
+    const { userId = null } = options;
+    
+    // Si es una consulta de posts populares sin filtros específicos, usar caché
+    if (!userId && !options.search && !options.type && !options.style) {
+      const limit = parseInt(options.limit) || 15;
+      try {
+        const cachedPosts = await getPopularPosts(limit);
+        
+        if (cachedPosts && cachedPosts.length > 0) {
+          // Transformar posts del caché al formato esperado
+          return {
+            posts: cachedPosts.map(post => this.transformPostForFrontendSync(post, userId)),
+            total: cachedPosts.length,
+            hasMore: cachedPosts.length === limit,
+            fromCache: true
+          };
+        }
+      } catch (error) {
+        logger.warn('Error obteniendo posts del caché', { error: error.message });
+        // Continuar con consulta normal si el caché falla
+      }
+    }
+    
+    // Consulta normal sin caché
+    return this.getFeed(options);
   }
 
   // Obtener feed de publicaciones
@@ -228,13 +263,12 @@ class PostService {
         // Agregar campos calculados directamente
         if (userId) {
           postData.isLiked = userLikes.has(post.id);
-          // isFollowing se puede calcular si es necesario, pero por ahora lo omitimos para rendimiento
         } else {
           postData.isLiked = false;
         }
         
         // Transformar al formato del frontend
-        return this.transformPostForFrontend(postData, userId);
+        return this.transformPostForFrontendSync(postData, userId);
       });
       
       return {
@@ -308,16 +342,12 @@ class PostService {
 
       // Verificar si el usuario actual le dio like (consulta separada pero rápida)
       let isLiked = false;
-      console.log(`🔍 Verificando like para postId: ${postId}, userId: ${userId}`);
       if (userId) {
         const userLike = await Like.findOne({
           where: { postId, userId },
           attributes: ['id']
         });
         isLiked = !!userLike;
-        console.log(`👤 Like encontrado: ${!!userLike}, isLiked: ${isLiked}`);
-      } else {
-        console.log('⚠️ No hay userId, isLiked será false');
       }
 
       // Construir respuesta optimizada usando los datos del include
@@ -781,12 +811,12 @@ class PostService {
       const post = await Post.findByPk(postId);
       
       if (!post) {
-        throw new Error('Publicación no encontrada');
+        throw new NotFoundError('Publicación no encontrada');
       }
 
       // Verificar que el usuario sea el dueño de la publicación
       if (post.userId !== userId) {
-        throw new Error('No tienes permisos para actualizar esta publicación');
+        throw new ForbiddenError('No tienes permisos para actualizar esta publicación');
       }
 
       // Actualizar solo los campos permitidos
@@ -825,12 +855,12 @@ class PostService {
       });
       
       if (!post) {
-        throw new Error('Publicación no encontrada');
+        throw new NotFoundError('Publicación no encontrada');
       }
 
       // Verificar permisos
       if (post.userId !== userId) {
-        throw new Error('No tienes permisos para eliminar esta publicación');
+        throw new ForbiddenError('No tienes permisos para eliminar esta publicación');
       }
 
       // OPTIMIZACIÓN 2: Guardar datos para procesamiento en background
@@ -853,14 +883,24 @@ class PostService {
       if (cloudinaryPublicId) {
         setImmediate(() => {
           this.deleteCloudinaryFile(cloudinaryPublicId, postType).catch(error => {
-
+            logger.warn('Error eliminando archivo de Cloudinary en background', {
+              publicId: cloudinaryPublicId,
+              error: error.message
+            });
           });
         });
       }
 
+      // Invalidar caché de posts populares
+      invalidateCache('popular_posts');
+
       return { message: 'Publicación eliminada exitosamente' };
     } catch (error) {
-      // Error silencioso - continuar
+      logger.error('Error eliminando publicación', {
+        userId,
+        postId,
+        error: error.message
+      });
       throw error;
     }
   }
@@ -880,17 +920,19 @@ class PostService {
       });
 
       await Promise.race([deletePromise, timeoutPromise]);
-
     } catch (error) {
-
+      logger.warn('Error eliminando archivo de Cloudinary', {
+        publicId: cloudinaryPublicId,
+        type: postType,
+        error: error.message
+      });
+      // No lanzar error, es operación en background
     }
   }
 
-  // Obtener posts de usuarios seguidos (SIMPLIFICADO SIN CACHE)
+  // Obtener posts de usuarios seguidos
   static async getFollowingPosts(userId, page, limit, offset) {
     try {
-      console.log(`🔍 Obteniendo posts para usuario ${userId}, página ${page}`);
-      
       // Obtener IDs de usuarios seguidos
       const followingUsers = await Follow.findAll({
         where: { followerId: userId },
@@ -898,10 +940,8 @@ class PostService {
       });
 
       const followingIds = followingUsers.map(follow => follow.followingId);
-      console.log(`📊 Usuarios seguidos encontrados: ${followingIds.length}`);
 
       if (followingIds.length === 0) {
-        console.log('📭 No hay usuarios seguidos, devolviendo array vacío');
         return {
           posts: [],
           total: 0,
@@ -935,9 +975,7 @@ class PostService {
         distinct: true
       });
 
-      console.log(`📝 Posts encontrados: ${posts.count}`);
-
-      // Obtener likes del usuario para todos los posts de una vez (OPTIMIZACIÓN)
+      // Obtener likes del usuario para todos los posts de una vez
       let userLikes = new Set();
       if (userId && posts.rows.length > 0) {
         const postIds = posts.rows.map(post => post.id);
@@ -977,7 +1015,12 @@ class PostService {
       };
 
     } catch (error) {
-      console.error('❌ Error obteniendo posts de usuarios seguidos:', error);
+      logger.error('Error obteniendo posts de usuarios seguidos', {
+        userId,
+        page,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }

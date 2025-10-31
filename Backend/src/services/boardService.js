@@ -595,6 +595,22 @@ class BoardService {
       throw error;
     }
   }
+
+  // Obtener categorías disponibles
+  static getCategories() {
+    return [
+      { id: 'traditional', name: 'Tradicional', description: 'Tatuajes tradicionales y old school' },
+      { id: 'realistic', name: 'Realista', description: 'Tatuajes fotorrealistas y retratos' },
+      { id: 'minimalist', name: 'Minimalista', description: 'Diseños simples y líneas finas' },
+      { id: 'geometric', name: 'Geométrico', description: 'Patrones y formas geométricas' },
+      { id: 'watercolor', name: 'Acuarela', description: 'Estilo acuarela y colores difuminados' },
+      { id: 'blackwork', name: 'Blackwork', description: 'Trabajo en negro sólido' },
+      { id: 'dotwork', name: 'Dotwork', description: 'Técnica de puntos y puntillismo' },
+      { id: 'tribal', name: 'Tribal', description: 'Diseños tribales y étnicos' },
+      { id: 'japanese', name: 'Japonés', description: 'Estilo tradicional japonés' },
+      { id: 'other', name: 'Otros', description: 'Otros estilos y categorías' }
+    ];
+  }
 }
 
 module.exports = BoardService;

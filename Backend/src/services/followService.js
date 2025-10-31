@@ -1,162 +1,132 @@
 const { User, Follow } = require('../models');
 const { sequelize } = require('../config/db');
 const cache = require('memory-cache');
+const { NotFoundError, BadRequestError, ConflictError } = require('../utils/errors');
+const logger = require('../utils/logger');
 
 class FollowService {
-  // Seguir usuario (COMPLETAMENTE NO BLOQUEANTE)
+  // Seguir usuario
   static async followUser(followerId, followingId) {
-    return new Promise((resolve) => {
-      // Usar setImmediate para evitar bloquear el event loop
-      setImmediate(async () => {
-        try {
-          console.log(`🔍 FollowService: Verificando seguimiento ${followerId} -> ${followingId}`);
-          
-          if (followerId === followingId) {
-            console.log(`❌ FollowService: Usuario intentando seguirse a sí mismo`);
-            setImmediate(() => {
-              resolve({ error: 'No puedes seguirte a ti mismo' });
-            });
-            return;
-          }
+    try {
+      logger.info('Verificando seguimiento', { followerId, followingId });
+      
+      if (followerId === followingId) {
+        throw new BadRequestError('No puedes seguirte a ti mismo');
+      }
 
-          // Verificar que el usuario a seguir existe
-          const userToFollow = await User.findByPk(followingId, {
-            attributes: ['id'],
-            limit: 1 // Optimización: solo necesitamos saber si existe
-          });
-          
-          if (!userToFollow) {
-            console.log(`❌ FollowService: Usuario a seguir no encontrado: ${followingId}`);
-            setImmediate(() => {
-              resolve({ error: 'Usuario no encontrado' });
-            });
-            return;
-          }
-
-          // Verificar si ya lo sigue
-          const existingFollow = await Follow.findOne({
-            where: { followerId, followingId },
-            attributes: ['id'],
-            limit: 1 // Optimización: solo necesitamos saber si existe
-          });
-
-          if (existingFollow) {
-            console.log(`❌ FollowService: Usuario ya está siendo seguido`);
-            setImmediate(() => {
-              resolve({ error: 'Ya sigues a este usuario' });
-            });
-            return;
-          }
-
-          // Crear la relación de seguimiento usando transacción
-          await sequelize.transaction(async (t) => {
-            await Follow.create({ followerId, followingId }, { transaction: t });
-
-            // Incrementar contadores de forma eficiente
-            await Promise.all([
-              User.increment('followersCount', {
-                where: { id: followingId },
-                transaction: t
-              }),
-              User.increment('followingCount', {
-                where: { id: followerId },
-                transaction: t
-              })
-            ]);
-          });
-
-          // OPTIMIZACIÓN: Invalidar cache de follows
-          this.invalidateFollowCache(followerId);
-
-          const result = { message: 'Usuario seguido exitosamente' };
-
-          // Usar setImmediate para la respuesta final
-          setImmediate(() => {
-            resolve(result);
-          });
-        } catch (error) {
-          // Error silencioso - devolver error
-          setImmediate(() => {
-            resolve({ error: error.message || 'Error al seguir usuario' });
-          });
-        }
+      // Verificar que el usuario a seguir existe
+      const userToFollow = await User.findByPk(followingId, {
+        attributes: ['id']
       });
-    });
+      
+      if (!userToFollow) {
+        throw new NotFoundError('Usuario no encontrado');
+      }
+
+      // Verificar si ya lo sigue
+      const existingFollow = await Follow.findOne({
+        where: { followerId, followingId },
+        attributes: ['id']
+      });
+
+      if (existingFollow) {
+        throw new ConflictError('Ya sigues a este usuario');
+      }
+
+      // Crear la relación de seguimiento usando transacción
+      await sequelize.transaction(async (t) => {
+        await Follow.create({ followerId, followingId }, { transaction: t });
+
+        // Incrementar contadores de forma eficiente
+        await Promise.all([
+          User.increment('followersCount', {
+            where: { id: followingId },
+            transaction: t
+          }),
+          User.increment('followingCount', {
+            where: { id: followerId },
+            transaction: t
+          })
+        ]);
+      });
+
+      // OPTIMIZACIÓN: Invalidar cache de follows
+      this.invalidateFollowCache(followerId);
+
+      logger.info('Usuario seguido exitosamente', { followerId, followingId });
+      
+      return { message: 'Usuario seguido exitosamente' };
+    } catch (error) {
+      logger.error('Error al seguir usuario', {
+        followerId,
+        followingId,
+        error: error.message
+      });
+      throw error;
+    }
   }
 
   // Dejar de seguir usuario
   static async unfollowUser(followerId, followingId) {
     try {
-      console.log(`🔍 FollowService: Intentando dejar de seguir ${followerId} -> ${followingId}`);
+      logger.info('Intentando dejar de seguir', { followerId, followingId });
       
       const follow = await Follow.findOne({
         where: { followerId, followingId }
       });
 
-      console.log(`📊 FollowService: Relación encontrada:`, follow ? 'Sí' : 'No');
-
       if (!follow) {
-        console.log(`❌ FollowService: No se encontró relación de seguimiento`);
-        throw new Error('No sigues a este usuario');
+        throw new NotFoundError('No sigues a este usuario');
       }
-
-      console.log(`✅ FollowService: Relación encontrada, eliminando...`);
 
       // Eliminar la relación de seguimiento
       await sequelize.transaction(async (t) => {
-        try {
-          await follow.destroy({ transaction: t });
-          console.log(`🗑️ FollowService: Relación eliminada de la base de datos`);
+        await follow.destroy({ transaction: t });
 
-          // Decrementar contadores
-          await User.decrement('followersCount', {
-            where: { id: followingId },
-            transaction: t
-          });
+        // Decrementar contadores
+        await User.decrement('followersCount', {
+          where: { id: followingId },
+          transaction: t
+        });
 
-          await User.decrement('followingCount', {
-            where: { id: followerId },
-            transaction: t
-          });
-          
-          console.log(`📉 FollowService: Contadores decrementados`);
-        } catch (transactionError) {
-          console.error(`❌ FollowService: Error en transacción:`, transactionError);
-          throw transactionError;
-        }
+        await User.decrement('followingCount', {
+          where: { id: followerId },
+          transaction: t
+        });
       });
 
       // OPTIMIZACIÓN: Invalidar cache de follows
       this.invalidateFollowCache(followerId);
-      console.log(`🧹 FollowService: Cache invalidado`);
 
-      console.log(`✅ FollowService: Usuario dejado de seguir exitosamente`);
+      logger.info('Usuario dejado de seguir exitosamente', { followerId, followingId });
+      
       return { message: 'Has dejado de seguir al usuario' };
     } catch (error) {
-      console.error(`❌ FollowService: Error en unfollowUser:`, error);
-      console.error(`❌ FollowService: Stack trace:`, error.stack);
-      console.error(`❌ FollowService: Error message:`, error.message);
+      logger.error('Error al dejar de seguir usuario', {
+        followerId,
+        followingId,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
 
-  // Verificar si sigues a un usuario específico (OPTIMIZADO)
+  // Verificar si sigues a un usuario específico
   static async checkFollowingStatus(followerId, followingId) {
     try {
-      console.log(`🔍 FollowService: Verificando seguimiento ${followerId} -> ${followingId}`);
-      
       const follow = await Follow.findOne({
         where: { followerId, followingId },
-        attributes: ['id'],
-        limit: 1
+        attributes: ['id']
       });
       
-      const isFollowing = !!follow;
-      console.log(`📊 FollowService: Resultado verificación: ${isFollowing}`);
-      
-      return isFollowing;
+      return !!follow;
     } catch (error) {
-      console.error('❌ FollowService: Error verificando estado de seguimiento:', error);
+      logger.error('Error verificando estado de seguimiento', {
+        followerId,
+        followingId,
+        error: error.message
+      });
       throw error;
     }
   }
@@ -164,35 +134,26 @@ class FollowService {
   // Obtener usuarios que sigues (ULTRA OPTIMIZADO CON CACHE)
   static async getFollowingUsers(userId) {
     try {
-      console.log(`🔍 FollowService: Obteniendo usuarios seguidos para ${userId}`);
-      
       // OPTIMIZACIÓN 1: Verificar cache primero
       const cacheKey = `following:${userId}`;
       const cachedData = cache.get(cacheKey);
       
       if (cachedData) {
-        console.log(`📊 FollowService: Datos encontrados en caché: ${cachedData.length} usuarios`);
+        logger.debug('Datos encontrados en caché', { userId, count: cachedData.length });
         return cachedData;
       }
 
-      console.log(`🔍 FollowService: Caché vacío, consultando base de datos...`);
-
-      // OPTIMIZACIÓN 2: Eliminar consulta innecesaria de verificación de usuario
-      // OPTIMIZACIÓN 3: Consulta optimizada con JOIN manual
+      // Consulta optimizada
       const follows = await Follow.findAll({
         where: { followerId: userId },
         attributes: ['followingId']
       });
 
-      console.log(`📊 FollowService: Follows encontrados en DB: ${follows.length}`);
-
       if (follows.length === 0) {
-        console.log(`📭 FollowService: No hay follows, devolviendo array vacío`);
         return [];
       }
 
       const followingIds = follows.map(follow => follow.followingId);
-      console.log(`📊 FollowService: IDs de usuarios seguidos:`, followingIds);
       
       // Obtener usuarios seguidos en una sola consulta
       const followingUsers = await User.findAll({
@@ -201,26 +162,27 @@ class FollowService {
         order: [['username', 'ASC']]
       });
 
-      console.log(`📊 FollowService: Usuarios encontrados: ${followingUsers.length}`);
-      console.log(`📊 FollowService: Usuarios seguidos:`, followingUsers.map(u => ({ id: u.id, username: u.username })));
-
       // OPTIMIZACIÓN 4: Guardar en cache
       cache.put(cacheKey, followingUsers, 300000); // 5 minutos en ms
-      console.log(`💾 FollowService: Datos guardados en caché`);
+
+      logger.info('Usuarios seguidos obtenidos', { userId, count: followingUsers.length });
 
       return followingUsers;
     } catch (error) {
-      console.error('Error obteniendo usuarios seguidos:', error);
+      logger.error('Error obteniendo usuarios seguidos', {
+        userId,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
 
-  // Invalidar cache de follows cuando se sigue/deja de seguir (OPTIMIZADO)
+  // Invalidar cache de follows cuando se sigue/deja de seguir
   static invalidateFollowCache(userId) {
     const keys = cache.keys();
     const targetKey = `following:${userId}`;
     
-    // OPTIMIZACIÓN: Usar for loop en lugar de filter para mejor rendimiento
     const userKeys = [];
     for (let i = 0; i < keys.length; i++) {
       if (keys[i].includes(targetKey)) {
@@ -228,8 +190,10 @@ class FollowService {
       }
     }
     
-    cache.del(userKeys);
-
+    if (userKeys.length > 0) {
+      cache.del(userKeys);
+      logger.debug('Cache de follows invalidado', { userId, keysCount: userKeys.length });
+    }
   }
 }
 

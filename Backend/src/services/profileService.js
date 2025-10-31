@@ -1,5 +1,6 @@
 const { User, Post, Follow } = require('../models');
 const { uploadAvatar: cloudinaryUploadAvatar, deleteAvatar } = require('../config/cloudinary');
+const logger = require('../utils/logger');
 
 class ProfileService {
 
@@ -97,7 +98,6 @@ class ProfileService {
         message: 'Avatar actualizado exitosamente'
       };
     } catch (error) {
-      console.error('Error en uploadAvatar:', error);
       throw error;
     }
   }

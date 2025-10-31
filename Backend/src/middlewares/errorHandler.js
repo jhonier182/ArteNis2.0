@@ -1,3 +1,6 @@
+const { AppError, DeadlockError } = require('../utils/errors');
+const logger = require('../utils/logger');
+
 // Middleware para manejar errores 404
 const notFound = (req, res, next) => {
   const error = new Error(`Ruta no encontrada - ${req.originalUrl}`);
@@ -9,12 +12,51 @@ const notFound = (req, res, next) => {
 const errorHandler = (err, req, res, next) => {
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   let message = err.message;
+  let errorCode = null;
+  let errors = null;
+
+  // Si es una instancia de AppError, usar sus propiedades
+  if (err instanceof AppError) {
+    statusCode = err.statusCode;
+    message = err.message;
+    errorCode = err.errorCode;
+    
+    // Si tiene errores adicionales (como ValidationError)
+    if (err.errors) {
+      errors = err.errors;
+    }
+
+    // Si es DeadlockError, agregar retryAfter
+    if (err instanceof DeadlockError) {
+      return res.status(statusCode).json({
+        success: false,
+        message,
+        error: errorCode,
+        retryAfter: err.retryAfter,
+        ...(process.env.NODE_ENV === 'development' && { 
+          stack: err.stack,
+          originalError: err.message 
+        })
+      });
+    }
+
+    // Respuesta para otros AppErrors
+    return res.status(statusCode).json({
+      success: false,
+      message,
+      error: errorCode,
+      ...(errors && { errors }),
+      ...(process.env.NODE_ENV === 'development' && { 
+        stack: err.stack 
+      })
+    });
+  }
 
   // Error de validación de Sequelize
   if (err.name === 'SequelizeValidationError') {
     statusCode = 400;
     message = 'Errores de validación';
-    const errors = err.errors.map(error => ({
+    errors = err.errors.map(error => ({
       field: error.path,
       message: error.message,
       value: error.value
@@ -23,6 +65,7 @@ const errorHandler = (err, req, res, next) => {
     return res.status(statusCode).json({
       success: false,
       message,
+      error: 'VALIDATION_ERROR',
       errors,
       ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
@@ -37,22 +80,19 @@ const errorHandler = (err, req, res, next) => {
     return res.status(statusCode).json({
       success: false,
       message: `${field} ya está en uso`,
+      error: 'UNIQUE_CONSTRAINT_ERROR',
       ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
   }
 
   // Error de deadlock de MySQL
   if (err.message && err.message.includes('Deadlock')) {
-    statusCode = 409;
-    message = 'Error temporal debido a alta concurrencia. Por favor, inténtalo de nuevo.';
-    
-
-    
-    return res.status(statusCode).json({
+    const deadlockError = new DeadlockError();
+    return res.status(deadlockError.statusCode).json({
       success: false,
-      message,
-      error: 'DEADLOCK_DETECTED',
-      retryAfter: 1, // Sugerir reintento después de 1 segundo
+      message: deadlockError.message,
+      error: deadlockError.errorCode,
+      retryAfter: deadlockError.retryAfter,
       ...(process.env.NODE_ENV === 'development' && { 
         stack: err.stack,
         originalError: err.message 
@@ -64,33 +104,35 @@ const errorHandler = (err, req, res, next) => {
   if (err.name === 'JsonWebTokenError') {
     statusCode = 401;
     message = 'Token inválido';
+    errorCode = 'INVALID_TOKEN';
   }
 
   if (err.name === 'TokenExpiredError') {
     statusCode = 401;
     message = 'Token expirado';
+    errorCode = 'TOKEN_EXPIRED';
   }
+
+  // Log del error
+  logger.error('Error no manejado', {
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    user: req.user?.id || 'No autenticado',
+    statusCode
+  });
 
   // Respuesta de error
   const errorResponse = {
     success: false,
     message,
+    ...(errorCode && { error: errorCode }),
     ...(process.env.NODE_ENV === 'development' && { 
       stack: err.stack,
       originalError: err.name 
     })
   };
-
-  // Log del error en desarrollo
-  if (process.env.NODE_ENV === 'development') {
-    console.error('🚨 Error:', {
-      message: err.message,
-      stack: err.stack,
-      url: req.url,
-      method: req.method,
-      user: req.user?.id || 'No autenticado'
-    });
-  }
 
   res.status(statusCode).json(errorResponse);
 };
