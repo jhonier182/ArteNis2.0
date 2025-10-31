@@ -1288,7 +1288,8 @@ responses(res).ok('Operación exitosa', result);
 
 **Prioridad**: 🔴 Alta
 
-**Estado Actual**: 
+**Estado Actual**:
+
 - ✅ Servicios y hooks base creados (3/5 tareas completadas)
 - ⚠️ Pendiente integración en componentes (2/5 tareas pendientes)
 
