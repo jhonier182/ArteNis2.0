@@ -179,7 +179,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const updateProfile = async (userData: Partial<User>) => {
     try {
-      const response = await apiClient.put('/api/auth/profile', userData);
+      const response = await apiClient.put('/api/profile/me', userData);
       
       if (response.data.success) {
         setUser(prev => prev ? { ...prev, ...userData } : null);

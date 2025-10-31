@@ -66,7 +66,7 @@ export const userService = {
   // Obtener perfil de usuario por ID
   async getUserById(id: string): Promise<{ success: boolean; data: { user: UserProfile } }> {
     try {
-      const response = await api.get<{ success: boolean; data: { user: UserProfile } }>(`/api/users/${id}`);
+      const response = await api.get<{ success: boolean; data: { user: UserProfile } }>(`/api/profile/${id}`);
       return response;
     } catch (error: any) {
       console.error('Error obteniendo usuario:', error);
@@ -74,11 +74,16 @@ export const userService = {
     }
   },
 
-  // Obtener perfil de usuario por username
+  // Obtener perfil de usuario por username (endpoint no disponible actualmente)
   async getUserByUsername(username: string): Promise<{ success: boolean; data: { user: UserProfile } }> {
     try {
-      const response = await api.get<{ success: boolean; data: { user: UserProfile } }>(`/api/users/username/${username}`);
-      return response;
+      // Usar búsqueda como alternativa temporal
+      const response = await api.get<{ success: boolean; data: { users: UserProfile[] } }>(`/api/search/users?q=${encodeURIComponent(username)}`);
+      const user = response.data.users?.find(u => u.username === username);
+      if (!user) {
+        throw new Error('Usuario no encontrado');
+      }
+      return { success: true, data: { user } };
     } catch (error: any) {
       console.error('Error obteniendo usuario por username:', error);
       throw error;
@@ -88,7 +93,7 @@ export const userService = {
   // Actualizar perfil de usuario
   async updateProfile(userData: Partial<UserProfile>): Promise<{ success: boolean; message: string; data: { user: UserProfile } }> {
     try {
-      const response = await api.put<{ success: boolean; message: string; data: { user: UserProfile } }>('/api/users/profile', userData);
+      const response = await api.put<{ success: boolean; message: string; data: { user: UserProfile } }>('/api/profile/me', userData);
       return response;
     } catch (error: any) {
       console.error('Error actualizando perfil:', error);
@@ -99,7 +104,7 @@ export const userService = {
   // Seguir a un usuario
   async followUser(userId: string): Promise<{ success: boolean; message: string; data: { following: boolean; followersCount: number } }> {
     try {
-      const response = await api.post<{ success: boolean; message: string; data: { following: boolean; followersCount: number } }>(`/api/users/${userId}/follow`);
+      const response = await api.post<{ success: boolean; message: string; data: { following: boolean; followersCount: number } }>('/api/follow', { userId });
       return response;
     } catch (error: any) {
       console.error('Error siguiendo usuario:', error);
@@ -110,7 +115,7 @@ export const userService = {
   // Dejar de seguir a un usuario
   async unfollowUser(userId: string): Promise<{ success: boolean; message: string; data: { following: boolean; followersCount: number } }> {
     try {
-      const response = await api.delete<{ success: boolean; message: string; data: { following: boolean; followersCount: number } }>(`/api/users/${userId}/follow`);
+      const response = await api.delete<{ success: boolean; message: string; data: { following: boolean; followersCount: number } }>(`/api/follow/${userId}`);
       return response;
     } catch (error: any) {
       console.error('Error dejando de seguir usuario:', error);
@@ -118,11 +123,19 @@ export const userService = {
     }
   },
 
-  // Toggle follow/unfollow
+  // Toggle follow/unfollow (usando endpoint de verificación de estado)
   async toggleFollow(userId: string): Promise<{ success: boolean; message: string; data: { following: boolean; followersCount: number } }> {
     try {
-      const response = await api.post<{ success: boolean; message: string; data: { following: boolean; followersCount: number } }>(`/api/users/${userId}/toggle-follow`);
-      return response;
+      // Primero verificar si ya está siguiendo
+      const statusResponse = await api.get<{ success: boolean; data: { isFollowing: boolean } }>(`/api/follow/status/${userId}`);
+      const isFollowing = statusResponse.data.isFollowing;
+      
+      // Hacer follow o unfollow según el estado actual
+      if (isFollowing) {
+        return this.unfollowUser(userId);
+      } else {
+        return this.followUser(userId);
+      }
     } catch (error: any) {
       console.error('Error toggleando follow:', error);
       throw error;
@@ -130,31 +143,37 @@ export const userService = {
   },
 
   // Obtener seguidores de un usuario
+  // NOTA: Este endpoint no existe en el backend actual (Fase 2 - Media Prioridad)
+  // El backend no tiene `/api/users/:userId/followers` o `/api/profile/:userId/followers`
   async getFollowers(userId: string, page: number = 1, limit: number = 20): Promise<UsersResponse> {
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString()
-      });
-
-      const response = await api.get<UsersResponse>(`/api/users/${userId}/followers?${params}`);
-      return response;
-    } catch (error: any) {
-      console.error('Error obteniendo seguidores:', error);
-      throw error;
-    }
+    throw new Error('Endpoint de seguidores no implementado en el backend. Pendiente implementación en Fase 2.');
   },
 
   // Obtener usuarios seguidos
+  // NOTA: El endpoint `/api/follow/following` solo retorna usuarios seguidos del usuario autenticado
+  // Si se requiere obtener usuarios seguidos de otro usuario, el endpoint no existe (Fase 2)
   async getFollowing(userId: string, page: number = 1, limit: number = 20): Promise<UsersResponse> {
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString()
-      });
-
-      const response = await api.get<UsersResponse>(`/api/users/${userId}/following?${params}`);
-      return response;
+      // El backend solo soporta obtener following del usuario autenticado
+      // Si userId es diferente, no hay endpoint disponible actualmente
+      const response = await api.get<{ success: boolean; data: { followingUsers: User[] } }>('/api/follow/following');
+      if (response.success && response.data.followingUsers) {
+        return {
+          success: true,
+          data: {
+            users: response.data.followingUsers,
+            pagination: {
+              page: 1,
+              limit: response.data.followingUsers.length,
+              total: response.data.followingUsers.length,
+              totalPages: 1,
+              hasNext: false,
+              hasPrev: false
+            }
+          }
+        };
+      }
+      throw new Error('No se pudieron obtener los usuarios seguidos');
     } catch (error: any) {
       console.error('Error obteniendo seguidos:', error);
       throw error;
@@ -162,17 +181,42 @@ export const userService = {
   },
 
   // Buscar usuarios
+  // Endpoint: GET /api/search/users?q=query&limit=limit
   async searchUsers(query: string, page: number = 1, limit: number = 20, userType?: string): Promise<UsersResponse> {
     try {
+      if (!query || query.trim().length < 2) {
+        throw new Error('La búsqueda debe tener al menos 2 caracteres');
+      }
+
       const params = new URLSearchParams({
-        q: query,
-        page: page.toString(),
+        q: query.trim(),
         limit: limit.toString(),
         ...(userType && { userType })
       });
 
-      const response = await api.get<UsersResponse>(`/api/users/search?${params}`);
-      return response;
+      // El backend retorna: { success: true, data: { users: [...], total: number, query: string } }
+      const response = await api.get<{ success: boolean; data: { users: User[]; total: number; query: string } }>(`/api/search/users?${params}`);
+      
+      if (response.success && response.data) {
+        const users = response.data.users || [];
+        const total = response.data.total || users.length;
+        
+        return {
+          success: true,
+          data: {
+            users,
+            pagination: {
+              page: 1, // El backend no soporta paginación por página, solo limit
+              limit: users.length,
+              total,
+              totalPages: Math.ceil(total / limit),
+              hasNext: users.length === limit && total > limit,
+              hasPrev: false
+            }
+          }
+        };
+      }
+      throw new Error('Error en la búsqueda');
     } catch (error: any) {
       console.error('Error buscando usuarios:', error);
       throw error;
@@ -180,21 +224,23 @@ export const userService = {
   },
 
   // Obtener usuarios sugeridos
+  // NOTA: Este endpoint no existe en el backend actual (Fase 2 - Media Prioridad)
+  // No existe `/api/users/suggested` en el backend
   async getSuggestedUsers(limit: number = 10): Promise<{ success: boolean; data: { users: User[] } }> {
-    try {
-      const response = await api.get<{ success: boolean; data: { users: User[] } }>(`/api/users/suggested?limit=${limit}`);
-      return response;
-    } catch (error: any) {
-      console.error('Error obteniendo usuarios sugeridos:', error);
-      throw error;
-    }
+    throw new Error('Endpoint de usuarios sugeridos no implementado en el backend. Pendiente implementación en Fase 2.');
   },
 
   // Obtener usuarios populares
+  // NOTA: Este endpoint no existe, pero se usa `/api/search/trending` como workaround
   async getPopularUsers(limit: number = 10): Promise<{ success: boolean; data: { users: User[] } }> {
     try {
-      const response = await api.get<{ success: boolean; data: { users: User[] } }>(`/api/users/popular?limit=${limit}`);
-      return response;
+      // Workaround: Usar búsqueda de trending como alternativa
+      // El endpoint ideal `/api/users/popular` no existe en el backend
+      const response = await api.get<{ success: boolean; data: { artists?: User[] } }>(`/api/search/trending?limit=${limit}`);
+      if (response.success && response.data.artists) {
+        return { success: true, data: { users: response.data.artists } };
+      }
+      throw new Error('No se pudieron obtener usuarios populares');
     } catch (error: any) {
       console.error('Error obteniendo usuarios populares:', error);
       throw error;
@@ -202,61 +248,37 @@ export const userService = {
   },
 
   // Reportar usuario
+  // NOTA: Este endpoint no existe en el backend actual (Fase 2 - Baja Prioridad)
+  // No existe `/api/users/:userId/report` en el backend
   async reportUser(userId: string, reason: string, description?: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await api.post<{ success: boolean; message: string }>(`/api/users/${userId}/report`, {
-        reason,
-        description
-      });
-      return response;
-    } catch (error: any) {
-      console.error('Error reportando usuario:', error);
-      throw error;
-    }
+    throw new Error('Endpoint de reportar usuario no implementado en el backend. Pendiente implementación en Fase 2.');
   },
 
   // Bloquear usuario
+  // NOTA: Este endpoint no existe en el backend actual (Fase 2 - Baja Prioridad)
+  // No existe `/api/users/:userId/block` en el backend
   async blockUser(userId: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await api.post<{ success: boolean; message: string }>(`/api/users/${userId}/block`);
-      return response;
-    } catch (error: any) {
-      console.error('Error bloqueando usuario:', error);
-      throw error;
-    }
+    throw new Error('Endpoint de bloquear usuario no implementado en el backend. Pendiente implementación en Fase 2.');
   },
 
   // Desbloquear usuario
+  // NOTA: Este endpoint no existe en el backend actual (Fase 2 - Baja Prioridad)
+  // No existe `/api/users/:userId/block` (DELETE) en el backend
   async unblockUser(userId: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await api.delete<{ success: boolean; message: string }>(`/api/users/${userId}/block`);
-      return response;
-    } catch (error: any) {
-      console.error('Error desbloqueando usuario:', error);
-      throw error;
-    }
+    throw new Error('Endpoint de desbloquear usuario no implementado en el backend. Pendiente implementación en Fase 2.');
   },
 
   // Obtener usuarios bloqueados
+  // NOTA: Este endpoint no existe en el backend actual (Fase 2 - Baja Prioridad)
+  // No existe `/api/users/blocked` en el backend
   async getBlockedUsers(page: number = 1, limit: number = 20): Promise<UsersResponse> {
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString()
-      });
-
-      const response = await api.get<UsersResponse>(`/api/users/blocked?${params}`);
-      return response;
-    } catch (error: any) {
-      console.error('Error obteniendo usuarios bloqueados:', error);
-      throw error;
-    }
+    throw new Error('Endpoint de usuarios bloqueados no implementado en el backend. Pendiente implementación en Fase 2.');
   },
 
   // Verificar si un usuario está siendo seguido
   async isFollowing(userId: string): Promise<{ success: boolean; data: { isFollowing: boolean } }> {
     try {
-      const response = await api.get<{ success: boolean; data: { isFollowing: boolean } }>(`/api/users/${userId}/is-following`);
+      const response = await api.get<{ success: boolean; data: { isFollowing: boolean } }>(`/api/follow/status/${userId}`);
       return response;
     } catch (error: any) {
       console.error('Error verificando follow:', error);
@@ -265,6 +287,9 @@ export const userService = {
   },
 
   // Obtener estadísticas del usuario
+  // NOTA: El endpoint `/api/users/:userId/stats` no existe, pero se obtienen datos parciales del perfil
+  // Workaround: Usar `getUserById()` que retorna postsCount, followersCount, followingCount
+  // likesReceived y viewsReceived no están disponibles en el perfil actual
   async getUserStats(userId: string): Promise<{ 
     success: boolean; 
     data: { 
@@ -276,17 +301,22 @@ export const userService = {
     } 
   }> {
     try {
-      const response = await api.get<{ 
-        success: boolean; 
-        data: { 
-          postsCount: number;
-          followersCount: number;
-          followingCount: number;
-          likesReceived: number;
-          viewsReceived: number;
-        } 
-      }>(`/api/users/${userId}/stats`);
-      return response;
+      // Workaround: Obtener perfil que contiene algunos de estos datos
+      const profileResponse = await this.getUserById(userId);
+      if (profileResponse.success && profileResponse.data.user) {
+        const user = profileResponse.data.user;
+        return {
+          success: true,
+          data: {
+            postsCount: user.postsCount || 0,
+            followersCount: user.followersCount || 0,
+            followingCount: user.followingCount || 0,
+            likesReceived: 0, // No disponible en el perfil actual - Requiere endpoint específico
+            viewsReceived: 0 // No disponible en el perfil actual - Requiere endpoint específico
+          }
+        };
+      }
+      throw new Error('No se pudo obtener el perfil del usuario');
     } catch (error: any) {
       console.error('Error obteniendo estadísticas:', error);
       throw error;

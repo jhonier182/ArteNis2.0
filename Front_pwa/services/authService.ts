@@ -90,7 +90,7 @@ export const authService = {
   // Actualizar perfil
   async updateProfile(userData: Partial<UserProfile>): Promise<{ success: boolean; message: string; data?: { user: UserProfile } }> {
     try {
-      const response = await api.put<{ success: boolean; message: string; data?: { user: UserProfile } }>('/api/auth/profile', userData);
+      const response = await api.put<{ success: boolean; message: string; data?: { user: UserProfile } }>('/api/profile/me', userData);
       return response;
     } catch (error: any) {
       console.error('Error actualizando perfil:', error);
@@ -188,9 +188,11 @@ export const authService = {
   },
 
   // Cerrar sesión en otros dispositivos
-  async logoutOtherSessions(): Promise<{ success: boolean; message: string }> {
+  async logoutOtherSessions(refreshToken?: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await api.post<{ success: boolean; message: string }>('/api/auth/logout-others');
+      const response = await api.post<{ success: boolean; message: string }>('/api/auth/logout-others', {
+        refreshToken: refreshToken || localStorage.getItem('refreshToken')
+      });
       return response;
     } catch (error: any) {
       console.error('Error cerrando otras sesiones:', error);

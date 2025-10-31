@@ -9,6 +9,7 @@ const BoardPost = require('./BoardPost');
 const BoardCollaborator = require('./BoardCollaborator');
 const BoardFollow = require('./BoardFollow');
 const RefreshToken = require('./RefreshToken');
+const Token = require('./Token');
 
 // Establecer asociaciones entre modelos
 const setupAssociations = () => {
@@ -208,6 +209,19 @@ const setupAssociations = () => {
     as: 'user',
     onDelete: 'CASCADE'
   });
+
+  // Asociaciones de Token
+  User.hasMany(Token, {
+    foreignKey: 'userId',
+    as: 'tokens',
+    onDelete: 'CASCADE'
+  });
+
+  Token.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user',
+    onDelete: 'CASCADE'
+  });
 };
 
 // Exportar modelos y función de configuración
@@ -222,5 +236,6 @@ module.exports = {
   BoardCollaborator,
   BoardFollow,
   RefreshToken,
+  Token,
   setupAssociations
 };
