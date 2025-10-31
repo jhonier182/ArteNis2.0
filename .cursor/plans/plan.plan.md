@@ -757,12 +757,25 @@ Tests
     - ✅ Manejo de errores consistente con clases de error personalizadas
     - ✅ Logging estructurado con Winston
     - ✅ Código limpio y mantenible
+    - **Refactorización adicional completada (Fase 2)**:
+        - ✅ Movido `taskQueue` de `profileController` a `profileService`
+        - ✅ Movido `processVoiceQuery` y `advancedSearch` de `searchController` a `searchService`
+        - ✅ Movida lógica de paginación de `postController` a `postService`
+        - ✅ Movido `getLikeInfo` completo a `postService`
+        - ✅ Movidas validaciones de `postController` a `postService` (métodos `validateCreatePostData`, `validateUpdatePostData`)
+        - ✅ Movido `buildFeedOptions` a `postService`
+        - ✅ Movido `buildRegisterPayload` de `authController` a `authService`
+        - ✅ Movida validación de coordenadas de `searchController` a `searchService.findNearbyArtists`
+        - ✅ Movido `formatUserSearchResults` a `searchService`
     - **Archivos creados/modificados**:
         - `Backend/src/utils/errors.js` (nuevo) - Clases de error personalizadas
         - `Backend/src/services/mediaService.js` (nuevo) - Lógica de upload centralizada
         - `Backend/src/middlewares/mediaValidation.js` (nuevo) - Validación de media
-        - Todos los servicios refactorizados para lanzar excepciones en lugar de retornar errores
-        - Todos los controladores simplificados
+        - `Backend/src/services/postService.js` - Agregados métodos de validación y helpers
+        - `Backend/src/services/searchService.js` - Agregados métodos de procesamiento y validación
+        - `Backend/src/services/profileService.js` - Agregado uso de taskQueue
+        - `Backend/src/services/authService.js` - Agregado método buildRegisterPayload
+        - Todos los controladores simplificados (más delgados)
 
 3. ✅ **COMPLETADO** - Estandarizar Respuestas API
 
@@ -1044,10 +1057,10 @@ responses(res).ok('Operación exitosa', result);
 
 #### Fase 2 - Importante (Semana 3-4)
 
-5. ✅ Refactorizar controladores para usar `apiResponse` helper
-6. ✅ Consolidar código duplicado en transformaciones
-7. ✅ Mejorar manejo de errores en frontend
-8. ⚠️ Validación completa de inputs
+5. ✅ **COMPLETADO** - Refactorizar controladores para usar `apiResponse` helper
+6. ✅ **COMPLETADO** - Consolidar código duplicado en transformaciones
+7. ✅ **COMPLETADO** - Mover lógica compleja de controladores a servicios (refactorización completa)
+8. ⚠️ Validación completa de inputs (mayoría movida a servicios)
 
 #### Fase 3 - Mejoras (Semana 5-6)
 
@@ -1280,9 +1293,10 @@ El proyecto **ArteNis 2.0** está en un estado funcional avanzado con:
 
 **Importante (Media Prioridad)**:
 
-- 🟡 Refactorizar controladores para usar helper `apiResponse` en respuestas exitosas
-- 🟡 Consolidar código duplicado en transformaciones
-- 🟡 Validación completa de inputs
+- ✅ **COMPLETADO** - Refactorizar controladores para usar helper `apiResponse` en respuestas exitosas
+- ✅ **COMPLETADO** - Consolidar código duplicado en transformaciones
+- ✅ **COMPLETADO** - Mover lógica compleja de controladores a servicios (refactorización profunda)
+- 🟡 Validación completa de inputs (mayoría movida a servicios)
 - 🟡 Mejorar manejo de errores en frontend
 
 **Mejoras (Baja Prioridad)**:

@@ -34,10 +34,6 @@ class PostController {
         thumbnailUrl 
       } = req.body;
 
-      if (!imageUrl || !cloudinaryPublicId) {
-        return responses.badRequest(res, 'Se requiere la URL del media y el ID de Cloudinary', 'MISSING_REQUIRED_FIELDS');
-      }
-
       const post = await PostService.createPost(
         req.user.id,
         {
@@ -63,11 +59,7 @@ class PostController {
   // Obtener feed de publicaciones
   static async getFeed(req, res, next) {
     try {
-      const options = { ...req.query };
-      if (req.user) {
-        options.userId = req.user.id;
-      }
-      
+      const options = PostService.buildFeedOptions(req.query, req.user?.id);
       const result = await PostService.getFeedWithCache(options);
       
       res.status(200).json({
@@ -127,20 +119,17 @@ class PostController {
   static async getLikeInfo(req, res, next) {
     try {
       const { id } = req.params;
-      const userId = req.user?.id;
+      const userId = req.user?.id || null;
       
-      const post = await PostService.getPostById(id, userId);
-      if (!post) {
+      const likeInfo = await PostService.getLikeInfo(id, userId);
+      
+      if (!likeInfo) {
         return responses.notFound(res, 'La publicación no existe', 'POST_NOT_FOUND');
       }
       
       res.status(200).json({
         success: true,
-        data: {
-          likesCount: post.likesCount || 0,
-          isLiked: post.isLiked || false,
-          postId: id
-        }
+        data: likeInfo
       });
     } catch (error) {
       next(error);
@@ -268,10 +257,6 @@ class PostController {
       const { id } = req.params;
       const { description, hashtags } = req.body;
 
-      if (!description || !description.trim()) {
-        return responses.badRequest(res, 'Se requiere una descripción para la publicación', 'MISSING_REQUIRED_FIELDS');
-      }
-
       const result = await PostService.updatePost(
         req.user.id,
         id,
@@ -312,23 +297,19 @@ class PostController {
   static async getFollowingPosts(req, res, next) {
     try {
       const userId = req.user.id;
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 15;
-      const offset = (page - 1) * limit;
+      const options = {
+        page: parseInt(req.query.page) || 1,
+        limit: parseInt(req.query.limit) || 15
+      };
 
-      const result = await PostService.getFollowingPosts(userId, page, limit, offset);
+      const result = await PostService.getFollowingPosts(userId, options);
       
       res.status(200).json({
         success: true,
         message: 'Posts de usuarios seguidos obtenidos exitosamente',
         data: {
           posts: result.posts,
-          pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(result.total / limit),
-            totalPosts: result.total,
-            hasMore: page < Math.ceil(result.total / limit)
-          }
+          pagination: result.pagination
         }
       });
     } catch (error) {
@@ -365,6 +346,7 @@ class PostController {
 
       res.status(200).json({
         success: true,
+        message: 'Posts guardados obtenidos exitosamente',
         data: {
           posts: result.posts,
           pagination: result.pagination

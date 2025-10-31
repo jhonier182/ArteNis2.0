@@ -1,14 +1,10 @@
 const ProfileService = require('../services/profileService');
-const taskQueue = require('../utils/taskQueue');
 
 class ProfileController {
   // Obtener perfil del usuario autenticado
   static async getProfile(req, res, next) {
     try {
-      // Usar task queue para operaciones de base de datos
-      const user = await taskQueue.add(async () => {
-        return await ProfileService.getProfile(req.user.id);
-      }, 'normal');
+      const user = await ProfileService.getProfile(req.user.id);
       
       res.status(200).json({
         success: true,
@@ -26,10 +22,7 @@ class ProfileController {
       const { id } = req.params;
       const requesterId = req.user?.id || null;
       
-      // Usar task queue para operaciones de base de datos
-      const user = await taskQueue.add(async () => {
-        return await ProfileService.getUserById(id, requesterId);
-      }, 'normal');
+      const user = await ProfileService.getUserById(id, requesterId);
       
       res.status(200).json({
         success: true,

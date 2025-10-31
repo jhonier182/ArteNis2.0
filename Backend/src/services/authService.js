@@ -42,6 +42,15 @@ class AuthService {
     return baseUsername;
   }
 
+  // Construir payload de registro con metadata del request
+  static buildRegisterPayload(body, userAgent, ip) {
+    return {
+      ...body,
+      userAgent,
+      ip
+    };
+  }
+
   // Verificar si un username existe y generar uno único (NO BLOQUEANTE)
   static async generateUniqueUsername(fullName) {
     return new Promise((resolve) => {

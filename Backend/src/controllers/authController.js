@@ -5,7 +5,11 @@ class AuthController {
   // Registrar nuevo usuario
   static async register(req, res, next) {
     try {
-      const payload = { ...req.body, userAgent: req.headers['user-agent'], ip: req.ip };
+      const payload = AuthService.buildRegisterPayload(
+        req.body,
+        req.headers['user-agent'],
+        req.ip
+      );
       const result = await AuthService.register(payload);
       
       res.status(201).json({

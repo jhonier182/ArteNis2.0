@@ -4,7 +4,7 @@ const { sequelize } = require('../config/db');
 const { deletePostImage, deletePostVideo } = require('../config/cloudinary');
 const { getCachedData, invalidateCache, getPopularPosts } = require('../config/performanceOptimization');
 const taskQueue = require('../utils/taskQueue');
-const { NotFoundError, ForbiddenError } = require('../utils/errors');
+const { NotFoundError, ForbiddenError, BadRequestError } = require('../utils/errors');
 const logger = require('../utils/logger');
 
 class PostService {
@@ -80,9 +80,34 @@ class PostService {
     return posts.map(post => this.transformPostForFrontend(post));
   }
 
+  // Construir opciones para el feed
+  static buildFeedOptions(queryParams, userId = null) {
+    const options = { ...queryParams };
+    if (userId) {
+      options.userId = userId;
+    }
+    return options;
+  }
+
+  // Validar datos requeridos para crear post
+  static validateCreatePostData(imageUrl, cloudinaryPublicId) {
+    if (!imageUrl || !cloudinaryPublicId) {
+      throw new BadRequestError('Se requiere la URL del media y el ID de Cloudinary', 'MISSING_REQUIRED_FIELDS');
+    }
+  }
+
+  // Validar datos para actualizar post
+  static validateUpdatePostData(description) {
+    if (!description || !description.trim()) {
+      throw new BadRequestError('Se requiere una descripción para la publicación', 'MISSING_REQUIRED_FIELDS');
+    }
+  }
+
   // Crear nueva publicación
   static async createPost(userId, postData, mediaUrl, cloudinaryPublicId) {
     try {
+      this.validateCreatePostData(mediaUrl, cloudinaryPublicId);
+      
       const post = await Post.create({
         userId,
         title: postData.description?.substring(0, 255) || 'Nuevo tatuaje',
@@ -820,6 +845,8 @@ class PostService {
   // Actualizar publicación
   static async updatePost(userId, postId, updateData) {
     try {
+      this.validateUpdatePostData(updateData.description);
+      
       const post = await Post.findByPk(postId);
       
       if (!post) {
@@ -942,8 +969,11 @@ class PostService {
     }
   }
 
-  // Obtener posts de usuarios seguidos
-  static async getFollowingPosts(userId, page, limit, offset) {
+  // Obtener posts de usuarios seguidos con paginación
+  static async getFollowingPosts(userId, options = {}) {
+    const page = options.page || 1;
+    const limit = options.limit || 15;
+    const offset = (page - 1) * limit;
     try {
       // Obtener IDs de usuarios seguidos
       const followingUsers = await Follow.findAll({
@@ -1430,6 +1460,26 @@ class PostService {
     } catch (error) {
       logger.error('Error en isPostSaved:', error);
       return false;
+    }
+  }
+
+  // Obtener información de likes de una publicación
+  static async getLikeInfo(postId, userId = null) {
+    try {
+      const post = await this.getPostById(postId, userId);
+      
+      if (!post) {
+        return null;
+      }
+
+      return {
+        likesCount: post.likesCount || 0,
+        isLiked: post.isLiked || false,
+        postId
+      };
+    } catch (error) {
+      logger.error('Error obteniendo información de likes', { postId, userId, error: error.message });
+      throw error;
     }
   }
 }
