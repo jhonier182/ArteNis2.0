@@ -85,19 +85,23 @@ Backend/
 │   │   ├── boardService.js
 │   │   ├── profileService.js
 │   │   ├── followService.js
-│   │   └── searchService.js
+│   │   ├── searchService.js
+│   │   └── mediaService.js      # Servicio de upload de media (Cloudinary)
 │   ├── middlewares/
 │   │   ├── auth.js              # verifyToken, optionalAuth
 │   │   ├── validation.js        # Validaciones generales
 │   │   ├── boardValidation.js
 │   │   ├── searchValidation.js
+│   │   ├── mediaValidation.js   # Validación de archivos de media
 │   │   ├── upload.js            # Multer + Cloudinary
 │   │   ├── errorHandler.js
 │   │   ├── httpCache.js
 │   │   └── devRateLimit.js
 │   └── utils/
 │       ├── logger.js
-│       └── taskQueue.js
+│       ├── taskQueue.js
+│       ├── errors.js             # Clases de error personalizadas
+│       └── apiResponse.js        # Helper para respuestas estandarizadas
 ├── logs/
 ├── package.json
 └── scripts/
@@ -311,16 +315,19 @@ Front_pwa/
 
 **searchService.js**: Búsquedas globales, por tipo, trending, nearby, voz, avanzada
 
+**mediaService.js**: Upload y gestión de media (imágenes/videos) en Cloudinary, independiente de Express
+
 ### 3.4 Middlewares
 
 - **auth.js**: verifyToken (JWT), optionalAuth
 - **validation.js**: Validaciones generales (Joi/express-validator), sanitizeQuery
+- **mediaValidation.js**: Validación de archivos de media (MIME types, tamaño)
 - **boardValidation.js**: Validaciones específicas de boards
 - **searchValidation.js**: Validaciones de búsqueda
 - **upload.js**: Multer + Cloudinary para imágenes/videos
-- **errorHandler.js**: Manejo centralizado de errores
-- **httpCache.js**: Cache HTTP inteligente
-- **devRateLimit.js**: Rate limiting por entorno
+- **errorHandler.js**: Manejo centralizado de errores con clases personalizadas (`AppError` y subclases)
+- **httpCache.js**: Cache HTTP inteligente con invalidación automática
+- **devRateLimit.js**: Rate limiting por entorno (desarrollo/producción)
 
 ### 3.5 Configuración de Base de Datos
 
@@ -757,22 +764,300 @@ Tests
         - Todos los servicios refactorizados para lanzar excepciones en lugar de retornar errores
         - Todos los controladores simplificados
 
-3. **Estandarizar Respuestas API**
+3. ✅ **COMPLETADO** - Estandarizar Respuestas API
 
-    - Todas las respuestas deben seguir formato: `{ success, message?, data?, error? }`
-    - Códigos HTTP consistentes
+    - ✅ Todas las respuestas siguen formato: `{ success, message?, data?, error? }`
+    - ✅ Códigos HTTP consistentes (200, 201, 400, 401, 404, 409)
+    - ✅ Helper `apiResponse.js` creado para respuestas estandarizadas
+    - ✅ Todos los errores directos en controladores refactorizados para usar el helper
+    - ✅ Documentación creada: `Backend/docs/API_RESPONSE_STANDARDS.md`
+    - **Archivos modificados**:
+        - `Backend/src/utils/apiResponse.js` (nuevo) - Helper de respuestas
+        - `Backend/src/controllers/searchController.js` - Errores usando helper
+        - `Backend/src/controllers/postController.js` - Errores usando helper
+        - `Backend/src/controllers/authController.js` - Errores usando helper
 
-4. **Mejorar Manejo de Errores**
+4. ✅ **COMPLETADO** - Mejorar Manejo de Errores
 
-    - Clases de error personalizadas
-    - Logging estructurado con Winston
-    - Mensajes de error amigables al usuario
+    - ✅ Clases de error personalizadas (`Backend/src/utils/errors.js`)
+        - `AppError`, `NotFoundError`, `ValidationError`, `UnauthorizedError`, `ForbiddenError`, `ConflictError`, `BadRequestError`, `DeadlockError`
+    - ✅ Logging estructurado con Winston (`Backend/src/utils/logger.js`)
+    - ✅ Mensajes de error amigables al usuario (implementado en `errorHandler.js`)
+    - ✅ Middleware centralizado de manejo de errores (`Backend/src/middlewares/errorHandler.js`)
+    - ✅ Todos los servicios refactorizados para lanzar excepciones en lugar de retornar `{ error: ... }`
+    - **Archivos creados/modificados**:
+        - `Backend/src/utils/errors.js` (nuevo) - Clases de error personalizadas
+        - `Backend/src/middlewares/errorHandler.js` - Actualizado para manejar nuevas clases de error
+        - Todos los servicios refactorizados
 
 5. **Optimizar Queries**
 
     - Usar `include` de Sequelize con `attributes` para evitar over-fetching
     - Implementar paginación en todos los endpoints de listado
-    - Agregar índices compuestos para queries frecuentes
+    - Revisar queries N+1 y optimizarlas
+    - Implementar índices adicionales donde sea necesario
+
+---
+
+## 9. Mejoras y Refactorizaciones Identificadas
+
+### 9.1 Backend - Problemas Críticos
+
+#### 9.1.1 Uso Innecesario de `setImmediate` en Controladores
+
+**Problema**: Uso excesivo de `setImmediate` en controladores que manejan respuestas HTTP, lo cual puede causar problemas:
+
+- Respuestas HTTP enviadas después de que el request ya terminó
+- Errores no capturados correctamente
+- Comportamiento impredecible
+
+**Archivos afectados**:
+
+- `Backend/src/controllers/searchController.js` - `searchUsers()` usa `setImmediate` innecesariamente
+- `Backend/src/controllers/profileController.js` - Múltiples métodos usan `setImmediate`
+- `Backend/src/routes/postRoutes.js` - `setImmediate` en middleware de invalidación de cache
+
+**Solución**:
+
+- Eliminar `setImmediate` de controladores que manejan respuestas HTTP directamente
+- Solo usar `setImmediate` en tareas en background que no afecten la respuesta
+- Mover tareas pesadas a `taskQueue` en lugar de `setImmediate`
+
+**Prioridad**: 🔴 Alta
+
+#### 9.1.2 Uso de `console.log/error` en lugar de Logger
+
+**Problema**: Múltiples archivos usan `console.log` y `console.error` en lugar del logger centralizado.
+
+**Archivos afectados**:
+
+- `Backend/src/app.js` - `console.log` en middleware de logging
+- `Backend/src/models/Post.js` - `console.error` en métodos de incremento/decremento
+- `Backend/src/config/db.js` - `console.error` en validación de variables de entorno
+- `Backend/src/config/cloudinary.js` - `console.error` en manejo de errores
+- `Backend/src/server.js` - `console.error` en manejo de promesas rechazadas
+- `Backend/src/config/dbOptimization.js` - `console.error` en creación de índices
+
+**Solución**: Reemplazar todos los `console.log/error` con `logger.info/error`
+
+**Prioridad**: 🟡 Media
+
+#### 9.1.3 Controladores No Usan Helper `apiResponse` para Respuestas Exitosas
+
+**Problema**: Los controladores construyen respuestas exitosas manualmente en lugar de usar el helper `apiResponse`.
+
+**Archivos afectados**:
+
+- Todos los controladores (`authController.js`, `postController.js`, `boardController.js`, `followController.js`, `profileController.js`, `searchController.js`)
+
+**Ejemplo actual**:
+
+```javascript
+res.status(200).json({
+  success: true,
+  message: 'Operación exitosa',
+  data: result
+});
+```
+
+**Solución**: Usar helper `responses.ok()` o `responses.created()` para estandarizar:
+
+```javascript
+responses(res).ok('Operación exitosa', result);
+```
+
+**Prioridad**: 🟢 Baja (mejora de consistencia)
+
+#### 9.1.4 Código Duplicado en Transformaciones de Posts
+
+**Problema**: Existen dos funciones similares para transformar posts: `transformPostForFrontend` y `transformPostForFrontendSync`.
+
+**Archivo afectado**:
+
+- `Backend/src/services/postService.js`
+
+**Solución**: Consolidar en una sola función optimizada o documentar claramente cuándo usar cada una.
+
+**Prioridad**: 🟡 Media
+
+#### 9.1.5 Uso Excesivo de `setImmediate` en Servicios
+
+**Problema**: Uso innecesario de `setImmediate` en servicios, especialmente en `authService.js` y `searchService.js`.
+
+**Archivos afectados**:
+
+- `Backend/src/services/authService.js` - Múltiples `setImmediate` innecesarios
+- `Backend/src/services/searchService.js` - `setImmediate` en varios métodos
+
+**Solución**:
+
+- Evaluar si realmente necesita `setImmediate` o si se puede hacer de forma síncrona
+- Para tareas pesadas, usar `taskQueue` en lugar de `setImmediate`
+
+**Prioridad**: 🟡 Media
+
+### 9.2 Backend - Mejoras de Calidad
+
+#### 9.2.1 Falta de Tests
+
+**Problema**: No existe ningún test en el proyecto.
+
+**Solución**:
+
+- Configurar Jest o Mocha para testing
+- Implementar tests unitarios para servicios críticos
+- Implementar tests de integración para endpoints API
+- Configurar coverage mínimo (70% recomendado)
+
+**Prioridad**: 🔴 Alta (crítico para producción)
+
+#### 9.2.2 Validación de Inputs Incompleta
+
+**Problema**: Algunos endpoints no tienen validación suficiente de inputs.
+
+**Solución**:
+
+- Revisar todos los endpoints y asegurar validación completa
+- Usar middleware de validación consistente
+- Validar tipos, rangos, formatos
+
+**Prioridad**: 🟡 Media
+
+#### 9.2.3 Manejo de Errores en Modelos
+
+**Problema**: Modelos usan `console.error` en lugar de logger, y algunos errores no se propagan correctamente.
+
+**Archivos afectados**:
+
+- `Backend/src/models/Post.js`
+
+**Solución**: Usar logger y propagar errores correctamente.
+
+**Prioridad**: 🟡 Media
+
+#### 9.2.4 Documentación de API Incompleta
+
+**Problema**: Falta documentación completa de endpoints (Swagger/OpenAPI).
+
+**Solución**:
+
+- Implementar Swagger/OpenAPI
+- Documentar todos los endpoints con ejemplos
+- Incluir códigos de respuesta y esquemas
+
+**Prioridad**: 🟢 Baja
+
+### 9.3 Frontend - Problemas Críticos
+
+#### 9.3.1 Uso Excesivo de `any` en TypeScript
+
+**Problema**: Uso de `any` en múltiples lugares, eliminando los beneficios de TypeScript.
+
+**Archivos afectados**:
+
+- `Front_pwa/services/postService.ts` - 14+ usos de `any`
+- `Front_pwa/services/userService.ts` - 2+ usos de `any`
+- `Front_pwa/services/apiClient.ts` - Uso de `any` en funciones genéricas
+
+**Solución**:
+
+- Definir interfaces/tipos apropiados para todos los errores
+- Crear tipos específicos para respuestas API
+- Eliminar todos los usos de `any` excepto donde sea absolutamente necesario
+
+**Prioridad**: 🔴 Alta
+
+#### 9.3.2 Falta de Tests
+
+**Problema**: No existe ningún test en el frontend.
+
+**Solución**:
+
+- Configurar Jest + React Testing Library
+- Implementar tests unitarios para componentes críticos
+- Implementar tests de integración para flujos principales
+- Configurar coverage mínimo
+
+**Prioridad**: 🔴 Alta
+
+#### 9.3.3 Manejo de Errores Inconsistente
+
+**Problema**: Los servicios capturan errores pero no siempre los manejan de forma consistente.
+
+**Solución**:
+
+- Crear un sistema centralizado de manejo de errores
+- Mostrar mensajes de error amigables al usuario
+- Implementar retry automático donde sea apropiado
+
+**Prioridad**: 🟡 Media
+
+### 9.4 Frontend - Mejoras de Calidad
+
+#### 9.4.1 Optimización de Rendimiento
+
+**Problema**: Posibles problemas de rendimiento con componentes grandes.
+
+**Solución**:
+
+- Implementar React.memo donde sea apropiado
+- Lazy loading de componentes pesados
+- Optimizar re-renders innecesarios
+- Implementar virtualización para listas largas
+
+**Prioridad**: 🟡 Media
+
+#### 9.4.2 Accesibilidad
+
+**Problema**: Posible falta de atributos de accesibilidad.
+
+**Solución**:
+
+- Revisar y agregar atributos ARIA donde sea necesario
+- Asegurar navegación por teclado
+- Probar con lectores de pantalla
+
+**Prioridad**: 🟡 Media
+
+#### 9.4.3 Optimización de Bundle
+
+**Problema**: Bundle size puede optimizarse.
+
+**Solución**:
+
+- Analizar bundle size
+- Implementar code splitting
+- Lazy loading de rutas
+- Optimizar imports
+
+**Prioridad**: 🟢 Baja
+
+### 9.5 Plan de Implementación Recomendado
+
+#### Fase 1 - Crítico (Semana 1-2)
+
+1. ✅ Eliminar `setImmediate` innecesarios en controladores
+2. ✅ Reemplazar `console.log/error` con logger
+3. ✅ Eliminar usos de `any` en TypeScript
+4. ⚠️ Configurar y empezar a escribir tests (backend y frontend)
+
+#### Fase 2 - Importante (Semana 3-4)
+
+5. ✅ Refactorizar controladores para usar `apiResponse` helper
+6. ✅ Consolidar código duplicado en transformaciones
+7. ✅ Mejorar manejo de errores en frontend
+8. ⚠️ Validación completa de inputs
+
+#### Fase 3 - Mejoras (Semana 5-6)
+
+9. ⚠️ Optimización de rendimiento frontend
+10. ⚠️ Documentación completa de API (Swagger)
+11. ⚠️ Mejoras de accesibilidad
+12. ⚠️ Optimización de bundle
+
+---
+
+### 9.6 Recomendaciones Adicionales
 
 6. **TypeScript en Backend**
 
@@ -874,10 +1159,10 @@ Tests
 
 4. **Monitoreo**
 
-    - Implementar logging estructurado
-    - Métricas de performance (Web Vitals)
-    - Error tracking (Sentry o similar)
-    - Analytics de uso
+    - ✅ Logging estructurado con Winston (implementado)
+    - ⚠️ Métricas de performance (Web Vitals) - Pendiente
+    - ⚠️ Error tracking (Sentry o similar) - Pendiente
+    - ⚠️ Analytics de uso - Pendiente
 
 5. **Seguridad**
 
@@ -933,6 +1218,9 @@ El proyecto **ArteNis 2.0** está en un estado funcional avanzado con:
 - ✅ CRUD de posts, boards, usuarios
 - ✅ **Fase 1 COMPLETADA**: Alineación front-back al 100% (todas las rutas corregidas)
 - ✅ **Separación de lógica de negocio**: Completada y verificada
+- ✅ **Estandarización de respuestas API**: Completada con helper y documentación
+- ✅ **Consolidación de rutas**: Rutas de usuarios unificadas en `/api/profile/*`
+- ✅ **Manejo de errores mejorado**: Clases personalizadas y logging estructurado
 - ⚠️ Funcionalidades Fase 2 pendientes (no críticas, hay workarounds):
   - Sistema de guardados dedicado (actualmente usando boards)
   - Endpoints de usuarios (seguidores, bloqueo, reportes)
@@ -942,16 +1230,73 @@ El proyecto **ArteNis 2.0** está en un estado funcional avanzado con:
 1. ✅ **Fase 1 COMPLETADA**: Corrección de rutas y alineación front-back
 
    - Verificación: `Front_pwa/services/VERIFICACION_FINAL.md`
+   - Todas las rutas frontend corregidas para alinearse con backend
 
 2. ✅ **Fase 1.5 COMPLETADA**: Separación de lógica de negocio
 
-   - Servicios independientes, manejo de errores estandarizado
+   - Servicios independientes de Express
+   - Clases de error personalizadas (`Backend/src/utils/errors.js`)
+   - MediaService creado para lógica de upload
+   - Todos los servicios refactorizados para lanzar excepciones
 
-3. **Fase 2 (Pendiente)**: Sistema de guardados dedicado (opcional, hay workaround)
-4. **Fase 3 (Pendiente)**: Optimización, tests, documentación completa
+3. ✅ **Fase 1.6 COMPLETADA**: Estandarización de respuestas API
+
+   - Helper `apiResponse.js` creado
+   - Todos los errores directos refactorizados
+   - Documentación: `Backend/docs/API_RESPONSE_STANDARDS.md`
+
+4. ✅ **Fase 1.7 COMPLETADA**: Consolidación de rutas
+
+   - Rutas `/api/users/*` eliminadas (no eran necesarias)
+   - Solo existe `/api/profile/*` como única ruta base
+   - Código limpio sin compatibilidad innecesaria
+
+5. **Fase 2 (Pendiente)**: Sistema de guardados dedicado (opcional, hay workaround)
+6. **Fase 3 (Pendiente)**: Optimización, tests, documentación completa
+
+### Documentación Disponible
+
+**Backend:**
+
+- `Backend/docs/API_RESPONSE_STANDARDS.md` - Estándares y formato de respuestas API
+- `Backend/docs/API_RESPONSE_ANALYSIS.md` - Análisis del estado actual de respuestas
+- `Backend/docs/API_RESPONSE_REFACTORING.md` - Resumen de refactorización de respuestas
+- `Backend/src/routes/README.md` - Documentación de rutas de la API
+
+**Frontend:**
+
+- `Front_pwa/README.md` - Documentación del frontend
+- `Front_pwa/ARCHITECTURE.md` - Arquitectura del frontend
+
+### Resumen de Mejoras Identificadas
+
+**Crítico (Alta Prioridad)**:
+
+- 🔴 Eliminar `setImmediate` innecesarios en controladores (puede romper respuestas HTTP)
+- 🔴 Reemplazar `console.log/error` con logger en todos los archivos
+- 🔴 Eliminar usos de `any` en TypeScript (18+ ocurrencias)
+- 🔴 Implementar tests (backend y frontend) - actualmente 0 tests
+
+**Importante (Media Prioridad)**:
+
+- 🟡 Refactorizar controladores para usar helper `apiResponse` en respuestas exitosas
+- 🟡 Consolidar código duplicado en transformaciones
+- 🟡 Validación completa de inputs
+- 🟡 Mejorar manejo de errores en frontend
+
+**Mejoras (Baja Prioridad)**:
+
+- 🟢 Documentación API completa (Swagger/OpenAPI)
+- 🟢 Optimización de rendimiento frontend
+- 🟢 Mejoras de accesibilidad
+- 🟢 Optimización de bundle size
 
 ### Notas Finales
 
 - El código muestra buenas prácticas arquitectónicas (separación de responsabilidades, servicios)
-- Hay oportunidades de mejora en sincronización y completitud de funcionalidades
+- Arquitectura sólida con separación clara entre controladores, servicios y middlewares
+- Manejo de errores centralizado y estandarizado
+- Todas las respuestas API siguen formato consistente
+- Hay oportunidades de mejora identificadas y documentadas en la sección 9
 - La base es sólida para escalar con las optimizaciones sugeridas
+- Ver sección 9 para plan detallado de mejoras y refactorizaciones

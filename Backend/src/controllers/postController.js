@@ -1,5 +1,6 @@
 const PostService = require('../services/postService');
 const MediaService = require('../services/mediaService');
+const { responses } = require('../utils/apiResponse');
 
 class PostController {
   // Subir media para post
@@ -34,11 +35,7 @@ class PostController {
       } = req.body;
 
       if (!imageUrl || !cloudinaryPublicId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Se requiere la URL del media y el ID de Cloudinary',
-          error: 'MISSING_REQUIRED_FIELDS'
-        });
+        return responses.badRequest(res, 'Se requiere la URL del media y el ID de Cloudinary', 'MISSING_REQUIRED_FIELDS');
       }
 
       const post = await PostService.createPost(
@@ -92,11 +89,7 @@ class PostController {
       const post = await PostService.getPostById(id, userId);
       
       if (!post) {
-        return res.status(404).json({
-          success: false,
-          message: 'Publicación no encontrada',
-          error: 'POST_NOT_FOUND'
-        });
+        return responses.notFound(res, 'Publicación no encontrada', 'POST_NOT_FOUND');
       }
       
       res.status(200).json({
@@ -138,11 +131,7 @@ class PostController {
       
       const post = await PostService.getPostById(id, userId);
       if (!post) {
-        return res.status(404).json({
-          success: false,
-          message: 'La publicación no existe',
-          error: 'POST_NOT_FOUND'
-        });
+        return responses.notFound(res, 'La publicación no existe', 'POST_NOT_FOUND');
       }
       
       res.status(200).json({
@@ -280,10 +269,7 @@ class PostController {
       const { description, hashtags } = req.body;
 
       if (!description || !description.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Se requiere una descripción para la publicación'
-        });
+        return responses.badRequest(res, 'Se requiere una descripción para la publicación', 'MISSING_REQUIRED_FIELDS');
       }
 
       const result = await PostService.updatePost(

@@ -1,5 +1,6 @@
 const SearchService = require('../services/searchService');
 const { searchUsers } = require('../config/performanceOptimization');
+const { responses } = require('../utils/apiResponse');
 
 class SearchController {
   // Buscar usuarios (NO BLOQUEANTE)
@@ -10,10 +11,7 @@ class SearchController {
         const { q, limit = 15 } = req.query; // Reducir límite por defecto
         
         if (!q || q.trim().length < 2) {
-          return res.status(400).json({
-            success: false,
-            message: 'La búsqueda debe tener al menos 2 caracteres'
-          });
+          return responses.badRequest(res, 'La búsqueda debe tener al menos 2 caracteres', 'VALIDATION_ERROR');
         }
         
         // Usar función optimizada con caché
@@ -118,10 +116,7 @@ class SearchController {
       const { lat, lng, radius } = req.query;
       
       if (!lat || !lng) {
-        return res.status(400).json({
-          success: false,
-          message: 'Las coordenadas de latitud y longitud son requeridas'
-        });
+        return responses.badRequest(res, 'Las coordenadas de latitud y longitud son requeridas', 'MISSING_REQUIRED_FIELDS');
       }
 
       const artists = await SearchService.findNearbyArtists(
@@ -187,10 +182,7 @@ class SearchController {
       const { transcription } = req.body;
       
       if (!transcription) {
-        return res.status(400).json({
-          success: false,
-          message: 'La transcripción de voz es requerida'
-        });
+        return responses.badRequest(res, 'La transcripción de voz es requerida', 'MISSING_REQUIRED_FIELDS');
       }
 
       // Procesar la transcripción para extraer intención

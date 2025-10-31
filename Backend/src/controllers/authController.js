@@ -1,4 +1,5 @@
 const AuthService = require('../services/authService');
+const { responses } = require('../utils/apiResponse');
 
 class AuthController {
   // Registrar nuevo usuario
@@ -56,10 +57,7 @@ class AuthController {
       
       // Verificar que el usuario esté autenticado
       if (!req.user || !req.user.id) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado'
-        });
+        return responses.unauthorized(res, 'Usuario no autenticado', 'UNAUTHORIZED');
       }
       
       const result = await AuthService.revokeRefreshTokens(req.user.id, refreshToken);
@@ -146,10 +144,7 @@ class AuthController {
   static async resendVerification(req, res, next) {
     try {
       if (!req.user || !req.user.id) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado'
-        });
+        return responses.unauthorized(res, 'Usuario no autenticado', 'UNAUTHORIZED');
       }
 
       const userId = req.user.id;
@@ -169,10 +164,7 @@ class AuthController {
   static async getActiveSessions(req, res, next) {
     try {
       if (!req.user || !req.user.id) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado'
-        });
+        return responses.unauthorized(res, 'Usuario no autenticado', 'UNAUTHORIZED');
       }
 
       const userId = req.user.id;
@@ -192,10 +184,7 @@ class AuthController {
   static async logoutOtherSessions(req, res, next) {
     try {
       if (!req.user || !req.user.id) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado'
-        });
+        return responses.unauthorized(res, 'Usuario no autenticado', 'UNAUTHORIZED');
       }
 
       const userId = req.user.id;
@@ -216,10 +205,7 @@ class AuthController {
   static async deleteAccount(req, res, next) {
     try {
       if (!req.user || !req.user.id) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado'
-        });
+        return responses.unauthorized(res, 'Usuario no autenticado', 'UNAUTHORIZED');
       }
 
       const userId = req.user.id;
