@@ -1,6 +1,6 @@
 # Documento de Análisis Técnico - ArteNis 2.0
 
-> **Última actualización**: Refactorización completa de controladores (Fase 1.8) - Todos los controladores ahora son livianos con lógica de negocio en servicios
+> **Última actualización**: Fase 1 Frontend en progreso - `boardService.ts`, `useSavePost()` y `useLikePost()` creados. Pendiente integrarlos en componentes.
 
 ## 1. Resumen General
 
@@ -1280,12 +1280,17 @@ responses(res).ok('Operación exitosa', result);
 
 **Solución**:
 
-1. ✅ Crear `boardService.ts` para centralizar lógica de boards
-2. ✅ Consolidar lógica de guardar posts en hook `useSavePost()`
-3. ✅ Eliminar llamadas directas a `apiClient` de componentes
-4. ✅ Unificar `authService.updateProfile` y `userService.updateProfile`
+1. ✅ **COMPLETADO** - Crear `boardService.ts` para centralizar lógica de boards (`Front_pwa/services/boardService.ts` - 174 líneas)
+2. ✅ **COMPLETADO** - Consolidar lógica de guardar posts en hook `useSavePost()` (`Front_pwa/hooks/useSavePost.ts`)
+3. ✅ **COMPLETADO** - Crear hook `useLikePost()` para consolidar lógica de likes (`Front_pwa/hooks/useLikePost.ts`)
+4. ⚠️ **PENDIENTE** - Integrar hooks en componentes (eliminar llamadas directas a `apiClient`)
+5. ⚠️ **PENDIENTE** - Unificar `authService.updateProfile` y `userService.updateProfile`
 
 **Prioridad**: 🔴 Alta
+
+**Estado Actual**: 
+- ✅ Servicios y hooks base creados (3/5 tareas completadas)
+- ⚠️ Pendiente integración en componentes (2/5 tareas pendientes)
 
 #### 9.4.2 Optimización de Rendimiento
 
@@ -1474,11 +1479,11 @@ responses(res).ok('Operación exitosa', result);
 
 **Frontend:**
 
-1. ⚠️ **NUEVO** - Consolidar APIs duplicadas y crear `boardService.ts`
-2. ⚠️ **NUEVO** - Eliminar código duplicado (guardados, likes) - crear hooks `useSavePost()`, `useLikePost()`
-3. ⚠️ **NUEVO** - Eliminar llamadas directas a `apiClient` de componentes
-4. ⚠️ Reemplazar `console.log/error` con logger en frontend
-5. ⚠️ Eliminar usos de `any` en TypeScript (18+ ocurrencias)
+1. ✅ **EN PROGRESO** - Consolidar APIs duplicadas y crear `boardService.ts` ✅ CREADO (`Front_pwa/services/boardService.ts`)
+2. ✅ **EN PROGRESO** - Eliminar código duplicado (guardados, likes) - crear hooks `useSavePost()`, `useLikePost()` ✅ HOOKS CREADOS (falta integrarlos)
+3. ⚠️ **PENDIENTE** - Eliminar llamadas directas a `apiClient` de componentes (pendiente integrar hooks)
+4. ⚠️ **PENDIENTE** - Reemplazar `console.log/error` con logger en frontend
+5. ⚠️ **PENDIENTE** - Eliminar usos de `any` en TypeScript (18+ ocurrencias)
 
 **Tests:**
 
@@ -1521,14 +1526,17 @@ responses(res).ok('Operación exitosa', result);
 
 **Refactorización**:
 
-1. ✅ Extraer lógica de guardados a `useSavePost()`
-2. ✅ Extraer lógica de likes a `useLikePost()`
-3. ✅ Separar en componentes más pequeños
-4. ✅ Optimizar `useEffect` (extraer valores primitivos)
-5. ✅ Implementar caché para boards
-6. ✅ Eliminar `console.log` de debug
+1. ✅ **COMPLETADO** - Hook `useSavePost()` creado (`Front_pwa/hooks/useSavePost.ts`)
+2. ✅ **COMPLETADO** - Hook `useLikePost()` creado (`Front_pwa/hooks/useLikePost.ts`)
+3. ⚠️ **PENDIENTE** - Integrar hooks en `index.tsx` (reemplazar `handleSavePost` y `handleLike`)
+4. ⚠️ **PENDIENTE** - Separar en componentes más pequeños
+5. ⚠️ **PENDIENTE** - Optimizar `useEffect` (extraer valores primitivos)
+6. ⚠️ **PENDIENTE** - Implementar caché para boards
+7. ⚠️ **PENDIENTE** - Eliminar `console.log` de debug
 
-**Reducción esperada**: De 460 líneas a ~200 líneas
+**Estado**: Hooks creados ✅ - Pendiente integración en componente ⚠️
+
+**Reducción esperada**: De 460 líneas a ~200 líneas (después de integrar hooks)
 
 #### 9.6.2 `Front_pwa/pages/post/[id].tsx`
 
@@ -1543,13 +1551,16 @@ responses(res).ok('Operación exitosa', result);
 
 **Refactorización**:
 
-1. ✅ Extraer lógica de guardados y likes (usar hooks)
-2. ✅ Consolidar `useEffect`
-3. ✅ Eliminar logs de debug
-4. ✅ Tipar correctamente (eliminar `any`)
-5. ✅ Separar en componentes más pequeños
+1. ✅ **COMPLETADO** - Hooks `useSavePost()` y `useLikePost()` creados
+2. ⚠️ **PENDIENTE** - Integrar hooks en `post/[id].tsx` (reemplazar `handleSave` y `handleLike`)
+3. ⚠️ **PENDIENTE** - Consolidar `useEffect`
+4. ⚠️ **PENDIENTE** - Eliminar logs de debug
+5. ⚠️ **PENDIENTE** - Tipar correctamente (eliminar `any`)
+6. ⚠️ **PENDIENTE** - Separar en componentes más pequeños
 
-**Reducción esperada**: De 595 líneas a ~250 líneas
+**Estado**: Hooks creados ✅ - Pendiente integración en componente ⚠️
+
+**Reducción esperada**: De 595 líneas a ~250 líneas (después de integrar hooks)
 
 #### 9.6.3 `Front_pwa/services/postService.ts`
 
@@ -1610,6 +1621,13 @@ responses(res).ok('Operación exitosa', result);
 - **Llamadas directas a `apiClient`**: 19+ (en páginas)
 - **Re-renders innecesarios**: Múltiples (sin optimizar)
 
+#### Estado Actual (Fase 1 en progreso):
+
+- ✅ **Hooks creados**: 8 (`useSavePost`, `useLikePost` + 6 existentes)
+- ✅ **Servicios creados**: 4 (añadido `boardService.ts`)
+- ⚠️ **Código duplicado**: ~300+ (pendiente integrar hooks en componentes)
+- ⚠️ **Llamadas directas a `apiClient`**: 19+ (pendiente integrar hooks)
+
 #### Después de Refactorización:
 
 - **Líneas de código duplicado**: <50
@@ -1627,13 +1645,17 @@ responses(res).ok('Operación exitosa', result);
 
 #### Fase 1 - Crítico Frontend
 
-- [ ] `boardService.ts` creado
-- [ ] `useSavePost()` hook creado y usado en `index.tsx` y `post/[id].tsx`
-- [ ] `useLikePost()` hook creado y usado
-- [ ] Código duplicado de guardados eliminado
-- [ ] Llamadas directas a `apiClient` eliminadas de componentes (0 ocurrencias)
-- [ ] `console.log/error` reemplazados con logger
-- [ ] Logger configurado (`Front_pwa/utils/logger.ts`)
+- [x] `boardService.ts` creado ✅ **COMPLETADO** - `Front_pwa/services/boardService.ts` (174 líneas)
+- [x] `useSavePost()` hook creado ✅ **COMPLETADO** - `Front_pwa/hooks/useSavePost.ts` (centraliza lógica de guardados)
+- [x] `useLikePost()` hook creado ✅ **COMPLETADO** - `Front_pwa/hooks/useLikePost.ts` (centraliza lógica de likes)
+- [ ] `useSavePost()` hook integrado en `index.tsx` y `post/[id].tsx` ⚠️ **PENDIENTE**
+- [ ] `useLikePost()` hook integrado en componentes ⚠️ **PENDIENTE**
+- [ ] Código duplicado de guardados eliminado ⚠️ **PENDIENTE** (hooks creados, falta integrarlos)
+- [ ] Llamadas directas a `apiClient` eliminadas de componentes (0 ocurrencias) ⚠️ **PENDIENTE**
+- [ ] `console.log/error` reemplazados con logger ⚠️ **PENDIENTE**
+- [ ] Logger configurado (`Front_pwa/utils/logger.ts`) ⚠️ **PENDIENTE**
+
+**Progreso**: 3/9 tareas completadas (33%) - Hooks y servicio base creados ✅
 
 #### Fase 2 - Importante Frontend
 
