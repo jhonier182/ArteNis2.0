@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useUser } from '../../context/UserContext'
 import { postService } from '../../services/postService'
+import { userService } from '../../services/userService'
 import { useFollowing } from '../../hooks/useFollowing'
 import PostMenu from '../../components/PostMenu'
 import { useAlert, AlertContainer } from '../../components/Alert'
@@ -150,11 +151,11 @@ export default function PostDetailPage() {
       })
       
       if (isFollowing) {
-        await apiClient.delete(`/api/follow/${post.author.id}`)
+        await userService.unfollowUser(post.author.id)
         setIsFollowing(false)
         console.log('✅ Dejaste de seguir al usuario')
       } else {
-        await apiClient.post('/api/follow', { userId: post.author.id })
+        await userService.followUser(post.author.id)
         setIsFollowing(true)
         console.log('✅ Empezaste a seguir al usuario')
       }
@@ -261,14 +262,15 @@ export default function PostDetailPage() {
 
     try {
       setIsDeleting(true)
-      await apiClient.delete(`/api/posts/${id}`)
+      await postService.deletePost(id as string)
       success('Publicación eliminada', 'La publicación se ha eliminado exitosamente')
       setTimeout(() => {
         router.push('/')
       }, 2000)
     } catch (err: any) {
       console.error('Error al eliminar post:', err)
-      error('Error al eliminar', err.response?.data?.message || 'No se pudo eliminar la publicación')
+      const errorMessage = err.response?.data?.message || err.message || 'No se pudo eliminar la publicación'
+      error('Error al eliminar', errorMessage)
     } finally {
       setIsDeleting(false)
     }
