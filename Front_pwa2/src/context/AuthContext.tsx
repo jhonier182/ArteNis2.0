@@ -10,6 +10,9 @@ interface User {
   email: string
   avatar?: string
   bio?: string
+  userType?: 'user' | 'artist'
+  fullName?: string
+  city?: string
 }
 
 interface AuthContextType {
