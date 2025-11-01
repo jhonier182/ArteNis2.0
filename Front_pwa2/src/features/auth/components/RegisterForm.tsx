@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Mail, User, UserPlus } from 'lucide-react'
+import { Mail, User, UserPlus } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { PasswordStrengthBar } from '@/components/ui/PasswordStrengthBar'
