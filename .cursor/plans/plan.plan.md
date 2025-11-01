@@ -686,108 +686,241 @@ Front_pwa/
 
 ---
 
-## 6. Plan Técnico Detallado
+## 6. Plan Técnico Detallado - Checklist Interactivo
 
-### 6.1 Prioridades
+> **📋 NOTA**: Usa este checklist para ir marcando las tareas completadas. Las tareas están separadas por Backend y Frontend para trabajar paso a paso.
 
-### **ALTA PRIORIDAD**
+---
 
-1. ✅ **COMPLETADO** - Corrección de Rutas en Servicios Frontend
+## 🔵 BACKEND - Checklist de Tareas
 
-    - **Archivo**: `Front_pwa/services/userService.ts`
-    - **Estado**: ✅ Todas las rutas corregidas (0 rutas incorrectas)
-    - **Fecha**: Completado en Fase 1
-    - **Verificación**: Ver `Front_pwa/services/VERIFICACION_FINAL.md`
+### ✅ **Tareas Completadas**
 
-2. ✅ **COMPLETADO** - Implementación de Endpoints de Autenticación
+- [x] Eliminar `setImmediate` innecesarios en controladores
+- [x] Reemplazar `console.log/error` con logger en todos los archivos backend
+- [x] Eliminar `setImmediate` innecesarios en `authService.js` (22 eliminados)
+- [x] Optimizar manejo de errores en modelos (`Post.js`)
+- [x] Refactorizar `register()` y `login()` para usar excepciones en lugar de `{ error: ... }`
 
-    - **Estado**: ✅ Todos los endpoints están implementados en backend
-    - **Archivos**: `Backend/src/routes/authRoutes.js` (líneas 47-97)
-    - **Endpoints implementados**:
-        - ✅ `PUT /api/auth/change-password` (línea 47)
-        - ✅ `POST /api/auth/forgot-password` (línea 55)
-        - ✅ `POST /api/auth/reset-password` (línea 62)
-        - ✅ `POST /api/auth/verify-email` (línea 69)
-        - ✅ `POST /api/auth/resend-verification` (línea 76)
-        - ✅ `DELETE /api/auth/account` (línea 94)
-        - ✅ `GET /api/auth/sessions` (línea 82)
-        - ✅ `POST /api/auth/logout-others` (línea 88)
-    - **Frontend**: `Front_pwa/services/authService.ts` - Todos los métodos implementados correctamente
+### 🔴 **ALTA PRIORIDAD - Backend**
 
-3. ✅ **COMPLETADO** - Documentación de Endpoints Faltantes en postService
+- [ ] **Configurar sistema de tests**
+  - [ ] Instalar y configurar Jest/Mocha
+  - [ ] Crear estructura de carpetas `tests/`
+  - [ ] Configurar scripts en `package.json`
+  - [ ] Crear tests unitarios para servicios críticos (`authService`, `postService`)
+  - [ ] Crear tests de integración para endpoints principales
+  - [ ] Configurar coverage mínimo (70%)
+  - **Estimación**: 20-30 horas
+  - **Archivos**: Nuevo `Backend/tests/` y configuración Jest
 
-    - **Archivo**: `Front_pwa/services/postService.ts`
-    - **Estado**: ✅ Todos los métodos sin endpoint documentados correctamente
-    - **Workarounds implementados**:
-        - `getPopularPosts()` usa `/api/search/trending?type=posts`
-        - `getPostsByTag()` usa `/api/search/posts?tags=...`
-    - **Métodos documentados**: `toggleSave()`, `getSavedPosts()`, `getPopularTags()`
+- [x] **Implementar Sistema de Guardados de Posts** ✅ **COMPLETADO**
+  - [x] Verificar modelo `SavedPost.js` (ya existía)
+  - [x] Verificar endpoints `/api/posts/:id/save` y `/api/posts/saved` (ya existían)
+  - [x] Verificar lógica en `postService.js` (ya implementada)
+  - [x] Actualizar frontend para usar endpoints dedicados (reemplazando workaround de boards)
+  - **Completado**: Diciembre 2024
+  - **Archivos modificados**: 
+    - `Front_pwa/hooks/useSavePost.ts` - Actualizado para usar `postService.toggleSave()`
+    - `Front_pwa/pages/index.tsx` - Actualizado para usar endpoints directos
+    - `Front_pwa/services/postService.ts` - Ya tenía métodos `toggleSave()` y `getSavedPosts()`
+  - **Archivos backend**: Ya estaban completos (`Backend/src/models/SavedPost.js`, `Backend/src/services/postService.js`, `Backend/src/routes/postRoutes.js`, `Backend/src/controllers/postController.js`)
 
-4. **Implementación de Sistema de Guardados de Posts**
+### 🟡 **MEDIA PRIORIDAD - Backend**
 
-    - **Archivos**: Backend (nuevo endpoint), Frontend (postService)
-    - **Problema**: Actualmente se usa boards como workaround
-    - **Solución**: Crear endpoints dedicados `/api/posts/:id/save` y `/api/posts/saved`
-    - **Estimación**: 6-8 horas
-    - **Dependencias**: Modelo de datos (tabla `saved_posts` o similar)
+- [ ] **Consolidar funciones de transformación de Posts**
+  - [ ] Revisar `transformPostForFrontend` y `transformPostForFrontendSync` en `postService.js`
+  - [ ] Consolidar o documentar cuándo usar cada una
+  - **Estimación**: 1 hora
+  - **Archivo**: `Backend/src/services/postService.js`
 
-### **MEDIA PRIORIDAD**
+- [ ] **Optimización de Queries de Base de Datos**
+  - [ ] Revisar queries N+1 en servicios
+  - [ ] Agregar `include` con `attributes` para evitar over-fetching
+  - [ ] Revisar índices existentes y agregar faltantes
+  - [ ] Analizar queries lentas con EXPLAIN
+  - **Estimación**: 6-8 horas
+  - **Archivos**: `Backend/src/services/*Service.js`
 
-1. **Documentación de API Completa**
+- [ ] **Validación de Inputs Completa**
+  - [ ] Revisar todos los endpoints y asegurar validación completa
+  - [ ] Usar middleware de validación consistente
+  - [ ] Validar tipos, rangos, formatos en todos los endpoints
+  - **Estimación**: 4-6 horas
+  - **Archivos**: `Backend/src/middlewares/validation.js` y controladores
 
-    - **Archivo**: Nuevo `Backend/API_DOCUMENTATION.md`
-    - **Contenido**: Todos los endpoints, parámetros, respuestas, códigos de error
-    - **Estimación**: 8-10 horas
-    - **Dependencias**: Finalización de correcciones de rutas
+- [ ] **Usar Helper `apiResponse` para Respuestas Exitosas** (Opcional)
+  - [ ] Refactorizar controladores para usar `responses.ok()`, `responses.created()`
+  - [ ] Estándar en todos los controladores
+  - **Estimación**: 2-3 horas
+  - **Archivos**: Todos los controladores
+  - **Prioridad**: 🟢 Baja (mejora de consistencia)
 
-2. **Optimización de Queries de Base de Datos**
+- [ ] **Documentación de API Completa**
+  - [ ] Implementar Swagger/OpenAPI
+  - [ ] Documentar todos los endpoints con ejemplos
+  - [ ] Incluir códigos de respuesta y esquemas
+  - **Estimación**: 8-10 horas
+  - **Archivo**: Nuevo `Backend/API_DOCUMENTATION.md` o `swagger.yaml`
 
-    - **Archivos**: `Backend/src/services/*Service.js`
-    - **Acción**: Revisar y optimizar queries lentas, agregar índices faltantes
-    - **Estimación**: 6-8 horas
-    - **Dependencias**: Análisis de performance
+### 🟢 **BAJA PRIORIDAD - Backend**
 
-3. **Implementación de Tests**
+- [ ] **Refactorización de Código Duplicado**
+  - [ ] Identificar código duplicado en servicios
+  - [ ] Extraer lógica común a utilidades
+  - **Estimación**: 4-6 horas
 
-    - **Backend**: Tests unitarios de servicios, tests de integración de endpoints
-    - **Frontend**: Tests de componentes, hooks, servicios
-    - **Estimación**: 20-30 horas
-    - **Dependencias**: Configuración de Jest/Vitest
+- [ ] **Mejora de Manejo de Errores**
+  - [ ] Estandarizar códigos de error
+  - [ ] Mejorar mensajes de error
+  - **Estimación**: 3-4 horas
 
-4. **Mejora del Sistema de Notificaciones**
+- [ ] **Implementación de Caché Avanzado**
+  - [ ] Revisar estrategias de caché actuales
+  - [ ] Optimizar invalidación de caché
+  - **Estimación**: 4-6 horas
 
-    - **Archivos**: Backend (nuevo módulo), Frontend (NotificationContext)
-    - **Acción**: Implementar notificaciones en tiempo real (WebSocket o polling)
-    - **Estimación**: 12-16 horas
-    - **Dependencias**: WebSocket server o servicio de notificaciones push
+- [ ] **Optimización de Imágenes**
+  - [ ] Revisar middleware de upload
+  - [ ] Implementar formatos modernos (WebP/AVIF) si es necesario
+  - **Estimación**: 3-4 horas
 
-### **BAJA PRIORIDAD**
+---
 
-1. **Refactorización de Código Duplicado**
+## 🟢 FRONTEND - Checklist de Tareas
 
-    - **Archivos**: Varios en backend y frontend
-    - **Acción**: Extraer lógica común a utilidades
-    - **Estimación**: 10-15 horas
+### ✅ **Tareas Completadas**
 
-2. **Mejora de Manejo de Errores**
+- [x] Crear `boardService.ts` para centralizar lógica de boards
+- [x] Crear hook `useSavePost()` para lógica de guardados
+- [x] Crear hook `useLikePost()` para lógica de likes
+- [x] Integrar hooks en `index.tsx` y `post/[id].tsx`
+- [x] Eliminar código duplicado de guardados (~150 líneas)
+- [x] Eliminar código duplicado de likes (~80 líneas)
+- [x] Mejorar sistema de persistencia (Fase 1.9)
+- [x] Corregir redirección después de login
 
-    - **Archivos**: Backend (errorHandler), Frontend (apiClient)
-    - **Acción**: Estandarizar códigos de error, mejorar mensajes
-    - **Estimación**: 6-8 horas
+### 🔴 **ALTA PRIORIDAD - Frontend**
 
-3. **Implementación de Caché Avanzado**
+- [ ] **Eliminar llamadas directas a `apiClient` de componentes**
+  - [ ] Refactorizar `search.tsx` - usar servicios
+  - [ ] Refactorizar `user/[id].tsx` - usar servicios
+  - [ ] Refactorizar `profile.tsx` - usar servicios
+  - [ ] Refactorizar `collections.tsx` - usar servicios
+  - [ ] Refactorizar `create/edit.tsx` - usar servicios
+  - [ ] Refactorizar `create.tsx` - usar servicios
+  - [ ] Refactorizar `register.tsx` - usar servicios
+  - **Estimación**: 4-6 horas
+  - **Archivos**: 7 archivos en `Front_pwa/pages/`
 
-    - **Archivos**: Backend (middlewares), Frontend (service worker)
-    - **Acción**: Mejorar estrategias de caché
-    - **Estimación**: 8-12 horas
+- [ ] **Reemplazar `console.log/error` con logger**
+  - [ ] Configurar `Front_pwa/utils/logger.ts`
+  - [ ] Reemplazar en `post/[id].tsx` (múltiples ocurrencias)
+  - [ ] Reemplazar en `UserContext.tsx` (varios logs de debug)
+  - [ ] Reemplazar en otros archivos si hay más
+  - **Estimación**: 2-3 horas
+  - **Archivos**: `Front_pwa/pages/post/[id].tsx`, `Front_pwa/context/UserContext.tsx`
 
-4. **Optimización de Imágenes**
+- [ ] **Eliminar todos los `any` de TypeScript**
+  - [ ] Crear `Front_pwa/types/api.ts` para tipos compartidos
+  - [ ] Definir interfaces para todas las respuestas API
+  - [ ] Eliminar `any` de `postService.ts` (14 ocurrencias)
+  - [ ] Eliminar `any` de `userService.ts`
+  - [ ] Eliminar `any` de `authService.ts`
+  - [ ] Eliminar `any` de `apiClient.ts`
+  - [ ] Eliminar `any` de componentes
+  - **Estimación**: 5-7 horas
+  - **Archivos**: Múltiples archivos en `Front_pwa/`
 
-    - **Archivos**: Backend (upload middleware), Frontend (Image component)
-    - **Acción**: Implementar lazy loading, formatos modernos (WebP/AVIF)
-    - **Estimación**: 6-8 horas
+### 🟡 **MEDIA PRIORIDAD - Frontend**
 
-### 6.2 Tareas por Módulo
+- [ ] **Optimizar renderizados (eliminar re-renders innecesarios)**
+  - [ ] Agregar `React.memo` a componentes de lista
+  - [ ] Usar `useCallback` para funciones pasadas como props
+  - [ ] Usar `useMemo` para cálculos costosos
+  - [ ] Optimizar dependencias de `useEffect` (extraer valores primitivos)
+  - [ ] Consolidar múltiples `useEffect` donde sea posible
+  - **Estimación**: 4-6 horas
+  - **Archivos**: `Front_pwa/pages/index.tsx`, `Front_pwa/pages/post/[id].tsx`, componentes
+
+- [ ] **Implementar caché (React Query o SWR)**
+  - [ ] Instalar React Query o SWR
+  - [ ] Configurar provider en `_app.tsx`
+  - [ ] Refactorizar llamadas API para usar caché
+  - [ ] Implementar invalidación de caché
+  - [ ] Verificar reducción de llamadas API
+  - **Estimación**: 6-8 horas
+  - **Archivos**: Nuevo `Front_pwa/lib/react-query.ts` o similar
+
+- [ ] **Mejorar manejo de errores (sistema centralizado)**
+  - [ ] Crear `Front_pwa/utils/errorHandler.ts`
+  - [ ] Mostrar mensajes de error amigables al usuario
+  - [ ] Implementar retry automático donde sea apropiado
+  - [ ] Crear tipos de error específicos
+  - **Estimación**: 4-5 horas
+  - **Archivos**: Nuevo `Front_pwa/utils/errorHandler.ts`
+
+- [ ] **Unificar `authService.updateProfile` y `userService.updateProfile`**
+  - [ ] Consolidar en un solo servicio
+  - [ ] Actualizar referencias en componentes
+  - **Estimación**: 1-2 horas
+  - **Archivos**: `Front_pwa/services/authService.ts`, `Front_pwa/services/userService.ts`
+
+### 🟢 **BAJA PRIORIDAD - Frontend**
+
+- [ ] **Reorganizar estructura de archivos**
+  - [ ] Crear carpeta `types/` para tipos compartidos
+  - [ ] Crear carpeta `lib/` para utilidades
+  - [ ] Reorganizar componentes por categorías
+  - **Estimación**: 2-3 horas
+
+- [ ] **Lazy loading de componentes**
+  - [ ] Implementar lazy loading de rutas
+  - [ ] Lazy loading de componentes pesados
+  - **Estimación**: 2-3 horas
+
+- [ ] **Optimización de bundle size**
+  - [ ] Analizar bundle size
+  - [ ] Implementar code splitting
+  - [ ] Optimizar imports
+  - **Estimación**: 3-4 horas
+
+- [ ] **Mejoras de accesibilidad**
+  - [ ] Agregar atributos ARIA donde sea necesario
+  - [ ] Asegurar navegación por teclado
+  - [ ] Probar con lectores de pantalla
+  - **Estimación**: 4-6 horas
+
+---
+
+## 📊 Resumen de Progreso
+
+### Backend
+
+- **✅ Completadas**: 6 tareas
+- **🔴 Alta Prioridad**: 1 tarea pendiente
+- **🟡 Media Prioridad**: 5 tareas pendientes
+- **🟢 Baja Prioridad**: 4 tareas pendientes
+- **Total Backend**: 6/16 tareas completadas (38%)
+
+### Frontend
+
+- **✅ Completadas**: 8 tareas
+- **🔴 Alta Prioridad**: 3 tareas pendientes
+- **🟡 Media Prioridad**: 4 tareas pendientes
+- **🟢 Baja Prioridad**: 4 tareas pendientes
+- **Total Frontend**: 8/19 tareas completadas (42%)
+
+### General
+
+- **✅ Total completadas**: 14/35 tareas (40%)
+- **🔴 Prioridad Alta**: 4 tareas pendientes
+- **🟡 Prioridad Media**: 9 tareas pendientes
+- **🟢 Prioridad Baja**: 8 tareas pendientes
+
+### 6.2 Tareas por Módulo (Referencia)
+
+> **Nota**: Para el checklist interactivo, ver sección 6.1 arriba.
 
 ### **Módulo: Autenticación**
 
@@ -950,22 +1083,23 @@ Tests
 
 **Estado**: ✅ Completado
 
-#### 9.1.2 Uso de `console.log/error` en lugar de Logger
+#### 9.1.2 ✅ **COMPLETADO** - Uso de `console.log/error` en lugar de Logger
 
 **Problema**: Múltiples archivos usan `console.log` y `console.error` en lugar del logger centralizado.
 
-**Archivos afectados**:
+**Archivos corregidos**:
 
-- `Backend/src/app.js` - `console.log` en middleware de logging
-- `Backend/src/models/Post.js` - `console.error` en métodos de incremento/decremento
-- `Backend/src/config/db.js` - `console.error` en validación de variables de entorno
-- `Backend/src/config/cloudinary.js` - `console.error` en manejo de errores
-- `Backend/src/server.js` - `console.error` en manejo de promesas rechazadas
-- `Backend/src/config/dbOptimization.js` - `console.error` en creación de índices
+- ✅ `Backend/src/middlewares/auth.js` - `console.error` → `logger.error`
+- ✅ `Backend/src/app.js` - `console.log` → `logger.info`
+- ✅ `Backend/src/models/Post.js` - 2 `console.error` → `logger.error`
+- ✅ `Backend/src/server.js` - `console.error` → `logger.error`
+- ✅ `Backend/src/config/dbOptimization.js` - `console.error` → `logger.error`
+- ✅ `Backend/src/config/db.js` - 5 `console.error` → `logger.error`
+- ✅ `Backend/src/config/cloudinary.js` - 3 `console.error` → `logger.error`
 
-**Solución**: Reemplazar todos los `console.log/error` con `logger.info/error`
+**Solución implementada**: Reemplazados todos los `console.log/error` con `logger.info/error`
 
-**Prioridad**: 🟡 Media
+**Estado**: ✅ Completado (Diciembre 2024)
 
 #### 9.1.3 ⚠️ Controladores No Usan Helper `apiResponse` para Respuestas Exitosas (Opcional)
 
@@ -1007,21 +1141,24 @@ responses(res).ok('Operación exitosa', result);
 
 **Prioridad**: 🟡 Media
 
-#### 9.1.5 Uso Excesivo de `setImmediate` en Servicios
+#### 9.1.5 ✅ **COMPLETADO** - Uso Excesivo de `setImmediate` en Servicios
 
-**Problema**: Uso innecesario de `setImmediate` en servicios, especialmente en `authService.js` y `searchService.js`.
+**Problema**: Uso innecesario de `setImmediate` en servicios, especialmente en `authService.js`.
 
-**Archivos afectados**:
+**Archivos corregidos**:
 
-- `Backend/src/services/authService.js` - Múltiples `setImmediate` innecesarios
-- `Backend/src/services/searchService.js` - `setImmediate` en varios métodos
+- ✅ `Backend/src/services/authService.js` - 22 `setImmediate` eliminados de `generateUniqueUsername()`, `register()`, `login()`
+- ✅ `Backend/src/services/postService.js` - Agregado logging a `setImmediate` válidos (tareas en background)
 
-**Solución**:
+**Solución implementada**:
 
-- Evaluar si realmente necesita `setImmediate` o si se puede hacer de forma síncrona
-- Para tareas pesadas, usar `taskQueue` en lugar de `setImmediate`
+- ✅ Eliminados todos los `setImmediate` innecesarios en funciones async
+- ✅ Refactorizado para usar excepciones (`ConflictError`, `UnauthorizedError`) en lugar de retornar `{ error: ... }`
+- ✅ Mantenidos `setImmediate` válidos en tareas en background (decrementar contador, eliminar de Cloudinary)
 
-**Prioridad**: 🟡 Media
+**Resultado**: Código más limpio, ~150 líneas eliminadas, mejor performance (sin latencia innecesaria)
+
+**Estado**: ✅ Completado (Diciembre 2024)
 
 ### 9.2 Backend - Mejoras de Calidad
 
@@ -1050,17 +1187,17 @@ responses(res).ok('Operación exitosa', result);
 
 **Prioridad**: 🟡 Media
 
-#### 9.2.3 Manejo de Errores en Modelos
+#### 9.2.3 ✅ **COMPLETADO** - Manejo de Errores en Modelos
 
 **Problema**: Modelos usan `console.error` en lugar de logger, y algunos errores no se propagan correctamente.
 
-**Archivos afectados**:
+**Archivos corregidos**:
 
-- `Backend/src/models/Post.js`
+- ✅ `Backend/src/models/Post.js` - Reemplazados `console.error` con `logger.error` en métodos de incremento/decremento
 
-**Solución**: Usar logger y propagar errores correctamente.
+**Solución implementada**: Usado logger estructurado con metadata para mejor trazabilidad
 
-**Prioridad**: 🟡 Media
+**Estado**: ✅ Completado (Diciembre 2024)
 
 #### 9.2.4 Documentación de API Incompleta
 

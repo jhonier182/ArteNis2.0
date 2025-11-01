@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useUser } from '../context/UserContext';
-import { boardService } from '../services/boardService';
+import { postService } from '../services/postService';
 import { useAlert } from '../components/Alert';
 
 interface UseSavePostReturn {
@@ -12,10 +12,10 @@ interface UseSavePostReturn {
 }
 
 /**
- * Hook para manejar la funcionalidad de guardar posts en boards
+ * Hook para manejar la funcionalidad de guardar posts
  * 
- * Este hook centraliza toda la lógica de guardar/remover posts de boards,
- * eliminando código duplicado entre componentes.
+ * Este hook centraliza toda la lógica de guardar/remover posts usando
+ * el endpoint dedicado de saved posts.
  * 
  * @param initialPostId - ID del post inicial (opcional)
  * @param initialIsSaved - Estado inicial de guardado (opcional)
@@ -33,7 +33,9 @@ export function useSavePost(
   const [currentPostId, setCurrentPostId] = useState<string | undefined>(initialPostId);
 
   /**
-   * Verifica si un post está guardado en algún board
+   * Verifica si un post está guardado consultando su estado
+   * Nota: El campo isSaved viene en las respuestas de los posts,
+   * pero podemos verificarlo directamente si es necesario
    */
   const checkIfSaved = useCallback(async (postId: string) => {
     if (!isAuthenticated || !postId) {
@@ -42,8 +44,11 @@ export function useSavePost(
     }
 
     try {
-      const result = await boardService.isPostSaved(postId);
-      setIsSaved(result.isSaved);
+      // Los posts vienen con el campo isSaved en las respuestas
+      // Si necesitamos verificarlo explícitamente, podemos usar getPostById
+      const response = await postService.getPostById(postId);
+      const isPostSaved = response.data?.post?.isSaved ?? false;
+      setIsSaved(isPostSaved);
       setCurrentPostId(postId);
     } catch (err) {
       // Error silencioso - no bloquear la UI
@@ -52,7 +57,7 @@ export function useSavePost(
   }, [isAuthenticated]);
 
   /**
-   * Toggle para guardar o remover un post de los boards
+   * Toggle para guardar o remover un post usando el endpoint dedicado
    */
   const toggleSave = useCallback(async (postId: string) => {
     if (!isAuthenticated) {
@@ -69,32 +74,12 @@ export function useSavePost(
     setCurrentPostId(postId);
 
     try {
-      if (isSaved && currentPostId === postId) {
-        // Remover de guardados
-        const savedInfo = await boardService.isPostSaved(postId);
-        
-        if (savedInfo.isSaved && savedInfo.boardId) {
-          await boardService.removePostFromBoard(savedInfo.boardId, postId);
-          setIsSaved(false);
-        } else {
-          // Si no encontramos el board, buscar manualmente
-          const boards = await boardService.getMyBoards();
-          const allBoards = boards.data?.boards || [];
-
-          for (const board of allBoards) {
-            const hasPost = board.Posts?.some((post) => post.id === postId);
-            if (hasPost) {
-              await boardService.removePostFromBoard(board.id, postId);
-              setIsSaved(false);
-              break;
-            }
-          }
-        }
-      } else {
-        // Agregar a guardados
-        const defaultBoard = await boardService.getOrCreateDefaultBoard();
-        await boardService.addPostToBoard(defaultBoard.id, postId);
-        setIsSaved(true);
+      // Usar el endpoint dedicado de saved posts
+      const response = await postService.toggleSave(postId);
+      
+      if (response.success && response.data) {
+        setIsSaved(response.data.saved);
+        // Opcional: Actualizar savesCount si se necesita mostrar en UI
       }
     } catch (err) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -106,7 +91,7 @@ export function useSavePost(
     } finally {
       setIsSaving(false);
     }
-  }, [isAuthenticated, isSaved, isSaving, currentPostId, router, showAlert]);
+  }, [isAuthenticated, isSaved, isSaving, router, showAlert]);
 
   return {
     isSaved,

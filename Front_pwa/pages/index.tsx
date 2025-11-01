@@ -18,7 +18,6 @@ import {
   Bell
 } from 'lucide-react'
 import { useUser } from '../context/UserContext'
-import { boardService } from '../services/boardService'
 import { useInfinitePosts } from '../hooks/useInfiniteScroll'
 import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
 import { useAlert, AlertContainer } from '../components/Alert'
@@ -118,16 +117,21 @@ export default function HomePage() {
 
   const loadSavedPosts = async () => {
     try {
-      // Usar boardService en lugar de llamada directa
-      const savedIds = await boardService.getSavedPostIds()
-      setSavedPostIds(savedIds)
+      // Usar el endpoint dedicado de saved posts
+      const response = await postService.getSavedPosts(1, 100) // Obtener hasta 100 posts guardados para los IDs
+      if (response.success && response.data?.posts) {
+        const savedIds = new Set(response.data.posts.map(post => post.id))
+        setSavedPostIds(savedIds)
+      } else {
+        setSavedPostIds(new Set())
+      }
     } catch (error) {
       // No mostrar error al usuario, simplemente no cargar guardados
       setSavedPostIds(new Set())
     }
   }
 
-  // Función simplificada que usa boardService directamente
+  // Función simplificada que usa postService directamente
   // Nota: useSavePost hook está diseñado para un solo post, 
   // pero aquí necesitamos actualizar savedPostIds Set, por eso usamos el servicio directamente
   const handleSavePost = async (postId: string) => {
@@ -140,37 +144,20 @@ export default function HomePage() {
     try {
       const isCurrentlySaved = savedPostIds.has(postId)
       
-      if (isCurrentlySaved) {
-        // Remover de guardados usando boardService
-        const savedInfo = await boardService.isPostSaved(postId)
-        
-        if (savedInfo.isSaved && savedInfo.boardId) {
-          await boardService.removePostFromBoard(savedInfo.boardId, postId)
-        } else {
-          // Si no encontramos el board, buscar manualmente
-          const boardsResponse = await boardService.getMyBoards()
-          const boards = boardsResponse.data?.boards || []
-          
-          for (const board of boards) {
-            const hasPost = board.Posts?.some((post) => post.id === postId)
-            if (hasPost) {
-              await boardService.removePostFromBoard(board.id, postId)
-              break
-            }
-          }
-        }
-        // Actualizar estado local
+      // Usar el endpoint dedicado de saved posts
+      const response = await postService.toggleSave(postId)
+      
+      if (response.success && response.data) {
+        // Actualizar estado local según la respuesta del servidor
         setSavedPostIds(prev => {
           const newSet = new Set(prev)
-          newSet.delete(postId)
+          if (response.data.saved) {
+            newSet.add(postId)
+          } else {
+            newSet.delete(postId)
+          }
           return newSet
         })
-      } else {
-        // Agregar a guardados usando boardService
-        const defaultBoard = await boardService.getOrCreateDefaultBoard()
-        await boardService.addPostToBoard(defaultBoard.id, postId)
-        // Actualizar estado local
-        setSavedPostIds(prev => new Set([...prev, postId]))
       }
     } catch (error: unknown) {
       const errorObj = error as { response?: { data?: { message?: string } } }
