@@ -69,6 +69,7 @@ const allowedOriginsDev = [
 	'http://127.0.0.1:8081',
 	'http://192.168.1.2:3000',
 	'http://192.168.1.2:3001',
+  'http://192.168.1.2:3002',
 	'http://192.168.1.2:8081',
 	'http://192.168.1.3:3000',
 	'http://192.168.1.3:3001',
@@ -211,7 +212,7 @@ app.use('/api/boards', boardRoutes);
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Bienvenido a ArteNis API',
+    message: 'Bienvenido a Inkedin API',
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',

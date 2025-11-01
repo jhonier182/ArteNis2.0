@@ -2,11 +2,14 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
+import Head from 'next/head'
+import { Bell } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import BottomNavigation from '@/components/BottomNavigation'
 
 export default function HomePage() {
   const router = useRouter()
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
 
   useEffect(() => {
     // Si terminó de cargar y no está autenticado, redirigir al login
@@ -15,15 +18,15 @@ export default function HomePage() {
     }
   }, [isAuthenticated, isLoading, router])
 
-  // Mostrar nada o un loader mientras verifica autenticación
+  // Mostrar loader mientras verifica autenticación
   if (isLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-black">
+      <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-400">Cargando...</p>
         </div>
-      </main>
+      </div>
     )
   }
 
@@ -32,16 +35,48 @@ export default function HomePage() {
     return null
   }
 
-  // Si está autenticado, mostrar la página de bienvenida
+  // Si está autenticado, mostrar la página de inicio con navegación
   return (
-    <main className="min-h-screen flex items-center justify-center bg-black">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4 text-white">Bienvenido a Inkedin 2.0</h1>
-        <p className="text-gray-400">
-          Plataforma moderna para tatuadores
-        </p>
-      </div>
-    </main>
+    <div className="min-h-screen bg-[#0f1419] text-white pb-20">
+      <Head>
+        <title>Inkedin - Inicio</title>
+      </Head>
+      
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-[#0f1419]/95 backdrop-blur-sm border-b border-gray-800">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+              Inkedin
+            </h1>
+            <button className="p-2 hover:bg-gray-800 rounded-full transition-colors relative">
+              <Bell className="w-6 h-6" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="px-4 py-4">
+        <div className="text-center py-20">
+          <h2 className="text-2xl font-bold mb-2 text-white">
+            ¡Bienvenido{user ? `, ${user.username}` : ''}!
+          </h2>
+          <p className="text-gray-400 mb-6">
+            Plataforma moderna para compartir y descubrir arte de tatuajes
+          </p>
+          
+          {/* Placeholder para el contenido de posts */}
+          <div className="mt-8 text-gray-500">
+            <p className="text-sm">El contenido aparecerá aquí</p>
+          </div>
+        </div>
+      </main>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation currentPath="/" />
+    </div>
   )
 }
 

@@ -8,9 +8,25 @@ class ApiClient {
 
   constructor() {
     // Usar variable de entorno en cliente, fallback a localhost en desarrollo
-    const baseURL =
-      (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) ||
-      'http://localhost:3000/api'
+    // En el cliente, process.env solo funciona con NEXT_PUBLIC_ prefijo
+    let baseURL = 'http://localhost:3000'
+    
+    if (typeof window !== 'undefined') {
+      // En el cliente, usar la variable de entorno del navegador
+      const envUrl = (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_API_URL
+      baseURL = envUrl || baseURL
+    } else if (typeof process !== 'undefined') {
+      // En el servidor
+      baseURL = process.env.NEXT_PUBLIC_API_URL || baseURL
+    }
+
+    // Asegurar que baseURL termine con /api (sin duplicar)
+    if (!baseURL.endsWith('/api')) {
+      // Remover cualquier trailing slash y luego añadir /api
+      baseURL = baseURL.replace(/\/$/, '') + '/api'
+    }
+
+    console.log('🔧 ApiClient baseURL configurado:', baseURL) // Debug
 
     this.client = axios.create({
       baseURL,
@@ -24,9 +40,14 @@ class ApiClient {
   }
 
   private setupInterceptors(): void {
-    // Interceptor de request: añade token de autenticación
+    // Interceptor de request: añade token de autenticación y loguea la URL
     this.client.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
+        // Loggear la URL completa para debug
+        const fullUrl = (config.baseURL || '') + (config.url || '')
+        console.log('📡 Request URL completa:', fullUrl)
+        
+        // Añadir token de autenticación
         const token = this.getAuthToken()
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`

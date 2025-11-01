@@ -101,5 +101,23 @@
   .text-gradient-brand {
     @apply bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 bg-clip-text text-transparent;
   }
+
+  /* Bottom Navigation Styles */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .bottom-nav-ios {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+
+  .nav-button {
+    @apply touch-manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .nav-button:active {
+    @apply scale-95;
+  }
 }
 

@@ -43,11 +43,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<void> => {
     try {
       const response = await apiClient.getClient().post('/auth/login', {
-        email,
+        identifier: email, // El backend espera 'identifier' que puede ser email o username
         password,
       })
 
-      const { user: userData, token, refreshToken } = response.data
+      // El backend devuelve { success, message, data: { user, token, refreshToken } }
+      const responseData = response.data.data || response.data
+      const { user: userData, token, refreshToken } = responseData
 
       apiClient.setAuthToken(token)
       if (refreshToken) {
@@ -73,9 +75,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username,
         email,
         password,
+        fullName: username, // El backend requiere fullName
+        userType: 'user', // Por defecto es 'user'
       })
 
-      const { user: userData, token, refreshToken } = response.data
+      // El backend devuelve { success, message, data: { user, token, refreshToken } }
+      const responseData = response.data.data || response.data
+      const { user: userData, token, refreshToken } = responseData
 
       apiClient.setAuthToken(token)
       if (refreshToken) {
