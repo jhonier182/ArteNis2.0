@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/profile')
+      router.push('/')
     }
   }, [isAuthenticated, router])
 
@@ -45,9 +45,9 @@ export default function LoginPage() {
     try {
       await login(formData.email, formData.password)
       
-      // Redirigir inmediatamente después del login exitoso
+      // Redirigir inmediatamente después del login exitoso a la página de inicio
       // El UserContext ya estableció el estado correctamente
-      router.push('/profile')
+      router.push('/')
       
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al iniciar sesión')

@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
+const { User } = require('../models');
 
 // Middleware para verificar JWT
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     
@@ -22,7 +23,35 @@ const verifyToken = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    
+    // ✅ Validar que el usuario existe y está activo en la base de datos
+    const user = await User.findByPk(decoded.id, {
+      attributes: ['id', 'username', 'email', 'userType', 'isActive', 'isPremium']
+    });
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      });
+    }
+    
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Cuenta desactivada'
+      });
+    }
+    
+    // ✅ Usar datos del usuario de la DB, no solo del token
+    req.user = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.userType,
+      isPremium: typeof user.isPremiumActive === 'function' ? user.isPremiumActive() : (user.isPremium || false)
+    };
+    
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
@@ -39,6 +68,7 @@ const verifyToken = (req, res, next) => {
       });
     }
 
+    console.error('Error en verifyToken:', error);
     return res.status(500).json({
       success: false,
       message: 'Error interno del servidor'

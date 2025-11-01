@@ -82,22 +82,70 @@ class ApiClient {
               refreshToken
             });
 
-            const { token: newToken, refreshToken: newRefreshToken } = response.data.data;
+            const { token: newToken, refreshToken: newRefreshToken, user: newUser } = response.data.data;
 
             // Log para debugging: verificar si el token cambió a otro usuario
             const oldToken = getStorageItem('token');
+            const oldUserProfile = getStorageItem('userProfile');
             console.log('🔄 Refrescando token...');
+            
             if (oldToken && oldToken !== newToken) {
               console.log('⚠️ Token refrescado (nuevo token obtenido)');
-              // El usuario debería ser el mismo, pero verificamos
-              const oldUserProfile = getStorageItem('userProfile');
               if (oldUserProfile) {
-                console.log('👤 Usuario guardado antes del refresh:', JSON.parse(oldUserProfile).id);
+                try {
+                  const oldUser = JSON.parse(oldUserProfile);
+                  console.log('👤 Usuario guardado antes del refresh:', oldUser.id);
+                } catch (e) {
+                  console.log('Error parseando usuario guardado:', e);
+                }
               }
+            }
+
+            // ✅ Sincronizar userProfile con los datos del servidor después del refresh
+            if (newUser) {
+              setStorageItem('userProfile', JSON.stringify(newUser));
+              // También actualizar sessionStorage para consistencia
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem('userProfile', JSON.stringify(newUser));
+                
+                // Actualizar también en IndexedDB para persistencia completa
+                try {
+                  if ('indexedDB' in window) {
+                    const request = indexedDB.open('InkEndinDB', 1);
+                    request.onupgradeneeded = (event: any) => {
+                      const db = event.target.result;
+                      if (!db.objectStoreNames.contains('userData')) {
+                        db.createObjectStore('userData');
+                      }
+                    };
+                    request.onsuccess = () => {
+                      const db = request.result;
+                      if (db.objectStoreNames.contains('userData')) {
+                        const transaction = db.transaction(['userData'], 'readwrite');
+                        const store = transaction.objectStore('userData');
+                        store.put(JSON.stringify(newUser), 'userProfile');
+                        store.put(newToken, 'token');
+                        if (newRefreshToken) {
+                          store.put(newRefreshToken, 'refreshToken');
+                        }
+                      }
+                    };
+                  }
+                } catch (indexedDBError) {
+                  console.log('Error actualizando IndexedDB en refresh:', indexedDBError);
+                }
+              }
+              console.log('✅ Usuario sincronizado después del refresh:', newUser.id);
             }
 
             setStorageItem('token', newToken);
             setStorageItem('refreshToken', newRefreshToken);
+            
+            // También actualizar sessionStorage para consistencia
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('token', newToken);
+              sessionStorage.setItem('refreshToken', newRefreshToken);
+            }
 
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
 

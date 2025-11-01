@@ -57,24 +57,48 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       const response = await apiClient.get('/api/profile/me');
-      console.log('📡 Respuesta del perfil:', response.data);
       
       const userData = response.data?.data?.user;
 
       if (userData) {
-        // Validar que el usuario del servidor coincida con el guardado
+        // ✅ Validar que el token decodificado tenga el mismo ID que el usuario del servidor
+        try {
+          if (token) {
+            const tokenParts = token.split('.');
+            if (tokenParts.length === 3) {
+              const decoded = JSON.parse(atob(tokenParts[1]));
+              if (decoded.id !== userData.id) {
+                console.error('⚠️ CRÍTICO: El ID del token no coincide con el usuario del servidor!');
+                console.error('ID del token:', decoded.id);
+                console.error('ID del servidor:', userData.id);
+                
+                // Limpiar todo y forzar relogin
+                await forceClearAllAuthData();
+                setUser(null);
+                setIsAuthenticated(false);
+                setIsLoading(false);
+                return;
+              }
+            }
+          }
+        } catch (tokenError) {
+          console.error('Error validando token:', tokenError);
+          // Si hay error decodificando el token, limpiar y forzar relogin
+          await forceClearAllAuthData();
+          setUser(null);
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
+        }
+
+        // ✅ Validar que el usuario del servidor coincida con el guardado localmente
         if (savedUser && savedUser.id !== userData.id) {
           console.error('⚠️ ALERTA: El usuario del servidor NO coincide con el guardado localmente!');
           console.error('Usuario guardado:', savedUser.id, savedUser.username);
           console.error('Usuario del servidor:', userData.id, userData.username);
           
           // Limpiar todo y pedir nuevo login
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
-            localStorage.removeItem('userProfile');
-            localStorage.removeItem('refreshToken');
-            sessionStorage.clear();
-          }
+          await forceClearAllAuthData();
           
           setUser(null);
           setIsAuthenticated(false);
@@ -82,11 +106,39 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
+        // ✅ SIEMPRE actualizar userProfile con los datos del servidor (incluso si no había savedUser)
         setUser(userData);
         setIsAuthenticated(true);
+        
+        // Guardar en todos los métodos de almacenamiento
         if (typeof window !== 'undefined') {
           localStorage.setItem('userProfile', JSON.stringify(userData));
+          sessionStorage.setItem('userProfile', JSON.stringify(userData));
         }
+        
+        // Actualizar también en IndexedDB si está disponible
+        try {
+          if (typeof window !== 'undefined' && 'indexedDB' in window) {
+            const request = indexedDB.open('InkEndinDB', 1);
+            request.onupgradeneeded = (event: any) => {
+              const db = event.target.result;
+              if (!db.objectStoreNames.contains('userData')) {
+                db.createObjectStore('userData');
+              }
+            };
+            request.onsuccess = () => {
+              const db = request.result;
+              if (db.objectStoreNames.contains('userData')) {
+                const transaction = db.transaction(['userData'], 'readwrite');
+                const store = transaction.objectStore('userData');
+                store.put(JSON.stringify(userData), 'userProfile');
+              }
+            };
+          }
+        } catch (indexedDBError) {
+          console.log('Error actualizando IndexedDB:', indexedDBError);
+        }
+        
         console.log('✅ Usuario cargado exitosamente:', userData.username, userData.id);
       } else {
         console.log('⚠️ No se encontraron datos de usuario en la respuesta');
