@@ -1,7 +1,6 @@
 import type { AppProps } from 'next/app'
 import { useEffect } from 'react'
 import Head from 'next/head'
-import { AuthProvider } from '../context/AuthContext'
 import { UserProvider } from '../context/UserContext'
 import { ThemeProvider } from '../context/ThemeContext'
 import { NotificationProvider } from '../context/NotificationContext'
@@ -45,18 +44,16 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
       </Head>
       <ThemeProvider>
-        <AuthProvider>
-          <UserProvider>
-            <NotificationProvider>
-              {/* Mostrar pantalla de introducción si es necesario */}
-              {showIntro ? (
-                <IntroScreen onComplete={completeIntro} />
-              ) : (
-                <Component {...pageProps} />
-              )}
-            </NotificationProvider>
-          </UserProvider>
-        </AuthProvider>
+        <UserProvider>
+          <NotificationProvider>
+            {/* Mostrar pantalla de introducción si es necesario */}
+            {showIntro ? (
+              <IntroScreen onComplete={completeIntro} />
+            ) : (
+              <Component {...pageProps} />
+            )}
+          </NotificationProvider>
+        </UserProvider>
       </ThemeProvider>
     </>
   )

@@ -44,6 +44,7 @@ export interface PostFilters {
   search?: string;
   tags?: string[];
   userType?: string;
+  city?: string;
   sortBy?: 'newest' | 'oldest' | 'mostLiked' | 'mostCommented';
   dateRange?: {
     start: string;
@@ -229,20 +230,31 @@ export const postService = {
   },
 
   // Buscar posts
-  // NOTA: El endpoint correcto es /api/search/posts (no /api/posts/search)
+  // Endpoint unificado: GET /api/search?q=query&type=posts&city=...&page=...&limit=...
   async searchPosts(query: string, page: number = 1, limit: number = 10, filters?: PostFilters): Promise<PostsResponse> {
     try {
       const params = new URLSearchParams({
         q: query,
+        type: 'posts',
         page: page.toString(),
         limit: limit.toString(),
-        ...(filters?.tags && { tags: filters.tags.join(',') }),
-        ...(filters?.userType && { userType: filters.userType }),
-        ...(filters?.sortBy && { sortBy: filters.sortBy })
+        ...(filters?.city && { city: filters.city }),
+        ...(filters?.tags && { tags: filters.tags.join(',') })
       });
 
-      const response = await api.get<PostsResponse>(`/api/search/posts?${params}`);
-      return response;
+      // El nuevo endpoint retorna: { success: true, data: { posts: [...], pagination: {...} } }
+      const response = await api.get<{ success: boolean; data: { posts: any[]; pagination: any } }>(`/api/search?${params}`);
+      
+      if (response.success && response.data) {
+        return {
+          success: true,
+          data: {
+            posts: response.data.posts || [],
+            pagination: response.data.pagination
+          }
+        };
+      }
+      throw new Error('Error en la búsqueda');
     } catch (error: any) {
       console.error('Error buscando posts:', error);
       throw error;
@@ -250,17 +262,13 @@ export const postService = {
   },
 
   // Obtener posts populares
-  // NOTA: Este endpoint no existe. Se recomienda usar /api/search/trending como alternativa.
+  // NOTA: Usar búsqueda general con query genérico para obtener posts recientes
   async getPopularPosts(page: number = 1, limit: number = 10, period: 'day' | 'week' | 'month' | 'all' = 'week'): Promise<PostsResponse> {
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        period
-      });
-
-      // Usar trending como alternativa
-      const response = await api.get<PostsResponse>(`/api/search/trending?${params}&type=posts`);
+      // Por ahora usar una búsqueda general con tipo posts
+      // Usar query genérico '**' porque el backend requiere mínimo 2 caracteres
+      // TODO: Implementar endpoint específico de posts populares en el backend
+      const response = await this.searchPosts('**', page, limit);
       return response;
     } catch (error: any) {
       console.error('Error obteniendo posts populares:', error);
@@ -269,18 +277,10 @@ export const postService = {
   },
 
   // Obtener posts por tags
-  // NOTA: Este endpoint no existe. Se recomienda usar /api/search/posts con filtro de tags.
+  // Usa el endpoint unificado de búsqueda con filtro de tags
   async getPostsByTag(tag: string, page: number = 1, limit: number = 10): Promise<PostsResponse> {
     try {
-      const params = new URLSearchParams({
-        q: tag,
-        page: page.toString(),
-        limit: limit.toString(),
-        tags: tag
-      });
-
-      // Usar búsqueda con tag como alternativa
-      const response = await api.get<PostsResponse>(`/api/search/posts?${params}`);
+      const response = await this.searchPosts(tag, page, limit, { tags: [tag] });
       return response;
     } catch (error: any) {
       console.error('Error obteniendo posts por tag:', error);

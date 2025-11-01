@@ -15,6 +15,8 @@ import { useUser } from '../../context/UserContext'
 import { postService } from '../../services/postService'
 import { userService } from '../../services/userService'
 import { useFollowing } from '../../hooks/useFollowing'
+import { useSavePost } from '../../hooks/useSavePost'
+import { useLikePost } from '../../hooks/useLikePost'
 import PostMenu from '../../components/PostMenu'
 import { useAlert, AlertContainer } from '../../components/Alert'
 
@@ -35,13 +37,21 @@ export default function PostDetailPage() {
   const { alerts, success, error, removeAlert } = useAlert()
   const [post, setPost] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isLiked, setIsLiked] = useState(false)
-  const [likesCount, setLikesCount] = useState(0)
   const [isFollowing, setIsFollowing] = useState(false)
   const [isFollowLoading, setIsFollowLoading] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  
+  // Hook para manejar guardados (reemplaza handleSave y checkIfSaved)
+  const { isSaved, isSaving, toggleSave, checkIfSaved } = useSavePost()
+  
+  // Hook para manejar likes (reemplaza handleLike)
+  const { 
+    isLiked, 
+    likesCount, 
+    isToggling, 
+    toggleLike, 
+    updateLocalState 
+  } = useLikePost(undefined, post?.isLiked || false, post?.likesCount || 0)
 
   useEffect(() => {
     console.log('🔄 useEffect ejecutándose:', { id, isAuthenticated })
@@ -89,9 +99,9 @@ export default function PostDetailPage() {
 
   useEffect(() => {
     if (post?.id && isAuthenticated) {
-      checkIfSaved()
+      checkIfSaved(post.id)
     }
-  }, [post?.id, isAuthenticated])
+  }, [post?.id, isAuthenticated, checkIfSaved])
 
 
   const loadPost = async () => {
@@ -105,9 +115,8 @@ export default function PostDetailPage() {
         const postData = postResponse.data.post
         setPost(postData)
         
-        // Usar los datos del post principal para el estado de like
-        setIsLiked(postData.isLiked || false)
-        setLikesCount(postData.likesCount || 0)
+        // Actualizar estado de like con datos del servidor
+        updateLocalState(postData.id, postData.isLiked || false, postData.likesCount || 0)
       } else {
         throw new Error('No se pudo cargar la publicación')
       }
@@ -121,18 +130,6 @@ export default function PostDetailPage() {
     }
   }
 
-  const checkIfSaved = async () => {
-    if (!post?.id) return;
-    try {
-      // Usar boardService en lugar de llamada directa
-      const { boardService } = await import('../../services/boardService');
-      const savedInfo = await boardService.isPostSaved(post.id);
-      setIsSaved(savedInfo.isSaved);
-    } catch (error) {
-      console.error('Error al verificar guardado:', error);
-      setIsSaved(false); // En caso de error, asumir no guardado
-    }
-  }
 
   const handleFollow = async () => {
     if (!isAuthenticated) {
@@ -172,77 +169,13 @@ export default function PostDetailPage() {
   }
 
   const handleSave = async () => {
-    if (!isAuthenticated) {
-      error('Acceso denegado', 'Debes iniciar sesión para guardar publicaciones')
-      router.push('/login')
-      return
-    }
-
     if (!post?.id) return;
-
-    try {
-      setIsSaving(true)
-      
-      // Usar boardService en lugar de llamadas directas
-      const { boardService } = await import('../../services/boardService');
-      
-      if (isSaved) {
-        // Remover de guardados
-        const savedInfo = await boardService.isPostSaved(post.id);
-        
-        if (savedInfo.isSaved && savedInfo.boardId) {
-          await boardService.removePostFromBoard(savedInfo.boardId, post.id);
-          setIsSaved(false);
-        } else {
-          // Si no encontramos el board, buscar manualmente
-          const boardsResponse = await boardService.getMyBoards();
-          const boards = boardsResponse.data?.boards || [];
-          
-          for (const board of boards) {
-            const hasPost = board.Posts?.some((savedPost) => savedPost.id === post.id);
-            if (hasPost) {
-              await boardService.removePostFromBoard(board.id, post.id);
-              setIsSaved(false);
-              break;
-            }
-          }
-        }
-      } else {
-        // Agregar a guardados
-        const defaultBoard = await boardService.getOrCreateDefaultBoard();
-        await boardService.addPostToBoard(defaultBoard.id, post.id);
-        setIsSaved(true);
-      }
-    } catch (err: unknown) {
-      const errorObj = err as { response?: { data?: { message?: string } } };
-      const errorMessage = errorObj.response?.data?.message || 'No se pudo guardar la publicación';
-      error('Error al guardar', errorMessage);
-    } finally {
-      setIsSaving(false)
-    }
+    await toggleSave(post.id)
   }
 
   const handleLike = async () => {
-    if (!isAuthenticated) {
-      error('Acceso denegado', 'Debes iniciar sesión para dar like')
-      return
-    }
-
     if (!id || typeof id !== 'string') return;
-
-    try {
-      // Usar postService en lugar de llamada directa
-      const response = await postService.toggleLike(id)
-      
-      if (response.success && response.data) {
-        setIsLiked(response.data.isLiked)
-        setLikesCount(response.data.likesCount)
-      }
-    } catch (err) {
-      console.error('Error al dar like:', err)
-      error('Error', 'No se pudo actualizar el like')
-      // El servicio maneja el revert automático
-    }
+    await toggleLike(id)
   }
 
   const handleDelete = async () => {
@@ -421,6 +354,7 @@ export default function PostDetailPage() {
           <div className="flex items-center space-x-4">
             <button
               onClick={handleLike}
+              disabled={isToggling}
               className="flex items-center space-x-2 group"
             >
               <Heart
@@ -449,7 +383,7 @@ export default function PostDetailPage() {
 
           <button 
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || isToggling}
             className={`group transition-colors ${
               isSaved ? 'text-blue-500' : 'text-gray-400 hover:text-blue-500'
             }`}

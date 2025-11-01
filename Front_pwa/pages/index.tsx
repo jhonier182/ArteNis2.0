@@ -23,7 +23,6 @@ import { useInfinitePosts } from '../hooks/useInfiniteScroll'
 import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
 import { useAlert, AlertContainer } from '../components/Alert'
 import { useFollowing } from '../hooks/useFollowing'
-import { useSavePost } from '../hooks/useSavePost'
 import { postService } from '../services/postService'
 
 interface Post {
@@ -62,9 +61,6 @@ export default function HomePage() {
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set())
   const router = useRouter()
   
-  // Hook para manejar guardados (reemplaza handleSavePost)
-  // Nota: Este hook maneja un solo post, pero podemos crear uno para múltiples
-  // Por ahora, usaremos el servicio directamente para mantener compatibilidad
 
   // Hook de scroll infinito para posts de usuarios seguidos
   const {
@@ -101,7 +97,6 @@ export default function HomePage() {
   // Refrescar el feed cuando cambien los usuarios seguidos (OPTIMIZADO)
   useEffect(() => {
     if (isAuthenticated && user?.userType !== 'artist' && followingUsers.length > 0) {
-      console.log('🔄 Refrescando feed por cambio en usuarios seguidos:', followingUsers.length)
       refreshPosts()
     }
   }, [followingUsers.length, isAuthenticated, user?.userType]) // Removido refreshPosts de las dependencias
@@ -127,12 +122,14 @@ export default function HomePage() {
       const savedIds = await boardService.getSavedPostIds()
       setSavedPostIds(savedIds)
     } catch (error) {
-      console.error('Error al cargar posts guardados:', error)
       // No mostrar error al usuario, simplemente no cargar guardados
       setSavedPostIds(new Set())
     }
   }
 
+  // Función simplificada que usa boardService directamente
+  // Nota: useSavePost hook está diseñado para un solo post, 
+  // pero aquí necesitamos actualizar savedPostIds Set, por eso usamos el servicio directamente
   const handleSavePost = async (postId: string) => {
     if (!isAuthenticated) {
       showAlert('Acceso denegado', 'Debes iniciar sesión para guardar publicaciones')
@@ -141,17 +138,14 @@ export default function HomePage() {
     }
 
     try {
-      if (savedPostIds.has(postId)) {
-        // Remover de guardados
+      const isCurrentlySaved = savedPostIds.has(postId)
+      
+      if (isCurrentlySaved) {
+        // Remover de guardados usando boardService
         const savedInfo = await boardService.isPostSaved(postId)
         
         if (savedInfo.isSaved && savedInfo.boardId) {
           await boardService.removePostFromBoard(savedInfo.boardId, postId)
-          setSavedPostIds(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(postId)
-            return newSet
-          })
         } else {
           // Si no encontramos el board, buscar manualmente
           const boardsResponse = await boardService.getMyBoards()
@@ -161,46 +155,56 @@ export default function HomePage() {
             const hasPost = board.Posts?.some((post) => post.id === postId)
             if (hasPost) {
               await boardService.removePostFromBoard(board.id, postId)
-              setSavedPostIds(prev => {
-                const newSet = new Set(prev)
-                newSet.delete(postId)
-                return newSet
-              })
               break
             }
           }
         }
+        // Actualizar estado local
+        setSavedPostIds(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(postId)
+          return newSet
+        })
       } else {
-        // Agregar a guardados
+        // Agregar a guardados usando boardService
         const defaultBoard = await boardService.getOrCreateDefaultBoard()
         await boardService.addPostToBoard(defaultBoard.id, postId)
+        // Actualizar estado local
         setSavedPostIds(prev => new Set([...prev, postId]))
       }
     } catch (error: unknown) {
       const errorObj = error as { response?: { data?: { message?: string } } }
       const errorMessage = errorObj.response?.data?.message || 'No se pudo guardar la publicación'
-      console.error('Error al guardar post:', errorMessage)
       showAlert('Error al guardar', errorMessage)
     }
   }
 
+  // Función simplificada que usa postService directamente con actualización optimista
+  // Nota: useLikePost hook está diseñado para un solo post,
+  // pero aquí necesitamos actualizar el array de posts, por eso usamos el servicio directamente
   const handleLike = async (postId: string) => {
     try {
+      // Encontrar el post actual para obtener estado previo
+      const currentPost = posts.find((post: Post) => post.id === postId)
+      if (!currentPost) return
+
+      const previousIsLiked = currentPost.isLiked || false
+      const previousLikesCount = currentPost.likesCount || 0
+
       // Actualización optimista - actualizar UI inmediatamente
       const updatedPosts = posts.map((post: Post) => {
         if (post.id === postId) {
-          const isCurrentlyLiked = post.isLiked || false
           return {
             ...post,
-            isLiked: !isCurrentlyLiked,
-            likesCount: isCurrentlyLiked ? post.likesCount - 1 : post.likesCount + 1
+            isLiked: !previousIsLiked,
+            likesCount: previousIsLiked ? previousLikesCount - 1 : previousLikesCount + 1
           }
         }
         return post
       })
       setPosts(updatedPosts)
 
-      // Usar postService en lugar de llamada directa
+      // Llamar al servicio para toggle del like
       const response = await postService.toggleLike(postId)
       
       // Actualizar con la respuesta real del servidor
@@ -219,21 +223,23 @@ export default function HomePage() {
         setPosts(finalPosts)
       }
     } catch (error) {
-      console.error('Error al dar like:', error)
-      
       // Revertir cambios en caso de error
-      const revertedPosts = posts.map((post: Post) => {
-        if (post.id === postId) {
-          const isCurrentlyLiked = post.isLiked || false
-          return {
-            ...post,
-            isLiked: !isCurrentlyLiked,
-            likesCount: isCurrentlyLiked ? post.likesCount + 1 : post.likesCount - 1
+      const currentPost = posts.find((post: Post) => post.id === postId)
+      if (currentPost) {
+        const previousIsLiked = currentPost.isLiked || false
+        const previousLikesCount = currentPost.likesCount || 0
+        const revertedPosts = posts.map((post: Post) => {
+          if (post.id === postId) {
+            return {
+              ...post,
+              isLiked: !previousIsLiked,
+              likesCount: previousIsLiked ? previousLikesCount + 1 : previousLikesCount - 1
+            }
           }
-        }
-        return post
-      })
-      setPosts(revertedPosts)
+          return post
+        })
+        setPosts(revertedPosts)
+      }
       
       showAlert('Error', 'No se pudo actualizar el like')
     }
@@ -249,7 +255,6 @@ export default function HomePage() {
     const { outcome } = await promptEvent.userChoice
     
     if (outcome === 'accepted') {
-      console.log('Usuario aceptó instalar la PWA')
     }
     
     ;(window as any).deferredPrompt = null

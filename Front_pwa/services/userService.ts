@@ -77,9 +77,9 @@ export const userService = {
   // Obtener perfil de usuario por username (endpoint no disponible actualmente)
   async getUserByUsername(username: string): Promise<{ success: boolean; data: { user: UserProfile } }> {
     try {
-      // Usar búsqueda como alternativa temporal
-      const response = await api.get<{ success: boolean; data: { users: UserProfile[] } }>(`/api/search/users?q=${encodeURIComponent(username)}`);
-      const user = response.data.users?.find(u => u.username === username);
+      // Usar búsqueda general unificada con filtro de artistas
+      const response = await api.get<{ success: boolean; data: { artists: UserProfile[] } }>(`/api/search?q=${encodeURIComponent(username)}&type=artists&limit=20`);
+      const user = response.data.artists?.find(u => u.username === username);
       if (!user) {
         throw new Error('Usuario no encontrado');
       }
@@ -181,8 +181,8 @@ export const userService = {
   },
 
   // Buscar usuarios
-  // Endpoint: GET /api/search/users?q=query&limit=limit
-  async searchUsers(query: string, page: number = 1, limit: number = 20, userType?: string): Promise<UsersResponse> {
+  // Endpoint: GET /api/search?q=query&type=artists&city=...&limit=limit
+  async searchUsers(query: string, page: number = 1, limit: number = 20, city?: string): Promise<UsersResponse> {
     try {
       if (!query || query.trim().length < 2) {
         throw new Error('La búsqueda debe tener al menos 2 caracteres');
@@ -190,28 +190,30 @@ export const userService = {
 
       const params = new URLSearchParams({
         q: query.trim(),
+        type: 'artists',
+        page: page.toString(),
         limit: limit.toString(),
-        ...(userType && { userType })
+        ...(city && { city })
       });
 
-      // El backend retorna: { success: true, data: { users: [...], total: number, query: string } }
-      const response = await api.get<{ success: boolean; data: { users: User[]; total: number; query: string } }>(`/api/search/users?${params}`);
+      // El backend retorna: { success: true, data: { artists: [...], posts: [], boards: [], pagination: {...} } }
+      const response = await api.get<{ success: boolean; data: { artists: User[]; pagination: { totalItems: number; currentPage: number; totalPages: number; itemsPerPage: number } } }>(`/api/search?${params}`);
       
       if (response.success && response.data) {
-        const users = response.data.users || [];
-        const total = response.data.total || users.length;
+        const users = response.data.artists || [];
+        const total = response.data.pagination?.totalItems || users.length;
         
         return {
           success: true,
           data: {
             users,
             pagination: {
-              page: 1, // El backend no soporta paginación por página, solo limit
-              limit: users.length,
+              page: response.data.pagination?.currentPage || page,
+              limit: response.data.pagination?.itemsPerPage || limit,
               total,
-              totalPages: Math.ceil(total / limit),
-              hasNext: users.length === limit && total > limit,
-              hasPrev: false
+              totalPages: response.data.pagination?.totalPages || Math.ceil(total / limit),
+              hasNext: (response.data.pagination?.currentPage || page) < (response.data.pagination?.totalPages || Math.ceil(total / limit)),
+              hasPrev: (response.data.pagination?.currentPage || page) > 1
             }
           }
         };

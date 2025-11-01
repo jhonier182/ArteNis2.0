@@ -38,7 +38,23 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      // Obtener usuario guardado en localStorage para comparar
+      const savedUserProfile = typeof window !== 'undefined' 
+        ? localStorage.getItem('userProfile') 
+        : null;
+      let savedUser = null;
+      if (savedUserProfile) {
+        try {
+          savedUser = JSON.parse(savedUserProfile);
+        } catch (e) {
+          console.log('Error parseando usuario guardado:', e);
+        }
+      }
+
       console.log('🔐 Cargando usuario con token:', token.substring(0, 20) + '...');
+      if (savedUser) {
+        console.log('👤 Usuario guardado localmente:', savedUser.username, savedUser.id);
+      }
       
       const response = await apiClient.get('/api/profile/me');
       console.log('📡 Respuesta del perfil:', response.data);
@@ -46,6 +62,26 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = response.data?.data?.user;
 
       if (userData) {
+        // Validar que el usuario del servidor coincida con el guardado
+        if (savedUser && savedUser.id !== userData.id) {
+          console.error('⚠️ ALERTA: El usuario del servidor NO coincide con el guardado localmente!');
+          console.error('Usuario guardado:', savedUser.id, savedUser.username);
+          console.error('Usuario del servidor:', userData.id, userData.username);
+          
+          // Limpiar todo y pedir nuevo login
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userProfile');
+            localStorage.removeItem('refreshToken');
+            sessionStorage.clear();
+          }
+          
+          setUser(null);
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
+        }
+
         setUser(userData);
         setIsAuthenticated(true);
         if (typeof window !== 'undefined') {

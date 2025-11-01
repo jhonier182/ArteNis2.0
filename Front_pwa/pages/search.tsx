@@ -125,8 +125,9 @@ export default function Search() {
 
     setIsSearching(true)
     try {
-      const response = await apiClient.get(`/api/search/users?q=${encodeURIComponent(query)}`)
-      setSearchResults(response.data.data.users || [])
+      // Usar endpoint unificado de búsqueda con tipo artists
+      const response = await apiClient.get(`/api/search?q=${encodeURIComponent(query)}&type=artists&limit=20`)
+      setSearchResults(response.data.data?.artists || [])
     } catch (error) {
       console.error('Error searching users:', error)
       setSearchResults([])

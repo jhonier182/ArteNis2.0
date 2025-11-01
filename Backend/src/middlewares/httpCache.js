@@ -54,8 +54,7 @@ const CACHE_CONFIG = {
   '/api/posts/popular': 300000, // 5 minutos
   
   // Búsquedas - caché medio
-  '/api/search/users': 120000, // 2 minutos
-  '/api/search/global': 120000, // 2 minutos
+  '/api/search': 120000, // 2 minutos
   
   // Perfiles de usuario - caché largo
   '/api/profile/me': 600000, // 10 minutos (perfil del usuario autenticado)

@@ -84,6 +84,18 @@ class ApiClient {
 
             const { token: newToken, refreshToken: newRefreshToken } = response.data.data;
 
+            // Log para debugging: verificar si el token cambió a otro usuario
+            const oldToken = getStorageItem('token');
+            console.log('🔄 Refrescando token...');
+            if (oldToken && oldToken !== newToken) {
+              console.log('⚠️ Token refrescado (nuevo token obtenido)');
+              // El usuario debería ser el mismo, pero verificamos
+              const oldUserProfile = getStorageItem('userProfile');
+              if (oldUserProfile) {
+                console.log('👤 Usuario guardado antes del refresh:', JSON.parse(oldUserProfile).id);
+              }
+            }
+
             setStorageItem('token', newToken);
             setStorageItem('refreshToken', newRefreshToken);
 

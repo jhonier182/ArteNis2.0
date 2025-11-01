@@ -83,8 +83,10 @@ export function useSearchPosts(): UseSearchPostsReturn {
       }
 
       console.log('🔄 Cargando posts de búsqueda...')
-      const response = await apiClient.get('/api/search/posts?limit=50')
-      let rawPosts = response.data.data.posts || []
+      // Usar endpoint unificado de búsqueda con tipo posts
+      // Cuando type está especificado, el query puede estar vacío para obtener todos
+      const response = await apiClient.get('/api/search?type=posts&limit=50')
+      let rawPosts = response.data.data?.posts || []
       
       // Normalizar la estructura de datos (el backend devuelve 'author' en lugar de 'User')
       const normalizedPosts = rawPosts.map((post: any) => ({
