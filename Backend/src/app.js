@@ -21,7 +21,7 @@ const responseTimeLogger = (req, res, next) => {
     const speed = responseTime < 100 ? '⚡' : responseTime < 500 ? '✅' : responseTime < 1000 ? '⚠️' : '🐌';
     
     if (process.env.NODE_ENV === 'development') {
-      console.log(`${status} ${speed} ${req.method} ${req.path} - ${responseTime}ms`);
+      logger.info(`${status} ${speed} ${req.method} ${req.path} - ${responseTime}ms`);
     }
   });
   

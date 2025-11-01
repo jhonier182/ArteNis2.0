@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const logger = require('../utils/logger');
 
 // Middleware para verificar JWT
 const verifyToken = async (req, res, next) => {
@@ -68,7 +69,7 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    console.error('Error en verifyToken:', error);
+    logger.error('Error en verifyToken', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
       message: 'Error interno del servidor'

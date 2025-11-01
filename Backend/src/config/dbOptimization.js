@@ -1,5 +1,6 @@
 // Configuración de índices para optimización de base de datos
 const { sequelize } = require('./db');
+const logger = require('../utils/logger');
 
 // Función para crear índices optimizados
 const createOptimizedIndexes = async () => {
@@ -83,7 +84,7 @@ const createOptimizedIndexes = async () => {
 
     
   } catch (error) {
-    console.error('❌ Error creando índices:', error.message);
+    logger.error('Error creando índices', { error: error.message, stack: error.stack });
     // No lanzar error para no interrumpir el inicio del servidor
   }
 };

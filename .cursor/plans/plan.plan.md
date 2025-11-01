@@ -1,11 +1,5 @@
 # Documento de Análisis Técnico - ArteNis 2.0
 
-> **Última actualización**: Fase 1 Frontend - 78% completada ✅
-
->
-
-> **Estado**: Hooks `useSavePost()` y `useLikePost()` creados e integrados en componentes principales (`index.tsx` y `post/[id].tsx`). Código duplicado eliminado (~230 líneas). Pendiente: eliminar `console.log` en `post/[id].tsx` (14 ocurrencias), refactorizar otros 7 archivos con llamadas directas a `apiClient` (13 ocurrencias).
-
 ## 1. Resumen General
 
 **ArteNis 2.0** es una aplicación web tipo Pinterest/Instagram especializada para tatuadores y aficionados al arte del tatuaje. La plataforma permite a los artistas mostrar sus trabajos, crear colecciones (boards), interactuar mediante likes y comentarios, y gestionar perfiles profesionales.
@@ -324,6 +318,8 @@ Front_pwa/
 ### 3.4 Middlewares
 
 - **auth.js**: verifyToken (JWT), optionalAuth
+  - ✅ **Mejora (Fase 1.9)**: `verifyToken` ahora valida que el usuario existe y está activo en la base de datos antes de permitir acceso
+  - ✅ **Mejora (Fase 1.9)**: Usa datos del usuario de la DB, no solo del token decodificado, previniendo tokens inválidos o usuarios desactivados
 - **validation.js**: Validaciones generales (Joi/express-validator), sanitizeQuery
 - **mediaValidation.js**: Validación de archivos de media (MIME types, tamaño)
 - **boardValidation.js**: Validaciones específicas de boards
@@ -351,7 +347,7 @@ Front_pwa/
 **Páginas Principales:**
 
 - `/` (index.tsx) - Feed principal (posts de usuarios seguidos)
-- `/login` - Inicio de sesión
+- `/login` - Inicio de sesión (✅ Fase 1.9: redirige a `/` después de login exitoso)
 - `/register` - Registro
 - `/profile` - Perfil del usuario autenticado
 - `/user/[id]` - Perfil de otro usuario
@@ -383,9 +379,14 @@ Front_pwa/
 
 - Estado: user, isAuthenticated, isLoading
 - Métodos: login, register, logout, updateProfile, refreshUser
-- Persistencia en localStorage
+- Persistencia: Multi-método (localStorage, sessionStorage, IndexedDB) con sincronización automática
+- Validación: Verificación de tokens contra servidor, validación de ID de usuario en tokens
 
 **UserContext.tsx**: Contexto adicional de usuario (datos extendidos)
+
+- ✅ **Mejora (Fase 1.9)**: Validación mejorada de tokens - verifica que el ID del token coincida con el usuario del servidor
+- ✅ **Mejora (Fase 1.9)**: Sincronización multi-método en `loadUser` - actualiza localStorage, sessionStorage e IndexedDB
+- ✅ **Mejora (Fase 1.9)**: Prevención de cambio de usuario - detecta inconsistencias y fuerza relogin si es necesario
 
 **ThemeContext.tsx**: Gestión de temas (claro/oscuro)
 
@@ -399,13 +400,16 @@ Front_pwa/
 - `useSearchPosts.ts` - Búsqueda de posts
 - `useIntroScreen.ts` - Control de pantalla intro
 - `useEndpointLogger.ts` - Logging de endpoints
+- ✅ `useSavePost.ts` - Hook para guardar/desguardar posts (Fase 1)
+- ✅ `useLikePost.ts` - Hook para manejar likes en posts (Fase 1)
 
 ### 4.5 Servicios Frontend
 
 **apiClient.ts**: Cliente Axios configurado
 
 - Interceptores para token JWT
-- Refresh token automático
+- Refresh token automático con sincronización de userProfile
+- ✅ **Mejora (Fase 1.9)**: Sincroniza userProfile en localStorage, sessionStorage e IndexedDB después de refresh
 - Reintentos con backoff exponencial
 - Manejo de errores centralizado
 
@@ -1652,12 +1656,15 @@ responses(res).ok('Operación exitosa', result);
 - **Llamadas directas a `apiClient`**: 19+ (en páginas)
 - **Re-renders innecesarios**: Múltiples (sin optimizar)
 
-#### Estado Actual (Fase 1 - 78% completada):
+#### Estado Actual (Fase 1 - 80% completada):
 
 - ✅ **Hooks creados**: 8 (`useSavePost`, `useLikePost` + 6 existentes)
 - ✅ **Servicios creados**: 4 (añadido `boardService.ts`)
 - ✅ **Código duplicado eliminado**: ~230 líneas eliminadas en `index.tsx` y `post/[id].tsx`
-- ⚠️ **Llamadas directas a `apiClient`**: 13 ocurrencias en 7 archivos (pendiente refactorizar: `user/[id].tsx`, `profile.tsx`, `search.tsx`, `collections.tsx`, `create/edit.tsx`, `create.tsx`, `register.tsx`)
+- ✅ **Sistema de persistencia mejorado**: Sincronización multi-método, validación de tokens, corrección de bug de cambio de usuario (Fase 1.9)
+- ✅ **Validación de seguridad mejorada**: Middleware de auth valida usuario en DB, UserContext valida tokens
+- ✅ **Redirección después de login corregida**: Ahora redirige a `/` en lugar de `/profile`
+- ⚠️ **Llamadas directas a `apiClient`**: 7 archivos pendientes (`search.tsx`, `user/[id].tsx`, `profile.tsx`, `collections.tsx`, `create/edit.tsx`, `create.tsx`, `register.tsx`)
 
 #### Después de Refactorización:
 
@@ -1683,11 +1690,12 @@ responses(res).ok('Operación exitosa', result);
 - [x] `useLikePost()` hook integrado en componentes ✅ **COMPLETADO** - `post/[id].tsx` usa hook, `index.tsx` usa postService directamente (maneja lista)
 - [x] Código duplicado de guardados eliminado ✅ **COMPLETADO** - ~150 líneas eliminadas, lógica centralizada
 - [x] Código duplicado de likes eliminado ✅ **COMPLETADO** - ~80 líneas eliminadas, lógica centralizada en hooks/servicios
-- [ ] Llamadas directas a `apiClient` eliminadas de componentes principales ⚠️ **PARCIAL** - `index.tsx` y `post/[id].tsx` ✅ (usando servicios), otros archivos pendientes (13 ocurrencias en 7 archivos)
-- [ ] `console.log/error` reemplazados con logger ⚠️ **PARCIAL** - `index.tsx` ✅ (0 ocurrencias), `post/[id].tsx` ⚠️ (14 ocurrencias pendientes)
+- [x] Sistema de persistencia mejorado ✅ **COMPLETADO** (Fase 1.9) - Sincronización multi-método, validación de tokens, corrección de cambio de usuario al refrescar
+- [ ] Llamadas directas a `apiClient` eliminadas de componentes principales ⚠️ **PARCIAL** - `index.tsx` y `post/[id].tsx` ✅ (usando servicios), otros archivos pendientes (7 archivos: `search.tsx`, `user/[id].tsx`, `profile.tsx`, `collections.tsx`, `create/edit.tsx`, `create.tsx`, `register.tsx`)
+- [ ] `console.log/error` reemplazados con logger ⚠️ **PARCIAL** - `index.tsx` ✅ (0 ocurrencias), `post/[id].tsx` ⚠️ (múltiples ocurrencias pendientes), `UserContext.tsx` ⚠️ (varios logs de debug)
 - [ ] Logger configurado (`Front_pwa/utils/logger.ts`) ⚠️ **PENDIENTE**
 
-**Progreso**: 7/9 tareas completadas o en progreso (78%) - Hooks integrados, código duplicado eliminado ✅
+**Progreso**: 8/10 tareas completadas o en progreso (80%) - Hooks integrados, código duplicado eliminado, persistencia mejorada ✅
 
 #### Fase 2 - Importante Frontend
 
@@ -1875,6 +1883,8 @@ El proyecto **ArteNis 2.0** está en un estado funcional avanzado con:
 - ✅ **Consolidación de rutas**: Rutas de usuarios unificadas en `/api/profile/*`
 - ✅ **Manejo de errores mejorado**: Clases personalizadas y logging estructurado
 - ✅ **Controladores livianos**: Refactorización profunda completada (Fase 1.8)
+- ✅ **Sistema de persistencia robusto**: Multi-método (localStorage, sessionStorage, IndexedDB) con sincronización automática (Fase 1.9)
+- ✅ **Validación de seguridad mejorada**: Middleware valida usuarios en DB, prevención de tokens inválidos o usuarios desactivados (Fase 1.9)
 - ⚠️ Funcionalidades Fase 2 pendientes (no críticas, hay workarounds):
   - Sistema de guardados dedicado (actualmente usando boards)
   - Endpoints de usuarios (seguidores, bloqueo, reportes)
@@ -1915,8 +1925,16 @@ El proyecto **ArteNis 2.0** está en un estado funcional avanzado con:
    - Controladores ahora son livianos: solo extraen datos, llaman servicios y responden
    - **Resultado**: Controladores con 50-150 líneas (antes 200-400), lógica centralizada en servicios
 
-6. **Fase 2 (Pendiente)**: Sistema de guardados dedicado (opcional, hay workaround)
-7. **Fase 3 (Pendiente)**: Optimización, tests, documentación completa
+6. ✅ **Fase 1.9 COMPLETADA**: Mejoras en Sistema de Persistencia y Autenticación (Diciembre 2024)
+
+   - **Validación de usuario en middleware**: `Backend/src/middlewares/auth.js` ahora valida que el usuario existe y está activo en la base de datos antes de permitir acceso
+   - **Sincronización de userProfile después de refresh**: `Front_pwa/utils/apiClient.ts` actualiza userProfile en localStorage, sessionStorage e IndexedDB cuando se refresca el token
+   - **Validación mejorada en loadUser**: `Front_pwa/context/UserContext.tsx` valida que el ID del token coincida con el usuario del servidor y sincroniza datos en todos los métodos de almacenamiento
+   - **Redirección después de login corregida**: `Front_pwa/pages/login.tsx` ahora redirige a `/` (página de inicio) en lugar de `/profile`
+   - **Resultado**: Eliminado problema de cambio de usuario al refrescar, persistencia multi-método robusta, validación de seguridad mejorada
+
+7. **Fase 2 (Pendiente)**: Sistema de guardados dedicado (opcional, hay workaround)
+8. **Fase 3 (Pendiente)**: Optimización, tests, documentación completa
 
 ### Documentación Disponible
 
@@ -1937,9 +1955,10 @@ El proyecto **ArteNis 2.0** está en un estado funcional avanzado con:
 **Crítico (Alta Prioridad)**:
 
 - ✅ **COMPLETADO** - Eliminar `setImmediate` innecesarios en controladores (puede romper respuestas HTTP)
-- 🔴 **NUEVO** - Eliminar código duplicado en frontend (~300+ líneas) - crear hooks reutilizables
-- 🔴 **NUEVO** - Consolidar APIs duplicadas y crear servicios faltantes (`boardService.ts`)
-- 🔴 Reemplazar `console.log/error` con logger en todos los archivos (backend y frontend)
+- ✅ **COMPLETADO** - Eliminar código duplicado en frontend (~230 líneas eliminadas) - hooks `useSavePost()` y `useLikePost()` creados e integrados
+- ✅ **COMPLETADO** - Consolidar APIs duplicadas y crear servicios faltantes (`boardService.ts` creado)
+- ✅ **COMPLETADO** - Mejorar sistema de persistencia y validación de autenticación (Fase 1.9) - sincronización multi-método, validación de tokens, corrección de bug de cambio de usuario
+- 🔴 Reemplazar `console.log/error` con logger en todos los archivos (backend y frontend) - ⚠️ **PARCIAL**: `index.tsx` ✅, otros archivos pendientes
 - 🔴 Eliminar usos de `any` en TypeScript (18+ ocurrencias en frontend)
 - 🔴 Implementar tests (backend y frontend) - actualmente 0 tests
 

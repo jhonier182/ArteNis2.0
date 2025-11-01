@@ -914,7 +914,10 @@ class PostService {
         User.decrement('postsCount', {
           where: { id: userId }
         }).catch(error => {
-
+          logger.warn('Error decrementando postsCount en background', {
+            userId,
+            error: error.message
+          });
         });
       });
 

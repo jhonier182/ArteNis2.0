@@ -1,6 +1,7 @@
 const { Sequelize } = require('sequelize');
 const mysql = require('mysql2/promise');
 const path = require('path');
+const logger = require('../utils/logger');
 
 // Cargar variables de entorno
 require('dotenv').config();
@@ -10,11 +11,8 @@ const requiredEnvVars = ['DB_HOST', 'DB_NAME', 'DB_USER'];
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0) {
-  console.error('❌ Variables de entorno faltantes para la base de datos:');
-  missingVars.forEach(varName => {
-    console.error(`   - ${varName}`);
-  });
-  console.error('💡 Configura estas variables en tu archivo .env');
+  logger.error('Variables de entorno faltantes para la base de datos', { missingVars });
+  logger.error('Configura estas variables en tu archivo .env');
   process.exit(1);
 }
 
@@ -188,7 +186,7 @@ const connectDB = async () => {
     }
     
   } catch (error) {
-    console.error('❌ Error conectando a la base de datos:', error.message);
+    logger.error('Error conectando a la base de datos', { error: error.message, stack: error.stack });
     process.exit(1);
   }
 };
@@ -199,7 +197,7 @@ const closeDB = async () => {
     await sequelize.close();
 
   } catch (error) {
-    console.error('❌ Error cerrando la conexión:', error);
+    logger.error('Error cerrando la conexión', { error: error.message, stack: error.stack });
   }
 };
 

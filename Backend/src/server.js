@@ -35,10 +35,7 @@ const gracefulShutdown = (server, signal) => {
 
 // Manejo global de errores no capturados
 process.on('unhandledRejection', (err, promise) => {
-  logger.error('🚨 Unhandled Promise Rejection:', err);
-  if (process.env.NODE_ENV === 'development') {
-    console.error('Promise:', promise);
-  }
+  logger.error('🚨 Unhandled Promise Rejection', { error: err.message, stack: err.stack, promise: promise?.toString() });
 });
 process.on('uncaughtException', (err) => {
   logger.error('🚨 Uncaught Exception:', err);
