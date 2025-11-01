@@ -1,6 +1,6 @@
 {
-  "name": "ArteNis - Pinterest para tatuadores",
-  "short_name": "ArteNis",
+  "name": "Inkedin",
+  "short_name": "Inkedin",
   "description": "Plataforma moderna para compartir y descubrir arte de tatuajes",
   "start_url": "/",
   "display": "standalone",
