@@ -57,5 +57,29 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  .gradient-primary {
+    @apply bg-gradient-to-r from-purple-600 to-pink-600;
+  }
+
+  .gradient-secondary {
+    @apply bg-gradient-to-r from-purple-600 to-orange-600;
+  }
+
+  .gradient-brand {
+    @apply bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500;
+  }
+
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-secondary {
+    @apply bg-gradient-to-r from-purple-600 to-orange-600 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 bg-clip-text text-transparent;
+  }
 }
 

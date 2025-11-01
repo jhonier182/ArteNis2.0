@@ -1,12 +1,18 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
+import { ArrowRight, Mail } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
+import { SocialLoginButtons } from '@/components/ui/SocialLoginButtons'
 
-export function LoginForm() {
-  const [email, setEmail] = useState('')
+interface LoginFormProps {
+  onForgotPassword?: () => void
+}
+
+export function LoginForm({ onForgotPassword }: LoginFormProps) {
+  const [emailOrUsername, setEmailOrUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,7 +24,9 @@ export function LoginForm() {
     setLoading(true)
 
     try {
-      await login(email, password)
+      // El backend debería aceptar tanto email como username
+      // Por ahora enviaremos el valor tal cual
+      await login(emailOrUsername, password)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
     } finally {
@@ -27,30 +35,77 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg">
+        <div className="p-3 bg-red-900/50 border border-red-500 text-red-300 rounded-lg text-sm">
           {error}
         </div>
       )}
-      <Input
-        type="email"
-        label="Correo electrónico"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      <Input
-        type="password"
-        label="Contraseña"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      <Button type="submit" loading={loading} className="w-full">
-        Iniciar sesión
-      </Button>
+
+      <div>
+        <label className="block text-sm font-medium mb-1 text-white">
+          Email o Usuario
+        </label>
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <Mail size={18} />
+          </div>
+          <input
+            type="text"
+            value={emailOrUsername}
+            onChange={(e) => setEmailOrUsername(e.target.value)}
+            placeholder="tu@email.com"
+            className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <PasswordInput
+          label="Contraseña"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="........"
+          required
+        />
+        <div className="flex justify-end mt-1">
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            className="text-sm text-pink-400 hover:text-pink-300 transition-colors"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full gradient-primary text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+      >
+        {loading ? (
+          <>
+            <span className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+            <span>Cargando...</span>
+          </>
+        ) : (
+          <>
+            <span>Iniciar Sesión</span>
+            <ArrowRight size={20} />
+          </>
+        )}
+      </button>
+
+      <SocialLoginButtons />
+
+      <div className="text-center text-sm text-gray-400">
+        ¿No tienes cuenta?{' '}
+        <Link href="/register" className="text-purple-400 hover:text-purple-300 transition-colors">
+          Regístrate aquí
+        </Link>
+      </div>
     </form>
   )
 }
-
