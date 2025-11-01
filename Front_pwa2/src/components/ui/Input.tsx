@@ -17,7 +17,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <div className="relative">
           <input
             ref={ref}
-            className={`input bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 ${
+            className={`input bg-black/50 border-neutral-800 text-white placeholder-gray-500 ${
               error ? 'border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'
             } ${className}`}
             {...props}

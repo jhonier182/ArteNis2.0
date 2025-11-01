@@ -13,7 +13,7 @@ export function PasswordStrengthBar({ password }: PasswordStrengthBarProps) {
   const colorClasses = {
     weak: 'bg-red-500',
     medium: 'bg-yellow-500',
-    strong: 'bg-blue-500',
+    strong: 'bg-purple-500',
     'very-strong': 'bg-green-500',
   }
 
@@ -23,7 +23,7 @@ export function PasswordStrengthBar({ password }: PasswordStrengthBarProps) {
         <span className="text-xs text-gray-400">{feedback}</span>
         <span className="text-xs text-gray-400">{percentage}%</span>
       </div>
-      <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+      <div className="w-full bg-neutral-800 rounded-full h-2 overflow-hidden">
         <div
           className={`h-full transition-all duration-300 ${colorClasses[strength]}`}
           style={{ width: `${percentage}%` }}

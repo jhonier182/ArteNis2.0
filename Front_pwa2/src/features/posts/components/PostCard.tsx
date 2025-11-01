@@ -12,7 +12,7 @@ interface PostCardProps {
 export function PostCard({ post, onLike, onSave }: PostCardProps) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="relative w-full aspect-square bg-gray-200 dark:bg-gray-700">
+      <div className="relative w-full aspect-square bg-gray-200 dark:bg-neutral-800">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={post.imageUrl}

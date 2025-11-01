@@ -14,7 +14,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Formulario */}
-          <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-2xl p-6 shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto scrollbar-hide">
+          <div className="bg-black/80 backdrop-blur-sm border border-neutral-800 rounded-2xl p-6 shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto scrollbar-hide">
             <h2 className="text-2xl font-bold text-white mb-6 text-center">Registro de Usuario</h2>
             <RegisterForm />
           </div>

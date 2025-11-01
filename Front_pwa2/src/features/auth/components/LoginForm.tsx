@@ -55,7 +55,7 @@ export function LoginForm({ onForgotPassword }: LoginFormProps) {
             value={emailOrUsername}
             onChange={(e) => setEmailOrUsername(e.target.value)}
             placeholder="tu@email.com"
-            className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 bg-black/50 border border-neutral-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             required
           />
         </div>

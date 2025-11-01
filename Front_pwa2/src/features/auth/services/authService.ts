@@ -9,7 +9,6 @@ export interface RegisterData {
   username: string
   email: string
   password: string
-  role?: 'user' | 'tattoo_artist'
 }
 
 export interface AuthResponse {

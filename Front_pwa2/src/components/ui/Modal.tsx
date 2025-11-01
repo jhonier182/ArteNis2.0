@@ -50,11 +50,11 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
       onClick={onClose}
     >
       <div
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${sizeStyles[size]} animate-scale-in`}
+        className={`bg-white dark:bg-neutral-900 rounded-lg shadow-xl w-full ${sizeStyles[size]} animate-scale-in`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-neutral-800">
             <h2 className="text-xl font-semibold">{title}</h2>
             <button
               onClick={onClose}

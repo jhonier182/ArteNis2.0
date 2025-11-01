@@ -37,7 +37,7 @@ export function RoleSelector({ value, onChange }: RoleSelectorProps) {
             className={`p-4 rounded-lg border-2 transition-all ${
               value === role.id
                 ? 'border-purple-500 bg-purple-500/20'
-                : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+                : 'border-neutral-800 bg-black/50 hover:border-neutral-700'
             }`}
           >
             <div className="flex flex-col items-center gap-2">

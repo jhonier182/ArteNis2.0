@@ -6,7 +6,6 @@ import { ArrowRight, Mail, User, UserPlus } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { PasswordStrengthBar } from '@/components/ui/PasswordStrengthBar'
-import { RoleSelector, UserRole } from '@/components/ui/RoleSelector'
 import { isValidEmail } from '@/utils/validators'
 
 export function RegisterForm() {
@@ -14,7 +13,6 @@ export function RegisterForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [role, setRole] = useState<UserRole | null>(null)
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -50,11 +48,6 @@ export function RegisterForm() {
       return
     }
 
-    if (!role) {
-      setError('Por favor selecciona un tipo de cuenta')
-      return
-    }
-
     if (!acceptTerms) {
       setError('Debes aceptar los términos y condiciones')
       return
@@ -65,7 +58,7 @@ export function RegisterForm() {
     try {
       // Extraer username del nombre completo (primera palabra)
       const username = fullName.trim().split(' ')[0].toLowerCase()
-      await register(username, email, password, role || undefined)
+      await register(username, email, password)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrarse')
     } finally {
@@ -92,7 +85,7 @@ export function RegisterForm() {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Juan Pérez"
-            className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 bg-black/50 border border-neutral-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             required
           />
         </div>
@@ -109,7 +102,7 @@ export function RegisterForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="tu@email.com"
-            className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 bg-black/50 border border-neutral-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             required
           />
         </div>
@@ -139,15 +132,13 @@ export function RegisterForm() {
         )}
       </div>
 
-      <RoleSelector value={role} onChange={setRole} />
-
       <div className="flex items-start gap-2">
         <input
           type="checkbox"
           id="terms"
           checked={acceptTerms}
           onChange={(e) => setAcceptTerms(e.target.checked)}
-          className="mt-1 w-4 h-4 text-purple-600 bg-gray-800 border-gray-700 rounded focus:ring-purple-500"
+          className="mt-1 w-4 h-4 text-purple-600 bg-black border-neutral-800 rounded focus:ring-purple-500"
           required
         />
         <label htmlFor="terms" className="text-sm text-gray-400">

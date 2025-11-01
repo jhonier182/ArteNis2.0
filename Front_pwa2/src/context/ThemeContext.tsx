@@ -15,14 +15,23 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system')
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setThemeState] = useState<Theme>('dark')
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark')
 
   useEffect(() => {
-    // Cargar tema guardado
-    const savedTheme = storage.get<Theme>('theme') || 'system'
-    setThemeState(savedTheme)
-    applyTheme(savedTheme)
+    // Aplicar tema oscuro por defecto inmediatamente
+    document.documentElement.classList.add('dark')
+    
+    // Cargar tema guardado (si existe)
+    const savedTheme = storage.get<Theme>('theme')
+    if (savedTheme) {
+      setThemeState(savedTheme)
+      applyTheme(savedTheme)
+    } else {
+      // Si no hay tema guardado, usar dark por defecto
+      setThemeState('dark')
+      applyTheme('dark')
+    }
   }, [])
 
   useEffect(() => {
@@ -31,6 +40,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const applyTheme = (selectedTheme: Theme): void => {
     const root = document.documentElement
+    const body = document.body
     let resolved: 'light' | 'dark'
 
     if (selectedTheme === 'system') {
@@ -43,8 +53,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     if (resolved === 'dark') {
       root.classList.add('dark')
+      root.classList.remove('light')
+      body.classList.remove('light')
     } else {
       root.classList.remove('dark')
+      root.classList.add('light')
+      body.classList.add('light')
     }
   }
 
