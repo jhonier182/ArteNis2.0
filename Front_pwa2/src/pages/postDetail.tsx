@@ -6,12 +6,12 @@ import Head from 'next/head'
 import { useAuth } from '@/context/AuthContext'
 import { postService, Post } from '@/features/posts/services/postService'
 import { LikeButton } from '@/features/likes/components/LikeButton'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, MessageCircle } from 'lucide-react' // Añadimos el icono de comentarios
 
 /**
  * Página de detalle de post
  * Ruta: /postDetail?postId=xxx
- * 
+ *
  * Esta página muestra el detalle completo de un post
  */
 export default function PostDetailPage() {
@@ -22,10 +22,15 @@ export default function PostDetailPage() {
   const [post, setPost] = useState<Post | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Para comentarios
+  const [comments, setComments] = useState<Array<{ id: string; author: string; text: string }>>([])
+  const [newComment, setNewComment] = useState('')
+  const [isCommenting, setIsCommenting] = useState(false)
 
   useEffect(() => {
     if (postId && typeof postId === 'string') {
       loadPost(postId)
+      loadComments(postId)
     }
   }, [postId])
 
@@ -49,6 +54,36 @@ export default function PostDetailPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Mockup: cargar comentarios (en backend real sería un fetch)
+  const loadComments = async (id: string) => {
+    // Aquí simulamos comentarios para ejemplo
+    // Reemplazar con fetch real si tienes backend
+    setComments([
+      { id: '1', author: 'Alice', text: 'Excelente post!' },
+      { id: '2', author: 'Bob', text: '¡Muy interesante, gracias por compartir!' },
+    ])
+  }
+
+  // Mockup: enviar comentario (en backend real sería un POST)
+  const handleCommentSend = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newComment.trim()) return
+    setIsCommenting(true)
+    // Aquí deberías hacer un POST real
+    setTimeout(() => {
+      setComments(c => [
+        ...c,
+        {
+          id: String(Date.now()),
+          author: user?.fullName || user?.username || 'Tú',
+          text: newComment,
+        },
+      ])
+      setNewComment('')
+      setIsCommenting(false)
+    }, 500)
   }
 
   if (!postId || typeof postId !== 'string') {
@@ -93,7 +128,7 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1419] text-white pb-20">
+    <div className="min-h-screen bg-[#0f1419] text-white pb-32">
       <Head>
         <title>{post.title || 'Post'} - InkEndin</title>
       </Head>
@@ -115,7 +150,7 @@ export default function PostDetailPage() {
       </header>
 
       {/* Content */}
-      <div className="container-mobile px-4 pt-20 max-w-md mx-auto">
+      <div className="container-mobile px-4 pt-20 pb-24 max-w-md mx-auto">
         {/* Media */}
         {(post.imageUrl || (post as any).mediaUrl) && (
           <div className="mb-4 rounded-lg overflow-hidden">
@@ -146,6 +181,11 @@ export default function PostDetailPage() {
               showCount={true}
               variant="default"
             />
+            {/* Comentarios */}
+            <div className="flex items-center gap-1 cursor-pointer text-gray-400 hover:text-blue-400 transition">
+              <MessageCircle className="w-6 h-6" />
+              <span className="text-sm">{comments.length}</span>
+            </div>
           </div>
 
           {/* Tags */}
@@ -173,8 +213,71 @@ export default function PostDetailPage() {
               </p>
             </div>
           )}
+
+          {/* Lista de comentarios */}
+          <div className="pt-6">
+            <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-blue-400" />
+              Comentarios <span className="text-xs text-gray-400">({comments.length})</span>
+            </h3>
+            <div className="space-y-3 max-h-56 overflow-auto">
+              {comments.length === 0 && (
+                <div className="text-gray-500 text-sm">Sé el primero en comentar.</div>
+              )}
+              {comments.map(comment => (
+                <div key={comment.id} className="flex gap-2 items-start">
+                  <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-md shrink-0">
+                    {typeof comment.author === 'string' ? comment.author.charAt(0).toUpperCase() : ''}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{comment.author}</div>
+                    <div className="text-gray-300 text-sm">{comment.text}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Barra de envío de comentario (sticky bottom) */}
+      <form
+        // MOVEMOS UN POCO HACIA ARRIBA usando bottom-4 en vez de bottom-0
+        className="fixed bottom-4 left-0 right-0 z-50 bg-[#131A22] py-3 border-t border-gray-800"
+        style={{boxShadow: '0 -4px 16px 0 #0f141980'}}
+        onSubmit={handleCommentSend}
+      >
+        <div className="container-mobile mx-auto max-w-md flex px-3 items-end gap-2">
+          <input
+            type="text"
+            className="flex-1 px-4 py-2 rounded-full bg-gray-800 text-white placeholder-gray-400 outline-none"
+            placeholder="Escribe un comentario..."
+            value={newComment}
+            onChange={e => setNewComment(e.target.value)}
+            disabled={!isAuthenticated || isCommenting}
+            maxLength={240}
+            autoComplete="off"
+          />
+          <button
+            type="submit"
+            className={`ml-1 px-4 py-2 text-sm rounded-full font-semibold transition-colors ${
+              newComment.trim().length === 0 || !isAuthenticated || isCommenting
+                ? 'bg-gray-700 text-gray-400'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+            disabled={newComment.trim().length === 0 || !isAuthenticated || isCommenting}
+          >
+            {isCommenting ? 'Enviando...' : 'Publicar'}
+          </button>
+        </div>
+        {!isAuthenticated && (
+          <div className="container-mobile mx-auto max-w-md px-4 mt-1">
+            <span className="text-xs text-red-400">
+              Debes iniciar sesión para comentar.
+            </span>
+          </div>
+        )}
+      </form>
     </div>
   )
 }
