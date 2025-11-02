@@ -2,20 +2,26 @@ import { apiClient } from '@/services/apiClient'
 
 export interface Post {
   id: string
-  title: string
+  title?: string
   description?: string
-  imageUrl: string
+  imageUrl?: string
+  mediaUrl?: string // Compatibilidad con backend
   authorId: string
   author: {
     id: string
     username: string
+    fullName?: string
     avatar?: string
+    isVerified?: boolean
+    userType?: string
   }
   likesCount: number
   commentsCount: number
+  viewsCount?: number
   isLiked: boolean
   isSaved: boolean
-  tags: string[]
+  tags?: string[]
+  hashtags?: string[] // Compatibilidad con backend
   createdAt: string
   updatedAt: string
 }
@@ -47,8 +53,14 @@ export const postService = {
   },
 
   async getPostById(id: string): Promise<Post> {
-    const response = await apiClient.getClient().get<Post>(`/posts/${id}`)
-    return response.data
+    const response = await apiClient.getClient().get<{
+      success: boolean
+      data: { post: Post }
+    }>(`/posts/${id}`)
+    
+    // Extraer el post de la estructura de respuesta del backend
+    const responseData = response.data.data || response.data
+    return responseData.post || responseData
   },
 
   async createPost(data: CreatePostData): Promise<Post> {

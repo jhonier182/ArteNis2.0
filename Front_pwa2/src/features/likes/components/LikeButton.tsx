@@ -1,15 +1,17 @@
 'use client'
 
+import { useState, useEffect, useMemo } from 'react'
 import { Heart } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useLikePost } from '../hooks/useLikePost'
+import { apiClient } from '@/services/apiClient'
+import { useLikesContext } from '@/context/LikesContext'
 
 export interface LikeButtonProps {
   /** ID del post */
   postId: string
-  /** Estado inicial de si está liked */
+  /** Estado inicial de si está liked (fallback si el Context aún no está cargado) */
   initialLiked?: boolean
-  /** Contador inicial de likes */
+  /** Contador inicial de likes (fallback si el Context aún no está cargado) */
   initialLikesCount?: number
   /** Tamaño del botón */
   size?: 'sm' | 'md' | 'lg'
@@ -19,19 +21,30 @@ export interface LikeButtonProps {
   className?: string
   /** Callback cuando el like cambia */
   onToggle?: (liked: boolean, likesCount: number) => void
-  /** Si debe auto-fetchear la información */
-  autoFetch?: boolean
   /** Variante visual */
   variant?: 'default' | 'minimal' | 'icon-only'
 }
 
 /**
- * Componente de botón de like reutilizable con animación y estado optimista
+ * Componente de botón de like totalmente sincronizado globalmente
+ * 
+ * Características:
+ * - Estado sincronizado en toda la aplicación (Context API)
+ * - Actualizaciones optimistas (UI inmediata)
+ * - Sincronización en tiempo real con Socket.io
+ * - Animaciones suaves con framer-motion
+ * - Estados de carga con feedback visual
+ * - Persistencia entre navegaciones
+ * 
+ * El estado se mantiene sincronizado automáticamente:
+ * - Si das like en el feed, aparece como "Liked" en el detalle del post
+ * - Si quitas like en el detalle, se actualiza en el feed
+ * - El estado persiste al navegar entre páginas
  * 
  * @example
  * ```tsx
  * <LikeButton
- *   postId={post.id}
+ *   postId="post-123"
  *   initialLiked={post.isLiked}
  *   initialLikesCount={post.likesCount}
  *   onToggle={(liked, count) => console.log('Like:', liked, count)}
@@ -46,20 +59,118 @@ export function LikeButton({
   showCount = true,
   className = '',
   onToggle,
-  autoFetch = false,
   variant = 'default'
 }: LikeButtonProps) {
-  const { isLiked, likesCount, isLoading, toggleLike } = useLikePost(
-    postId,
-    initialLiked,
-    initialLikesCount,
-    {
-      autoFetch,
-      onToggle: (result) => {
-        onToggle?.(result.liked, result.likesCount)
+  // Context global de likes (sincronización automática)
+  const { getLikeInfo, addLike, removeLike, isLoading: contextLoading } = useLikesContext()
+  
+  // Estado de carga local durante la petición API
+  const [isLoading, setIsLoading] = useState(false)
+  // Estado de error para mostrar feedback
+  const [error, setError] = useState<string | null>(null)
+
+  // Obtener estado de like desde el Context (fuente de verdad)
+  // Si el Context aún está cargando, usar el estado inicial como fallback
+  const likeInfo = useMemo(() => {
+    if (!contextLoading) {
+      const info = getLikeInfo(postId)
+      if (info) {
+        return { isLiked: info.isLiked, likesCount: info.likesCount }
       }
     }
-  )
+    return { isLiked: initialLiked, likesCount: initialLikesCount }
+  }, [getLikeInfo, postId, contextLoading, initialLiked, initialLikesCount])
+
+  const isLiked = likeInfo.isLiked
+  const likesCount = likeInfo.likesCount
+
+  // Actualizar callback cuando cambia el estado
+  useEffect(() => {
+    if (!contextLoading) {
+      onToggle?.(isLiked, likesCount)
+    }
+  }, [isLiked, likesCount, contextLoading, onToggle])
+
+  /**
+   * Maneja el toggle de like (dar like / quitar like)
+   * 
+   * Implementa patrón de actualización optimista:
+   * 1. Actualiza UI inmediatamente (Context global)
+   * 2. Realiza petición al servidor
+   * 3. Si falla, revierte el cambio
+   */
+  const handleToggleLike = async () => {
+    // Evitar múltiples clics mientras está cargando
+    if (isLoading) return
+
+    // Limpiar error previo al iniciar nueva acción
+    setError(null)
+    setIsLoading(true)
+
+    // Guardar estado anterior para posible reversión
+    const previousLiked = isLiked
+    const previousLikesCount = likesCount
+
+    try {
+      const client = apiClient.getClient()
+
+      if (isLiked) {
+        // ACTUALIZACIÓN OPTIMISTA: Remover like inmediatamente
+        removeLike(postId, Math.max(0, likesCount - 1))
+        console.log('🔄 Actualización optimista: Removiendo like')
+
+        // Acción: Quitar like
+        await client.post(`/posts/${postId}/like`)
+        console.log('✅ Like removido exitosamente')
+        
+        // El estado ya fue actualizado optimistamente, solo notificar
+        onToggle?.(false, Math.max(0, likesCount - 1))
+      } else {
+        // ACTUALIZACIÓN OPTIMISTA: Agregar like inmediatamente
+        addLike(postId, likesCount + 1)
+        console.log('🔄 Actualización optimista: Agregando like')
+
+        // Acción: Dar like
+        await client.post(`/posts/${postId}/like`)
+        console.log('✅ Like agregado exitosamente')
+        
+        // El estado ya fue actualizado optimistamente, solo notificar
+        onToggle?.(true, likesCount + 1)
+      }
+    } catch (err: any) {
+      console.error('❌ Error al cambiar estado de like:', err)
+      
+      // REVERTIR: Deshacer actualización optimista en caso de error
+      if (previousLiked) {
+        // Si estaba liked y falló al quitar, volver a agregar
+        addLike(postId, previousLikesCount)
+      } else {
+        // Si no estaba liked y falló al agregar, remover
+        removeLike(postId, previousLikesCount)
+      }
+      
+      // Manejo de errores
+      let errorMessage = 'Error al conectar con el servidor'
+      
+      if (err.response?.status === 404) {
+        errorMessage = 'Post no encontrado'
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Debes iniciar sesión para dar like'
+      } else if (err.code === 'ERR_NETWORK' || err.code === 'ERR_CONNECTION_REFUSED') {
+        errorMessage = 'Error al conectar con el servidor'
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      }
+
+      setError(errorMessage)
+      onToggle?.(previousLiked, previousLikesCount)
+      
+      // Auto-ocultar error después de 3 segundos
+      setTimeout(() => setError(null), 3000)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const sizeClasses = {
     sm: 'w-4 h-4',
@@ -76,14 +187,14 @@ export function LikeButton({
         onClick={(e) => {
           e.preventDefault()
           e.stopPropagation()
-          toggleLike()
+          handleToggleLike()
         }}
         disabled={isLoading}
         className={`flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
         aria-label={isLiked ? 'Quitar like' : 'Dar like'}
       >
         <motion.div
-          animate={isLiked ? { scale: [1, 1.2, 1] } : {}}
+          animate={isLiked ? { scale: [1, 1.2, 1] } : {}} 
           transition={{ duration: 0.3 }}
         >
           <Heart
@@ -105,7 +216,7 @@ export function LikeButton({
         onClick={(e) => {
           e.preventDefault()
           e.stopPropagation()
-          toggleLike()
+          handleToggleLike()
         }}
         disabled={isLoading}
         className={`flex items-center justify-center p-1 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -116,7 +227,7 @@ export function LikeButton({
         aria-label={isLiked ? 'Quitar like' : 'Dar like'}
       >
         <motion.div
-          animate={isLiked ? { scale: [1, 1.3, 1] } : {}}
+          animate={isLiked ? { scale: [1, 1.3, 1] } : {}} 
           transition={{ duration: 0.3 }}
         >
           <Heart
@@ -137,7 +248,7 @@ export function LikeButton({
       onClick={(e) => {
         e.preventDefault()
         e.stopPropagation()
-        toggleLike()
+        handleToggleLike()
       }}
       disabled={isLoading}
       className={`flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -146,7 +257,7 @@ export function LikeButton({
       aria-label={isLiked ? 'Quitar like' : 'Dar like'}
     >
       <motion.div
-        animate={isLiked ? { scale: [1, 1.3, 1] } : {}}
+        animate={isLiked ? { scale: [1, 1.3, 1] } : {}} 
         transition={{ duration: 0.3 }}
       >
         <Heart

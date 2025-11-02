@@ -100,7 +100,7 @@ export default function PublicUserProfilePage({
               {posts.map((post) => (
                 <div
                   key={post.id}
-                  onClick={() => router.push(`/post/${post.id}`)}
+                  onClick={() => router.push(`/postDetail?postId=${post.id}`)}
                   className="relative overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
                 >
                   {post.mediaUrl ? (

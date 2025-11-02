@@ -459,7 +459,7 @@ export default function ProfilePage() {
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: index * 0.05 }}
-                      onClick={() => router.push(`/post/${post.id}`)}
+                      onClick={() => router.push(`/postDetail?postId=${post.id}`)}
                       className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
                     >
                       {post.mediaUrl && (

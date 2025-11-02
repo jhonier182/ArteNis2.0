@@ -99,8 +99,23 @@ class PostController {
     try {
       const { id } = req.params;
       const { type = 'like' } = req.body;
+      const userId = req.user.id;
       
-      const result = await PostService.toggleLike(req.user.id, id, type);
+      const result = await PostService.toggleLike(userId, id, type);
+      
+      // Emitir evento Socket.io para sincronización en tiempo real
+      // Solo emitir si la operación fue exitosa (no se lanzó error)
+      if (global.io) {
+        global.io.to(userId).emit('LIKE_UPDATED', {
+          postId: id,
+          isLiked: result.liked,
+          likesCount: result.likesCount,
+          action: result.liked ? 'like' : 'unlike',
+          timestamp: new Date().toISOString()
+        });
+        const logger = require('../utils/logger');
+        logger.info(`📡 Evento LIKE_UPDATED emitido - Usuario: ${userId}, Post: ${id}, Acción: ${result.liked ? 'like' : 'unlike'}`);
+      }
       
       res.status(200).json({
         success: true,

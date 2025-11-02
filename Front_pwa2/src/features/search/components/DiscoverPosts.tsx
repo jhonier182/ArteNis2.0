@@ -55,7 +55,7 @@ export function DiscoverPosts({
     if (onPostClick) {
       onPostClick(postId)
     } else {
-      router.push(`/post/${postId}`)
+      router.push(`/postDetail?postId=${postId}`)
     }
   }
 
