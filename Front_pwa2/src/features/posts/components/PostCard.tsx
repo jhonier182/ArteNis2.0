@@ -2,14 +2,14 @@ import React from 'react'
 import { Post } from '../services/postService'
 import { Card } from '@/components/ui/Card'
 import { formatRelativeTime } from '@/utils/formatters'
+import { LikeButton } from '@/features/likes'
 
 interface PostCardProps {
   post: Post
-  onLike?: (postId: string) => void
   onSave?: (postId: string) => void
 }
 
-export function PostCard({ post, onLike, onSave }: PostCardProps) {
+export function PostCard({ post, onSave }: PostCardProps) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative w-full aspect-square bg-gray-200 dark:bg-neutral-800">
@@ -28,9 +28,12 @@ export function PostCard({ post, onLike, onSave }: PostCardProps) {
         <div className="flex items-center justify-between text-sm text-gray-500">
           <span>{formatRelativeTime(post.createdAt)}</span>
           <div className="flex gap-4">
-            <button onClick={() => onLike?.(post.id)} className="hover:text-primary-600">
-              ❤️ {post.likesCount}
-            </button>
+            <LikeButton
+              postId={post.id}
+              initialLiked={post.isLiked}
+              initialLikesCount={post.likesCount}
+              size="sm"
+            />
             <button onClick={() => onSave?.(post.id)} className="hover:text-primary-600">
               {post.isSaved ? '💾' : '🔖'}
             </button>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
@@ -58,7 +58,9 @@ export default function ProfilePage() {
   }, [isLoading, isAuthenticated, router])
 
   useEffect(() => {
-    if (user?.userType === 'artist') {
+    const isArtist = user?.userType === 'artist' || 
+                     (typeof user?.userType === 'string' && user?.userType.toLowerCase() === 'artist')
+    if (isArtist) {
       const handleNewPost = () => {
         resetPosts()
       }
@@ -117,6 +119,22 @@ export default function ProfilePage() {
       updateUser({ userType: newType })
     }
   }
+  const isArtist = useMemo(() => {
+    if (!user) return false
+    const userType = user.userType
+    const result = userType === 'artist' || 
+                   (typeof userType === 'string' && userType.toLowerCase() === 'artist')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Profile Debug:', {
+        userType: user.userType,
+        typeOf: typeof user.userType,
+        isArtist: result,
+        fullUser: user
+      })
+    }
+    
+    return result
+  }, [user?.userType, user])
 
   if (isLoading) {
     return (
@@ -180,7 +198,7 @@ export default function ProfilePage() {
       </header>
 
       <div className="px-6 pt-6 max-w-md mx-auto">
-        {user.userType === 'artist' ? (
+        {isArtist ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -303,7 +321,7 @@ export default function ProfilePage() {
           </>
         )}
 
-        {user.userType === 'artist' && (
+        {isArtist && (
           <div className="mb-8">
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-[#1a1f26] rounded-xl py-3 px-4 flex items-center gap-3">
@@ -334,7 +352,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {user.userType !== 'artist' && (
+        {!isArtist && (
           <>
             <div className="mb-8">
               <div className="bg-gradient-to-r from-yellow-600/20 via-orange-600/20 to-pink-600/20 rounded-2xl p-5 border border-yellow-600/30">
@@ -429,11 +447,11 @@ export default function ProfilePage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold">
-              {user.userType === 'artist' ? 'Portafolio' : 'Publicaciones Guardadas'}
+              {isArtist ? 'Portafolio' : 'Publicaciones Guardadas'}
             </h3>
           </div>
           
-          {user.userType === 'artist' ? (
+          {isArtist ? (
             loadingPosts ? (
               <div className="flex justify-center items-center py-10">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

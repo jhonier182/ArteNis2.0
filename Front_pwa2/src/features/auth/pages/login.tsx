@@ -20,8 +20,15 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
+    // Si está autenticado, redirigir al inicio
+    // Usar replace para evitar historial innecesario
     if (isAuthenticated) {
-      router.push('/')
+      setIsLoading(false) // Resetear loading cuando se confirma autenticación
+      // Pequeño delay para asegurar que el estado se actualice completamente
+      const timeoutId = setTimeout(() => {
+        router.replace('/')
+      }, 100)
+      return () => clearTimeout(timeoutId)
     }
   }, [isAuthenticated, router])
 
@@ -40,10 +47,11 @@ export default function LoginPage() {
 
     try {
       await login(formData.email, formData.password)
-      router.push('/')
+      // No navegar aquí, dejar que el useEffect maneje la redirección
+      // Esto evita condiciones de carrera con el estado de autenticación
+      // El setIsLoading se mantendrá activo hasta que se complete la redirección
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al iniciar sesión')
-    } finally {
       setIsLoading(false)
     }
   }

@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email: (currentProfile as any).email || savedUser.email || '',
               avatar: currentProfile.avatar,
               bio: currentProfile.bio,
-              userType: currentProfile.userType,
+              userType: currentProfile.userType || savedUser.userType || 'user',
               fullName: currentProfile.fullName,
               city: currentProfile.city,
             }

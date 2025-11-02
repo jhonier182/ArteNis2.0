@@ -13,8 +13,15 @@ export default function HomePage() {
 
   useEffect(() => {
     // Si terminó de cargar y no está autenticado, redirigir al login
+    // Usar replace para evitar historial innecesario y prevenir condiciones de carrera
     if (!isLoading && !isAuthenticated) {
-      router.push('/login')
+      // Usar setTimeout para evitar navegaciones durante el render
+      const timeoutId = setTimeout(() => {
+        if (router.pathname !== '/login') {
+          router.replace('/login')
+        }
+      }, 0)
+      return () => clearTimeout(timeoutId)
     }
   }, [isAuthenticated, isLoading, router])
 

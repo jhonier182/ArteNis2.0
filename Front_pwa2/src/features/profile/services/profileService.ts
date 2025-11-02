@@ -50,13 +50,35 @@ export interface SavedPost extends UserPost {
  */
 export const profileService = {
   async getProfile(userId: string): Promise<Profile> {
-    const response = await apiClient.getClient().get<{ data: Profile }>(`/profile/${userId}`)
-    return response.data.data || response.data
+    const response = await apiClient.getClient().get<{ 
+      success: boolean
+      message?: string
+      data: { user: Profile } | Profile 
+    }>(`/profile/${userId}`)
+    
+    // El backend puede devolver { data: { user: Profile } } o { data: Profile }
+    const responseData = response.data.data
+    if (responseData && 'user' in responseData) {
+      // Si viene dentro de un objeto 'user', extraerlo
+      return responseData.user as Profile
+    }
+    return responseData as Profile || response.data
   },
 
   async getCurrentProfile(): Promise<Profile> {
-    const response = await apiClient.getClient().get<{ data: Profile }>('/profile/me')
-    return response.data.data || response.data
+    const response = await apiClient.getClient().get<{ 
+      success: boolean
+      message?: string
+      data: { user: Profile } | Profile 
+    }>('/profile/me')
+    
+    // El backend puede devolver { data: { user: Profile } } o { data: Profile }
+    const responseData = response.data.data
+    if (responseData && 'user' in responseData) {
+      // Si viene dentro de un objeto 'user', extraerlo
+      return responseData.user as Profile
+    }
+    return responseData as Profile || response.data
   },
 
   async updateProfile(data: UpdateProfileData): Promise<Profile> {
