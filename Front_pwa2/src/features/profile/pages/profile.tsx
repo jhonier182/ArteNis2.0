@@ -28,6 +28,7 @@ import { useUserPosts } from '../hooks/useUserPosts'
 import { useSavedPosts } from '../hooks/useSavedPosts'
 import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
 import BottomNavigation from '@/components/BottomNavigation'
+import { LikeButton } from '@/features/likes/components/LikeButton'
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, updateUser } = useAuth()
@@ -474,9 +475,19 @@ export default function ProfilePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                           <div className="flex items-center gap-3 text-white text-sm">
-                            <div className="flex items-center gap-1">
-                              <Heart className={`w-4 h-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                              <span>{post.likesCount || 0}</span>
+                            <div 
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center"
+                            >
+                              <LikeButton
+                                postId={post.id}
+                                initialLiked={post.isLiked || false}
+                                initialLikesCount={post.likesCount || 0}
+                                showCount={true}
+                                variant="default"
+                                size="sm"
+                                className="text-white"
+                              />
                             </div>
                             <div className="flex items-center gap-1">
                               <MessageCircle className="w-4 h-4" />
@@ -524,7 +535,7 @@ export default function ProfilePage() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.1 }}
-                    onClick={() => router.push(`/post/${post.id}`)}
+                    onClick={() => router.push(`/postDetail?postId=${post.id}`)}
                     className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
                   >
                     {post.mediaUrl && (
