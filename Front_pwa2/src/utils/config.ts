@@ -14,7 +14,7 @@ export const config = {
     timeout: 30000,
   },
   app: {
-    name: 'ArteNis',
+    name: 'Inkedin',
     description: 'Pinterest para tatuadores',
     version: '2.0.0',
   },

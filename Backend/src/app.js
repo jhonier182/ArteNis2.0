@@ -180,12 +180,12 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 setupAssociations();
 
 // Health check
-app.get('/health', async (req, res) => {
+app.get('/api/health', async (req, res) => {
   try {
     await sequelize.authenticate();
     res.status(200).json({
       success: true,
-      message: 'ArteNis API funcionando correctamente',
+      message: 'Inkedin API funcionando correctamente',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
       uptime: process.uptime()
@@ -199,17 +199,8 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Rutas de la API
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/profile', require('./routes/profileRoutes'));
-app.use('/api/search', require('./routes/searchRoutes'));
-app.use('/api/follow', require('./routes/followRoutes'));
-app.use('/api/posts', postRoutes);
-app.use('/api/boards', boardRoutes);
-
-
-// Ruta raíz
-app.get('/', (req, res) => {
+// Ruta raíz de la API
+app.get('/api', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Bienvenido a Inkedin API',
@@ -221,10 +212,18 @@ app.get('/', (req, res) => {
       follow: '/api/follow',
       posts: '/api/posts',
       boards: '/api/boards',
-      health: '/health'
+      health: '/api/health'
     }
   });
 });
+
+// Rutas de la API
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/profile', require('./routes/profileRoutes'));
+app.use('/api/search', require('./routes/searchRoutes'));
+app.use('/api/follow', require('./routes/followRoutes'));
+app.use('/api/posts', postRoutes);
+app.use('/api/boards', boardRoutes);
 
 // Middleware para rutas no encontradas
 app.use(notFound);
