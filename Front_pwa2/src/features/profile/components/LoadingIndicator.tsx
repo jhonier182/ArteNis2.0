@@ -78,17 +78,51 @@ export function InfiniteScrollTrigger({
     hasMore,
     loading,
     onLoadMore: onRetry || (() => {}),
-    threshold: 200
+    threshold: 600 // Umbral más grande para cargar mucho antes de llegar al final (efecto flux)
   })
 
+  // Solo mostrar si hay más contenido o está cargando
+  if (!hasMore && !loading) {
+    return (
+      <div className="py-4">
+        <LoadingIndicator 
+          loading={loading} 
+          hasMore={hasMore} 
+          error={error} 
+          onRetry={onRetry}
+        />
+      </div>
+    )
+  }
+
   return (
-    <div ref={(node) => setElement(node)} className="py-4">
-      <LoadingIndicator 
-        loading={loading} 
-        hasMore={hasMore} 
-        error={error} 
-        onRetry={onRetry}
-      />
+    <div 
+      ref={(node) => {
+        setElement(node)
+        // Forzar verificación inmediata cuando el elemento se monta
+        if (node && hasMore && !loading) {
+          setTimeout(() => {
+            const rect = node.getBoundingClientRect()
+            const windowHeight = window.innerHeight || document.documentElement.clientHeight
+            if (rect.top <= windowHeight + 600) {
+              // Si el elemento ya está visible, cargar inmediatamente
+              if (onRetry) onRetry()
+            }
+          }, 100)
+        }
+      }} 
+      className="py-8 min-h-[120px] flex items-center justify-center"
+      style={{ minHeight: '120px' }} // Asegurar altura mínima para ser detectable
+    >
+      {loading && (
+        <div className="flex items-center gap-2 text-gray-400">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+          <span className="text-sm">Cargando más...</span>
+        </div>
+      )}
+      {!loading && hasMore && (
+        <div className="text-gray-500 text-xs">Desliza para ver más</div>
+      )}
     </div>
   )
 }

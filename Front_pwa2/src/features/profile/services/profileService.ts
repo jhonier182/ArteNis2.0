@@ -50,6 +50,9 @@ interface PaginationResponse {
   page?: number
   limit?: number
   total?: number
+  totalItems?: number
+  currentPage?: number
+  totalPages?: number
 }
 
 interface RawPostResponse {
@@ -125,14 +128,42 @@ export const profileService = {
     }
   },
 
-  async getUserPosts(userId: string, page: number = 1, limit: number = 10): Promise<{ posts: UserPost[]; pagination: { hasNext: boolean } }> {
-    const response = await apiClient.getClient().get<{ data: { posts: UserPost[]; pagination: PaginationResponse } }>(`/posts/user/${userId}`, {
+  async getUserPosts(userId: string, page: number = 1, limit: number = 10): Promise<{ posts: UserPost[]; pagination: { hasNext: boolean; totalItems?: number; currentPage?: number; totalPages?: number } }> {
+    console.log(`[profileService.getUserPosts] Requesting: userId=${userId}, page=${page}, limit=${limit}`)
+    
+    const response = await apiClient.getClient().get<{ data: { posts: UserPost[]; pagination: PaginationResponse | any } }>(`/posts/user/${userId}`, {
       params: { page, limit }
     })
+    
     const responseData = response.data.data || response.data
+    const posts = responseData.posts || responseData || []
+    const pagination = responseData.pagination || {}
+    
+    console.log(`[profileService.getUserPosts] Response: posts.length=${posts.length}, pagination=`, pagination)
+    
+    // Calcular hasNext si no está presente en la respuesta
+    let hasNext = false
+    if (pagination.hasNext !== undefined) {
+      hasNext = pagination.hasNext
+    } else if (pagination.currentPage !== undefined && pagination.totalPages !== undefined) {
+      // Calcular basándose en currentPage y totalPages
+      hasNext = pagination.currentPage < pagination.totalPages
+      console.log(`[profileService.getUserPosts] Calculated hasNext from pagination: ${pagination.currentPage} < ${pagination.totalPages} = ${hasNext}`)
+    } else {
+      // Fallback: si hay posts y la cantidad es igual al límite, probablemente hay más
+      hasNext = posts.length === limit
+      console.log(`[profileService.getUserPosts] Fallback hasNext: ${posts.length} === ${limit} = ${hasNext}`)
+    }
+    
     return {
-      posts: responseData.posts || responseData || [],
-      pagination: responseData.pagination || { hasNext: (responseData.posts || []).length === limit }
+      posts,
+      pagination: { 
+        hasNext,
+        // Incluir información adicional para debugging
+        totalItems: pagination.totalItems,
+        currentPage: pagination.currentPage,
+        totalPages: pagination.totalPages
+      }
     }
   },
 

@@ -71,13 +71,26 @@ class ApiClient {
         
         // Añadir token de autenticación
         const token = this.getAuthToken()
+        
+        // Endpoints que no requieren autenticación (opcional)
+        const publicEndpoints = [
+          '/posts/user/', // Ver posts de usuario (público)
+          '/posts/', // Ver feed público (opcional)
+        ]
+        
+        const isPublicEndpoint = publicEndpoints.some(endpoint => fullUrl.includes(endpoint))
+        
         if (token && config.headers) {
           // Limpiar el token de espacios y caracteres inválidos
           const cleanToken = token.trim()
           config.headers.Authorization = `Bearer ${cleanToken}`
           console.log('🔑 Token añadido al header:', cleanToken.substring(0, 20) + '...')
-        } else {
+        } else if (!isPublicEndpoint) {
+          // Solo mostrar warning si NO es un endpoint público
           console.warn('⚠️ No hay token disponible para la petición:', fullUrl)
+        } else {
+          // Endpoint público - no mostrar warning
+          console.log('🌐 Petición pública (sin token requerido):', fullUrl)
         }
         return config
       },

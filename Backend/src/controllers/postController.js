@@ -232,10 +232,16 @@ class PostController {
   static async getUserPosts(req, res, next) {
     try {
       const { userId } = req.params;
+      const limit = parseInt(req.query.limit) || 15;
+      const page = parseInt(req.query.page) || 1;
+      
+      console.log(`[PostController.getUserPosts] userId: ${userId}, page: ${page}, limit: ${limit}, requesterId: ${req.user?.id || null}`);
+      
       const options = {
-        ...req.query,
+        page,
+        limit,
         requesterId: req.user?.id || null,
-        limit: parseInt(req.query.limit) || 15
+        type: req.query.type || 'all'
       };
       
       const result = await PostService.getUserPosts(userId, options);

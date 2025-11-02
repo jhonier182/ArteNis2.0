@@ -737,11 +737,22 @@ class PostService {
       // Si no es el mismo usuario, solo mostrar publicaciones públicas
       if (requesterId !== userId) {
         where.isPublic = true;
+      } else {
+        // Si es el mismo usuario, mostrar todos los posts publicados (públicos y privados)
+        // No agregamos filtro de isPublic para que el usuario vea todos sus posts
+        console.log(`[PostService.getUserPosts] Usuario viendo su propio perfil, no aplicando filtro isPublic`);
       }
 
       if (type !== 'all') {
         where.type = type;
       }
+      
+      // Log del query donde para debugging
+      console.log(`[PostService.getUserPosts] Query where:`, JSON.stringify(where));
+      
+      // Contar total de posts del usuario sin filtros de status para debugging
+      const totalPostsWithoutStatusFilter = await Post.count({ where: { userId } });
+      console.log(`[PostService.getUserPosts] Total posts del usuario (sin filtro status): ${totalPostsWithoutStatusFilter}`);
 
       // OPTIMIZACIÓN: Usar Promise.all para ejecutar queries en paralelo
       const [posts, totalCount] = await Promise.all([
@@ -790,13 +801,21 @@ class PostService {
       // Verificar que los posts transformados tengan isLiked
       // Logs removidos para evitar spam
 
+      const currentPage = parseInt(page);
+      const totalPages = Math.ceil(totalCount / limit);
+      const hasNext = currentPage < totalPages;
+      
+      // Log para debugging
+      console.log(`[PostService.getUserPosts] userId: ${userId}, page: ${currentPage}, limit: ${limit}, totalCount: ${totalCount}, returned: ${transformedPosts.length}, hasNext: ${hasNext}`);
+      
       return {
         posts: transformedPosts,
         pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(totalCount / limit),
+          currentPage: currentPage,
+          totalPages: totalPages,
           totalItems: totalCount,
-          itemsPerPage: parseInt(limit)
+          itemsPerPage: parseInt(limit),
+          hasNext: hasNext
         }
       };
     } catch (error) {

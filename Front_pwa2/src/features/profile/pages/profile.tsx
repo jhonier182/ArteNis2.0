@@ -59,19 +59,72 @@ export default function ProfilePage() {
     }
   }, [isLoading, isAuthenticated, router])
 
+  // Escuchar eventos de nueva publicación y refrescar automáticamente
   useEffect(() => {
     const isArtist = user?.userType === 'artist' || 
                      (typeof user?.userType === 'string' && user?.userType.toLowerCase() === 'artist')
     if (isArtist) {
       const handleNewPost = () => {
-        resetPosts()
+        console.log('🔄 Nueva publicación detectada, refrescando perfil...')
+        // Pequeño delay para asegurar que el backend haya procesado el post
+        setTimeout(() => {
+          resetPosts()
+        }, 500)
       }
+
+      // Escuchar eventos personalizados de nueva publicación
       window.addEventListener('newPostCreated', handleNewPost)
+      
+      // También escuchar cambios en el localStorage (backup)
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'newPostCreated' && e.newValue) {
+          handleNewPost()
+          // Limpiar el flag
+          localStorage.removeItem('newPostCreated')
+        }
+      }
+      
+      window.addEventListener('storage', handleStorageChange)
+
+      // Verificar si hay un post recién creado al cargar la página
+      const checkForNewPost = () => {
+        const newPostTimestamp = localStorage.getItem('newPostCreated')
+        if (newPostTimestamp) {
+          const timestamp = parseInt(newPostTimestamp)
+          const now = Date.now()
+          // Si el post se creó en los últimos 30 segundos, refrescar
+          if (now - timestamp < 30000) {
+            console.log('🔄 Post reciente detectado, refrescando perfil...')
+            handleNewPost()
+            localStorage.removeItem('newPostCreated')
+          }
+        }
+      }
+      
+      // Verificar después de un pequeño delay para asegurar que el componente esté montado
+      const checkTimer = setTimeout(checkForNewPost, 300)
+
       return () => {
         window.removeEventListener('newPostCreated', handleNewPost)
+        window.removeEventListener('storage', handleStorageChange)
+        clearTimeout(checkTimer)
       }
     }
   }, [user?.userType, resetPosts])
+
+  // Refrescar posts cuando se navega al perfil (por si acaso)
+  useEffect(() => {
+    const isArtist = user?.userType === 'artist' || 
+                     (typeof user?.userType === 'string' && user?.userType.toLowerCase() === 'artist')
+    if (isArtist && user?.id) {
+      // Pequeño delay para asegurar que el componente esté completamente montado
+      const timer = setTimeout(() => {
+        resetPosts()
+      }, 200)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [router.asPath, user?.id, user?.userType, resetPosts])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -459,9 +512,13 @@ export default function ProfilePage() {
                   {userPosts.map((post, index) => (
                     <motion.div
                       key={post.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.05 }}
+                      initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ 
+                        delay: Math.min(index * 0.08, 0.5), // Máximo delay de 0.5s para efecto fluido
+                        duration: 0.4,
+                        ease: "easeOut"
+                      }}
                       onClick={() => router.push(`/postDetail?postId=${post.id}`)}
                       className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
                     >

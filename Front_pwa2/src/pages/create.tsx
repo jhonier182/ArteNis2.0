@@ -165,14 +165,17 @@ export default function CreatePostPage() {
       const postData = buildPostData(uploadResult)
       await postService.createPost(postData)
 
-      // 4. Notificar éxito
+      // 4. Notificar éxito con un pequeño delay para asegurar que el backend procese el post
+      await new Promise(resolve => setTimeout(resolve, 300))
       notifyPostCreated()
 
       // 5. Limpiar recursos
       cleanupResources()
 
-      // 6. Navegar
-      navigateToProfile()
+      // 6. Navegar con un delay adicional
+      setTimeout(() => {
+        navigateToProfile()
+      }, 500)
 
     } catch (err: any) {
       console.error('Error al publicar:', err)
