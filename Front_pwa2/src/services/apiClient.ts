@@ -14,6 +14,29 @@ class ApiClient {
       const nextData = (window as any).__NEXT_DATA__ as { env?: { NEXT_PUBLIC_API_URL?: string } } | undefined
       const envUrl = nextData?.env?.NEXT_PUBLIC_API_URL
       baseURL = envUrl || baseURL
+      
+      // Si no hay URL configurada y estamos en un dispositivo móvil/externo,
+      // intentar usar la IP de red local
+      if (!envUrl && baseURL.includes('localhost')) {
+        // Detectar si estamos en un dispositivo móvil o externo
+        // Si window.location.hostname no es localhost/127.0.0.1, es probable que estemos en red local
+        const hostname = window.location.hostname
+        const isMobileOrRemote = hostname !== 'localhost' && hostname !== '127.0.0.1'
+        
+        if (isMobileOrRemote) {
+          // Usar la misma IP desde donde se accede al frontend para el backend
+          // Por ejemplo, si acceden a http://192.168.1.2:3002, usar http://192.168.1.2:3000
+          const protocol = window.location.protocol
+          const port = window.location.port || (protocol === 'https:' ? '443' : '80')
+          const backendPort = '3000'
+          
+          // Si el puerto es diferente y parece ser el frontend, usar el mismo hostname para el backend
+          if (port !== backendPort && port !== '443' && port !== '80') {
+            baseURL = `${protocol}//${hostname}:${backendPort}`
+            console.log('📱 Detectado dispositivo móvil/remoto, usando:', baseURL)
+          }
+        }
+      }
     } else if (typeof process !== 'undefined') {
       // En el servidor
       baseURL = process.env.NEXT_PUBLIC_API_URL || baseURL
