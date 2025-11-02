@@ -90,9 +90,27 @@ export const profileService = {
   },
 
   async getSavedPosts(): Promise<SavedPost[]> {
-    const response = await apiClient.getClient().get<{ data: { boards: Array<{ Posts: SavedPost[] }> } }>('/boards/me/boards')
-    const boards = response.data.data?.boards || []
-    return boards.flatMap(board => board.Posts || [])
+    // Usar el endpoint específico de posts guardados que devuelve posts completos
+    const response = await apiClient.getClient().get<{ data: { posts: any[] } }>('/posts/saved', {
+      params: { page: 1, limit: 100 } // Obtener todos los posts guardados
+    })
+    const responseData = response.data.data || response.data
+    const posts = responseData.posts || []
+    
+    // Transformar los posts al formato SavedPost esperado
+    return posts.map((post: any) => ({
+      id: post.id,
+      title: post.title,
+      description: post.description,
+      mediaUrl: post.mediaUrl || post.imageUrl, // El backend puede devolver imageUrl como alias
+      thumbnailUrl: post.thumbnailUrl,
+      type: post.type || (post.mediaUrl?.includes('.mp4') || post.imageUrl?.includes('.mp4') ? 'video' : 'image'),
+      likesCount: post.likesCount || 0,
+      commentsCount: post.commentsCount || 0,
+      isLiked: post.isLiked || false,
+      createdAt: post.createdAt,
+      Board: post.Board, // Si viene información del board
+    }))
   },
 
   async followUser(userId: string): Promise<void> {

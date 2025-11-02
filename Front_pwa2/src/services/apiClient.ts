@@ -7,12 +7,9 @@ class ApiClient {
   private client: AxiosInstance
 
   constructor() {
-    // Usar variable de entorno en cliente, fallback a localhost en desarrollo
-    // En el cliente, process.env solo funciona con NEXT_PUBLIC_ prefijo
     let baseURL = 'http://localhost:3000'
     
     if (typeof window !== 'undefined') {
-      // En el cliente, usar la variable de entorno del navegador
       const envUrl = (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_API_URL
       baseURL = envUrl || baseURL
     } else if (typeof process !== 'undefined') {
@@ -50,7 +47,12 @@ class ApiClient {
         // Añadir token de autenticación
         const token = this.getAuthToken()
         if (token && config.headers) {
-          config.headers.Authorization = `Bearer ${token}`
+          // Limpiar el token de espacios y caracteres inválidos
+          const cleanToken = token.trim()
+          config.headers.Authorization = `Bearer ${cleanToken}`
+          console.log('🔑 Token añadido al header:', cleanToken.substring(0, 20) + '...')
+        } else {
+          console.warn('⚠️ No hay token disponible para la petición:', fullUrl)
         }
         return config
       },
@@ -63,13 +65,20 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError<unknown>) => {
+        
         if (error.response?.status === 401) {
-          // Token expirado o inválido
-          this.clearAuthToken()
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login'
-          }
+          const url = error.response.config?.url
+          const message = (error.response.data as any)?.message || 'Sin mensaje'
+          const authHeader = error.response.config?.headers?.Authorization
+          const authHeaderStr = typeof authHeader === 'string' ? authHeader : ''
+          console.error('❌ Error 401:', {
+            url,
+            message,
+            hasToken: !!authHeader,
+            tokenPreview: authHeaderStr.substring(0, 30) || 'Sin token'
+          })
         }
+        
         return Promise.reject(error)
       }
     )
@@ -77,7 +86,27 @@ class ApiClient {
 
   private getAuthToken(): string | null {
     if (typeof window === 'undefined') return null
-    return localStorage.getItem('authToken')
+    const token = localStorage.getItem('authToken')
+    if (!token) return null
+    
+    // Limpiar el token de espacios y caracteres inválidos
+    let cleanToken = token.trim()
+    
+    // Remover comillas dobles si el token fue guardado como JSON por error
+    if (cleanToken.startsWith('"') && cleanToken.endsWith('"')) {
+      cleanToken = cleanToken.slice(1, -1)
+      console.warn('⚠️ Token tenía comillas, removidas:', cleanToken.substring(0, 20) + '...')
+      // Guardar el token limpio de nuevo
+      localStorage.setItem('authToken', cleanToken)
+    }
+    
+    // Validar formato básico de JWT (3 partes separadas por puntos)
+    if (cleanToken && cleanToken.includes('.') && cleanToken.split('.').length === 3) {
+      return cleanToken
+    }
+    
+    console.error('Token almacenado no tiene formato válido:', cleanToken.substring(0, 50))
+    return null
   }
 
   private clearAuthToken(): void {
