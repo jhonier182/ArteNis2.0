@@ -50,7 +50,7 @@ export default function HomePage() {
       </Head>
       
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0f1419]/95 backdrop-blur-sm border-b border-gray-800">
+      <header className="sticky top-0 z-50 bg-[#0f1419]">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">

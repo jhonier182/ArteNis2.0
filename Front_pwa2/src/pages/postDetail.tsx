@@ -193,23 +193,20 @@ export default function PostDetailPage() {
       </Head>
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-[100] bg-[#0f1419]/95 backdrop-blur-sm border-b border-gray-800">
-        <div className="container-mobile px-4 py-3 max-w-md mx-auto">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="p-2 hover:bg-gray-800 rounded-full transition-colors flex-shrink-0"
-              aria-label="Volver"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <h1 className="text-lg font-bold truncate flex-1">Publicación</h1>
-          </div>
+      <header className="fixed top-0 left-0 right-0 z-[100] bg-transparent pointer-events-none">
+        <div className="container-mobile px-4 pt-4 max-w-md mx-auto">
+          <button
+            onClick={() => router.back()}
+            className="w-10 h-10 flex items-center justify-center bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors pointer-events-auto shadow-lg"
+            aria-label="Volver"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
         </div>
       </header>
 
       {/* Content */}
-      <div className="container-mobile px-4 pt-20 pb-24 max-w-md mx-auto">
+      <div className="container-mobile px-4 pt-16 pb-24 max-w-md mx-auto">
         {/* Media */}
         {(post.imageUrl || (post as any).mediaUrl) && (
           <div className="mb-4 rounded-lg overflow-hidden">

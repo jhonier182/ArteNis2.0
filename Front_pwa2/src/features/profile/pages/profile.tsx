@@ -172,21 +172,23 @@ export default function ProfilePage() {
         <title>Perfil - Inkedin</title>
       </Head>
 
-      <header className="sticky top-0 z-50 bg-[#0f1419]/95 backdrop-blur-sm border-b border-gray-800">
-        <div className="px-4 py-3 max-w-md mx-auto">
+      <header className="sticky top-0 z-50 bg-transparent pointer-events-none">
+        <div className="px-4 pt-4 max-w-md mx-auto">
           <div className="flex items-center justify-between">
             <button 
               onClick={() => router.back()}
-              className="p-2 hover:bg-gray-800 rounded-full transition-colors"
+              className="w-10 h-10 flex items-center justify-center bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors pointer-events-auto shadow-lg"
+              aria-label="Volver"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-lg font-bold">Perfil</h1>
+            <h1 className="text-lg font-bold pointer-events-none opacity-0">Perfil</h1>
             <button 
               onClick={() => setIsSettingsModalOpen(true)}
-              className="p-2 hover:bg-gray-800 rounded-full transition-colors"
+              className="w-10 h-10 flex items-center justify-center bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors pointer-events-auto shadow-lg"
+              aria-label="Opciones"
             >
-              <MoreVertical className="w-6 h-6" />
+              <MoreVertical className="w-5 h-5" />
             </button>
           </div>
         </div>
