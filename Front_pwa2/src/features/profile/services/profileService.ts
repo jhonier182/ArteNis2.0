@@ -45,6 +45,31 @@ export interface SavedPost extends UserPost {
   }
 }
 
+interface PaginationResponse {
+  hasNext: boolean
+  page?: number
+  limit?: number
+  total?: number
+}
+
+interface RawPostResponse {
+  id: string
+  title?: string
+  description?: string
+  mediaUrl?: string
+  imageUrl?: string
+  thumbnailUrl?: string
+  type?: 'image' | 'video'
+  likesCount?: number
+  commentsCount?: number
+  isLiked?: boolean
+  createdAt: string
+  Board?: {
+    id: string
+    name: string
+  }
+}
+
 /**
  * Servicio para manejo de perfiles
  */
@@ -101,7 +126,7 @@ export const profileService = {
   },
 
   async getUserPosts(userId: string, page: number = 1, limit: number = 10): Promise<{ posts: UserPost[]; pagination: { hasNext: boolean } }> {
-    const response = await apiClient.getClient().get<{ data: { posts: UserPost[]; pagination: any } }>(`/posts/user/${userId}`, {
+    const response = await apiClient.getClient().get<{ data: { posts: UserPost[]; pagination: PaginationResponse } }>(`/posts/user/${userId}`, {
       params: { page, limit }
     })
     const responseData = response.data.data || response.data
@@ -113,20 +138,20 @@ export const profileService = {
 
   async getSavedPosts(): Promise<SavedPost[]> {
     // Usar el endpoint específico de posts guardados que devuelve posts completos
-    const response = await apiClient.getClient().get<{ data: { posts: any[] } }>('/posts/saved', {
+    const response = await apiClient.getClient().get<{ data: { posts: RawPostResponse[] } }>('/posts/saved', {
       params: { page: 1, limit: 100 } // Obtener todos los posts guardados
     })
     const responseData = response.data.data || response.data
     const posts = responseData.posts || []
     
     // Transformar los posts al formato SavedPost esperado
-    return posts.map((post: any) => ({
+    return posts.map((post: RawPostResponse) => ({
       id: post.id,
       title: post.title,
       description: post.description,
-      mediaUrl: post.mediaUrl || post.imageUrl, // El backend puede devolver imageUrl como alias
+      mediaUrl: post.mediaUrl || post.imageUrl || '', // El backend puede devolver imageUrl como alias
       thumbnailUrl: post.thumbnailUrl,
-      type: post.type || (post.mediaUrl?.includes('.mp4') || post.imageUrl?.includes('.mp4') ? 'video' : 'image'),
+      type: (post.type || (post.mediaUrl?.includes('.mp4') || post.imageUrl?.includes('.mp4') ? 'video' : 'image')) as 'image' | 'video',
       likesCount: post.likesCount || 0,
       commentsCount: post.commentsCount || 0,
       isLiked: post.isLiked || false,

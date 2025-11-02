@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Head from 'next/head'
+import { AxiosError } from 'axios'
 import { motion } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, LogIn, Sparkles } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
@@ -50,8 +51,9 @@ export default function LoginPage() {
       // No navegar aquí, dejar que el useEffect maneje la redirección
       // Esto evita condiciones de carrera con el estado de autenticación
       // El setIsLoading se mantendrá activo hasta que se complete la redirección
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al iniciar sesión')
+    } catch (err) {
+      const axiosError = err as AxiosError<{ message?: string }>
+      setError(axiosError.response?.data?.message || 'Error al iniciar sesión')
       setIsLoading(false)
     }
   }

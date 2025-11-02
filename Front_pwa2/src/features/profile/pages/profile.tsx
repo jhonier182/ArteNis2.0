@@ -20,6 +20,7 @@ import {
   Zap,
   Heart
 } from 'lucide-react'
+import { AxiosError } from 'axios'
 import { useAuth } from '@/context/AuthContext'
 import EditProfileModal from '../components/EditProfileModal'
 import SettingsModal from '../components/SettingsModal'
@@ -96,8 +97,9 @@ export default function ProfilePage() {
       if (user) {
         updateUser({ avatar: result.avatarUrl })
       }
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Error al subir la imagen')
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>
+      alert(axiosError.response?.data?.message || 'Error al subir la imagen')
     } finally {
       setIsUploadingAvatar(false)
     }

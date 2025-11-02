@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 
 /**
  * Cliente HTTP centralizado con interceptores para manejo de autenticación y errores
@@ -10,7 +10,9 @@ class ApiClient {
     let baseURL = 'http://localhost:3000'
     
     if (typeof window !== 'undefined') {
-      const envUrl = (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_API_URL
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nextData = (window as any).__NEXT_DATA__ as { env?: { NEXT_PUBLIC_API_URL?: string } } | undefined
+      const envUrl = nextData?.env?.NEXT_PUBLIC_API_URL
       baseURL = envUrl || baseURL
     } else if (typeof process !== 'undefined') {
       // En el servidor
@@ -63,12 +65,12 @@ class ApiClient {
 
     // Interceptor de response: maneja errores globales
     this.client.interceptors.response.use(
-      (response) => response,
-      async (error: AxiosError<unknown>) => {
+      (response: AxiosResponse) => response,
+      async (error: AxiosError<{ message?: string }>) => {
         
         if (error.response?.status === 401) {
           const url = error.response.config?.url
-          const message = (error.response.data as any)?.message || 'Sin mensaje'
+          const message = error.response.data?.message || 'Sin mensaje'
           const authHeader = error.response.config?.headers?.Authorization
           const authHeaderStr = typeof authHeader === 'string' ? authHeader : ''
           console.error('❌ Error 401:', {

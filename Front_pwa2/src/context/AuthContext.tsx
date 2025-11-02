@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
+import { AxiosError } from 'axios'
 import { apiClient } from '@/services/apiClient'
 import { storage } from '@/utils/storage'
 
@@ -65,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const updatedUser: User = {
               id: currentProfile.id,
               username: currentProfile.username,
-              email: (currentProfile as any).email || savedUser.email || '',
+              email: currentProfile.email || savedUser.email || '',
               avatar: currentProfile.avatar,
               bio: currentProfile.bio,
               userType: currentProfile.userType || savedUser.userType || 'user',
@@ -75,11 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(updatedUser)
             // Actualizar también en el storage
             storage.set('user', updatedUser)
-          } catch (error: any) {
+          } catch (error) {
             // Solo limpiar si es un error de autenticación (401), no errores de red u otros
-            const isAuthError = error?.response?.status === 401 || error?.response?.status === 403
+            const axiosError = error as AxiosError
+            const isAuthError = axiosError.response?.status === 401 || axiosError.response?.status === 403
             if (isAuthError) {
-              console.error('Token inválido, limpiando sesión:', error)
+              console.error('Token inválido, limpiando sesión:', axiosError)
               storage.remove('user')
               storage.remove('authToken')
               if (typeof window !== 'undefined') {

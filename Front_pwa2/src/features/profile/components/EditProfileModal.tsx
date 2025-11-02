@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import { X, Camera, Upload, Trash2 } from 'lucide-react'
+import { AxiosError } from 'axios'
 import { profileService } from '../services/profileService'
 
 interface EditProfileModalProps {
@@ -17,7 +18,7 @@ export default function EditProfileModal({
   onClose, 
   currentAvatar,
   onAvatarUpdated,
-  userId 
+  userId: _userId 
 }: EditProfileModalProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -65,8 +66,9 @@ export default function EditProfileModal({
       setSelectedImage(null)
       setSelectedFile(null)
       onClose()
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Error al subir la imagen')
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>
+      setError(axiosError.response?.data?.message || 'Error al subir la imagen')
     } finally {
       setIsUploading(false)
     }
@@ -77,11 +79,12 @@ export default function EditProfileModal({
     setError('')
 
     try {
-      await profileService.updateProfile({ avatar: null })
+      await profileService.updateProfile({ avatar: '' })
       onAvatarUpdated('')
       onClose()
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Error al eliminar avatar')
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>
+      setError(axiosError.response?.data?.message || 'Error al eliminar avatar')
     } finally {
       setIsUploading(false)
     }

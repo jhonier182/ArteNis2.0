@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Head from 'next/head'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AxiosError } from 'axios'
+import { motion } from 'framer-motion'
 import { 
   User, 
   Mail, 
@@ -87,8 +88,9 @@ export default function RegisterPage() {
       const username = formData.fullName.trim().split(' ')[0].toLowerCase()
       await register(username, formData.email, formData.password)
       router.push('/login?registered=true')
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al registrar usuario')
+    } catch (err) {
+      const axiosError = err as AxiosError<{ message?: string }>
+      setError(axiosError.response?.data?.message || 'Error al registrar usuario')
     } finally {
       setIsLoading(false)
     }

@@ -11,7 +11,7 @@ import {
   Palette,
   RefreshCw
 } from 'lucide-react'
-import { useRouter } from 'next/router'
+import { AxiosError } from 'axios'
 import { useState } from 'react'
 import { profileService } from '../services/profileService'
 
@@ -34,7 +34,6 @@ export default function SettingsModal({
   userType = 'user',
   onUserTypeChange
 }: SettingsModalProps) {
-  const router = useRouter()
   const [isChangingType, setIsChangingType] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -68,8 +67,9 @@ export default function SettingsModal({
         onClose()
         setMessage(null)
       }, 1500)
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'No se pudo cambiar el tipo de cuenta' })
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>
+      setMessage({ type: 'error', text: axiosError.response?.data?.message || 'No se pudo cambiar el tipo de cuenta' })
     } finally {
       setIsChangingType(false)
     }
