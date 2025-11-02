@@ -123,16 +123,17 @@ export function PublicUserInfo({
                    {/* Action Buttons - Solo si NO es tu propio perfil */}
                    {!isOwnProfile && (
                      <div className="flex gap-2.5">
-                {/* Botón de Seguir/Dejar de seguir */}
+                {/* Botón de Seguir/Dejar de seguir - Sincronizado globalmente */}
                 <FollowButton
                   targetUserId={profile.id}
+                  userData={{
+                    username: profile.username,
+                    fullName: profile.fullName,
+                    avatar: profile.avatar
+                  }}
                   initialFollowState={profile.isFollowing ?? false}
                   onFollowChange={(isFollowing) => {
-                    // Actualizar el estado del perfil localmente si es necesario
-                    if (profile) {
-                      // Esto solo afecta la UI, el perfil real se actualiza desde el backend
-                      console.log('Estado de seguimiento actualizado:', isFollowing)
-                    }
+                    console.log('Estado de seguimiento actualizado:', isFollowing)
                   }}
                   size="md"
                   showText={true}
@@ -200,11 +201,16 @@ export function PublicUserInfo({
           <p className="text-gray-300 mt-3 max-w-md mx-auto">{profile.bio}</p>
         )}
 
-        {/* Botón de Seguir para usuarios normales - Solo si NO es tu propio perfil */}
+        {/* Botón de Seguir para usuarios normales - Solo si NO es tu propio perfil - Sincronizado globalmente */}
         {!isOwnProfile && (
           <div className="flex justify-center mt-4">
             <FollowButton
               targetUserId={profile.id}
+              userData={{
+                username: profile.username,
+                fullName: profile.fullName,
+                avatar: profile.avatar
+              }}
               initialFollowState={profile.isFollowing ?? false}
               onFollowChange={(isFollowing) => {
                 console.log('Estado de seguimiento actualizado:', isFollowing)

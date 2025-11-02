@@ -1,12 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, UserPlus, UserCheck, AlertCircle } from 'lucide-react'
 import { apiClient } from '@/services/apiClient'
+import { useFollowingContext } from '@/context/FollowingContext'
 
 interface FollowButtonProps {
   /** ID del usuario objetivo a seguir/dejar de seguir */
   targetUserId: string
-  /** Estado inicial de seguimiento (si el usuario actual ya sigue al objetivo) */
+  /** Datos opcionales del usuario (para actualización optimista) */
+  userData?: {
+    username?: string
+    fullName?: string
+    avatar?: string
+    isVerified?: boolean
+  }
+  /** Estado inicial de seguimiento (fallback si el Context aún no está cargado) */
   initialFollowState?: boolean
   /** Callback opcional que se ejecuta cuando cambia el estado de seguimiento */
   onFollowChange?: (isFollowing: boolean) => void
@@ -19,46 +27,71 @@ interface FollowButtonProps {
 }
 
 /**
- * Componente de botón "Seguir / Dejar de seguir" profesional con animaciones
+ * Componente de botón "Seguir / Dejar de seguir" totalmente sincronizado globalmente
  * 
  * Características:
+ * - Estado sincronizado en toda la aplicación (Context API)
+ * - Actualizaciones optimistas (UI inmediata)
  * - Animaciones suaves con framer-motion
  * - Estados de carga con spinner
  * - Manejo de errores con feedback visual
  * - Estilos tipo Instagram/X
- * - Integración completa con API backend
+ * - Persistencia entre navegaciones
+ * 
+ * El estado se mantiene sincronizado automáticamente:
+ * - Si sigues a un usuario en el feed, aparece como "Siguiendo" en su perfil
+ * - Si dejas de seguir en el perfil, desaparece de la lista de seguidos
+ * - El estado persiste al navegar entre páginas
  * 
  * @example
  * ```tsx
  * <FollowButton
  *   targetUserId="user-123"
- *   initialFollowState={false}
+ *   userData={{ username: 'johndoe', fullName: 'John Doe' }}
  *   onFollowChange={(isFollowing) => console.log(isFollowing)}
  * />
  * ```
  */
 export function FollowButton({
   targetUserId,
+  userData,
   initialFollowState = false,
   onFollowChange,
   size = 'md',
   className = '',
   showText = true
 }: FollowButtonProps) {
-  // Estado local del seguimiento
-  const [isFollowing, setIsFollowing] = useState(initialFollowState)
-  // Estado de carga durante la petición API
+  // Context global de usuarios seguidos (sincronización automática)
+  const { isFollowing: isFollowingGlobal, addFollowing, removeFollowing, isLoading: contextLoading } = useFollowingContext()
+  
+  // Estado de carga local durante la petición API
   const [isLoading, setIsLoading] = useState(false)
   // Estado de error para mostrar feedback
   const [error, setError] = useState<string | null>(null)
 
-  // Sincronizar el estado local con el prop inicial cuando cambia
+  // Obtener estado de seguimiento desde el Context (fuente de verdad)
+  // Si el Context aún está cargando, usar el estado inicial como fallback
+  const isFollowing = useMemo(() => {
+    if (!contextLoading) {
+      return isFollowingGlobal(targetUserId)
+    }
+    return initialFollowState
+  }, [isFollowingGlobal, targetUserId, contextLoading, initialFollowState])
+
+  // Actualizar callback cuando cambia el estado
   useEffect(() => {
-    setIsFollowing(initialFollowState)
-  }, [initialFollowState])
+    if (!contextLoading) {
+      onFollowChange?.(isFollowing)
+    }
+  }, [isFollowing, contextLoading, onFollowChange])
 
   /**
    * Maneja el toggle de seguimiento (seguir/dejar de seguir)
+   * 
+   * Implementa patrón de actualización optimista:
+   * 1. Actualiza UI inmediatamente (Context global)
+   * 2. Realiza petición al servidor
+   * 3. Si falla, revierte el cambio
    * 
    * Lógica de manejo de errores:
    * - 409 Conflict → No es error fatal, sincroniza estado como "Siguiendo"
@@ -73,33 +106,47 @@ export function FollowButton({
     setError(null)
     setIsLoading(true)
 
+    // Guardar estado anterior para posible reversión
+    const previousState = isFollowing
+
     try {
       const client = apiClient.getClient()
 
       if (isFollowing) {
+        // ACTUALIZACIÓN OPTIMISTA: Remover del Context inmediatamente
+        removeFollowing(targetUserId)
+        console.log('🔄 Actualización optimista: Removiendo de lista de seguidos')
+
         // Acción: Dejar de seguir
         // Endpoint: DELETE /api/follow/:userId
         await client.delete(`/follow/${targetUserId}`)
         console.log('✅ Usuario dejado de seguir exitosamente')
         
-        // Actualizar estado local
-        const newState = false
-        setIsFollowing(newState)
-        
-        // Notificar al componente padre
-        onFollowChange?.(newState)
+        // El estado ya fue actualizado optimistamente, solo notificar
+        onFollowChange?.(false)
       } else {
+        // ACTUALIZACIÓN OPTIMISTA: Agregar al Context inmediatamente
+        if (userData) {
+          addFollowing(targetUserId, {
+            id: targetUserId,
+            username: userData.username || '',
+            fullName: userData.fullName || userData.username || '',
+            avatar: userData.avatar,
+            isVerified: userData.isVerified
+          })
+        } else {
+          // Si no tenemos datos completos, solo agregar el ID
+          addFollowing(targetUserId)
+        }
+        console.log('🔄 Actualización optimista: Agregando a lista de seguidos')
+
         // Acción: Seguir usuario
         // Endpoint: POST /api/follow con body: { userId: targetUserId }
         await client.post('/follow', { userId: targetUserId })
         console.log('✅ Usuario seguido exitosamente')
         
-        // Actualizar estado local
-        const newState = true
-        setIsFollowing(newState)
-        
-        // Notificar al componente padre
-        onFollowChange?.(newState)
+        // El estado ya fue actualizado optimistamente, solo notificar
+        onFollowChange?.(true)
       }
     } catch (err: any) {
       console.error('❌ Error al cambiar estado de seguimiento:', err)
@@ -109,14 +156,43 @@ export function FollowButton({
       if (err.response?.status === 409) {
         console.log('🔄 409 Conflict: Usuario ya seguido, sincronizando estado...')
         
-        // Sincronizar estado como "Siguiendo" sin mostrar error
-        const newState = true
-        setIsFollowing(newState)
-        onFollowChange?.(newState)
+        // Asegurar que esté en el Context como "Siguiendo"
+        if (!previousState) {
+          if (userData) {
+            addFollowing(targetUserId, {
+              id: targetUserId,
+              username: userData.username || '',
+              fullName: userData.fullName || userData.username || '',
+              avatar: userData.avatar,
+              isVerified: userData.isVerified
+            })
+          } else {
+            addFollowing(targetUserId)
+          }
+        }
         
-        // No mostramos error, solo sincronizamos el estado
+        onFollowChange?.(true)
         setIsLoading(false)
         return
+      }
+      
+      // REVERTIR: Deshacer actualización optimista en caso de error
+      if (previousState) {
+        // Si estaba siguiendo y falló al dejar de seguir, volver a agregar
+        if (userData) {
+          addFollowing(targetUserId, {
+            id: targetUserId,
+            username: userData.username || '',
+            fullName: userData.fullName || userData.username || '',
+            avatar: userData.avatar,
+            isVerified: userData.isVerified
+          })
+        } else {
+          addFollowing(targetUserId)
+        }
+      } else {
+        // Si no estaba siguiendo y falló al seguir, remover
+        removeFollowing(targetUserId)
       }
       
       // Manejo de otros errores
@@ -136,11 +212,8 @@ export function FollowButton({
         errorMessage = err.response.data.message
       }
 
-      // Solo mostrar error si no es 409 (ya manejado arriba)
       setError(errorMessage)
-      
-      // Revertir estado local en caso de error (excepto 409 que ya está sincronizado)
-      setIsFollowing(isFollowing)
+      onFollowChange?.(previousState)
       
       // Auto-ocultar error después de 3 segundos
       setTimeout(() => setError(null), 3000)
