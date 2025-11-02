@@ -101,20 +101,42 @@ class PostController {
       const { type = 'like' } = req.body;
       const userId = req.user.id;
       
+      // Obtener el post para conocer al autor antes de hacer el toggle
+      const Post = require('../models/Post');
+      const post = await Post.findByPk(id, { attributes: ['userId'] });
+      
+      if (!post) {
+        return res.status(404).json({
+          success: false,
+          message: 'Publicación no encontrada'
+        });
+      }
+      
+      const postAuthorId = post.userId;
       const result = await PostService.toggleLike(userId, id, type);
       
       // Emitir evento Socket.io para sincronización en tiempo real
-      // Solo emitir si la operación fue exitosa (no se lanzó error)
+      // Emitir tanto al usuario que hace like como al autor del post
       if (global.io) {
-        global.io.to(userId).emit('LIKE_UPDATED', {
+        const eventData = {
           postId: id,
           isLiked: result.liked,
           likesCount: result.likesCount,
           action: result.liked ? 'like' : 'unlike',
           timestamp: new Date().toISOString()
-        });
+        };
+        
         const logger = require('../utils/logger');
-        logger.info(`📡 Evento LIKE_UPDATED emitido - Usuario: ${userId}, Post: ${id}, Acción: ${result.liked ? 'like' : 'unlike'}`);
+        
+        // Emitir al usuario que hizo el like (para actualizar su estado)
+        global.io.to(userId).emit('LIKE_UPDATED', eventData);
+        logger.info(`📡 Evento LIKE_UPDATED emitido a usuario que hizo like - Usuario: ${userId}, Post: ${id}, Acción: ${result.liked ? 'like' : 'unlike'}`);
+        
+        // Emitir al autor del post (para actualizar el contador en tiempo real)
+        if (postAuthorId !== userId) {
+          global.io.to(postAuthorId).emit('LIKE_UPDATED', eventData);
+          logger.info(`📡 Evento LIKE_UPDATED emitido al autor del post - Autor: ${postAuthorId}, Post: ${id}, Acción: ${result.liked ? 'like' : 'unlike'}`);
+        }
       }
       
       res.status(200).json({

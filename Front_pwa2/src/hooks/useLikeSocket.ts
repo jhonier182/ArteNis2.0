@@ -22,7 +22,7 @@ import { useAuth } from '@/context/AuthContext'
  */
 export function useLikeSocket() {
   const { user, isAuthenticated } = useAuth()
-  const { updateLikeInfo } = useLikesContext()
+  const { updateLikeInfo, getLikeInfo } = useLikesContext()
   const socketRef = useRef<Socket | null>(null)
   const isConnectedRef = useRef(false)
   const currentUserIdRef = useRef<string | null>(null)
@@ -133,17 +133,28 @@ export function useLikeSocket() {
       action: 'like' | 'unlike'
       timestamp: string
     }) => {
-      // CRÍTICO: Validar que el evento es para el usuario actual
-      if (currentUserIdRef.current !== user.id) {
-        console.warn(`⚠️ Evento LIKE_UPDATED ignorado: usuario del socket (${currentUserIdRef.current}) no coincide con usuario actual (${user.id})`)
-        return
-      }
-
       console.log('📡 Evento LIKE_UPDATED recibido:', data)
 
+      // IMPORTANTE: Actualizar el estado siempre, sin importar quién hizo el like
+      // Esto permite que el contador de likes se actualice en tiempo real para todos
+      // los usuarios que están viendo el post, no solo para quien hizo el like
+      
+      // Obtener el estado actual del post si existe
+      const currentInfo = getLikeInfo(data.postId)
+      
       // Actualizar el estado global con la información del servidor
-      updateLikeInfo(data.postId, data.isLiked, data.likesCount)
-      console.log(`✅ Sincronizado: Post ${data.postId} - ${data.isLiked ? 'Liked' : 'Unliked'} (${data.likesCount} likes)`)
+      // Si el evento es para este usuario (isLiked cambió), actualizar ambos campos
+      // Si el evento es para otro usuario (solo cambió el contador), mantener isLiked actual y actualizar likesCount
+      if (currentInfo) {
+        // Si el usuario actual ya tiene estado para este post, mantener su isLiked
+        // pero actualizar el contador
+        updateLikeInfo(data.postId, currentInfo.isLiked, data.likesCount)
+      } else {
+        // Si no hay estado previo, usar los datos del evento
+        updateLikeInfo(data.postId, data.isLiked, data.likesCount)
+      }
+      
+      console.log(`✅ Sincronizado: Post ${data.postId} - Likes: ${data.likesCount}`)
     })
 
     // Cleanup al desmontar o cuando cambia el usuario
