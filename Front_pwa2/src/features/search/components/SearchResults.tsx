@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { User, MapPin, Star } from 'lucide-react'
 import { SearchUser } from '../types'
 
@@ -63,53 +63,166 @@ function SearchResultsComponent({
     }
   }
 
+  // Variantes de animación para el contenedor
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.03, // Delay entre cada elemento (suave como Flux)
+        delayChildren: 0.1
+      }
+    },
+    exit: {
+      opacity: 0,
+      transition: {
+        staggerChildren: 0.02,
+        staggerDirection: -1
+      }
+    }
+  }
+
+  // Variantes de animación para cada item
+  const itemVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20,
+      scale: 0.95
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 24,
+        mass: 0.8
+      }
+    },
+    exit: {
+      opacity: 0,
+      y: -10,
+      scale: 0.95,
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut"
+      }
+    }
+  }
+
   return (
-    <div className="space-y-2">
-      <p className="text-xs text-gray-500 mb-3">
-        {results.length} resultado{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}
-      </p>
-      {results.map((user, index) => (
-        <motion.div
-          key={user.id}
-          onClick={() => handleUserClick(user.id)}
-          initial={{ opacity: 0, y: 20 }}
+    <motion.div className="space-y-2">
+      <AnimatePresence mode="wait">
+        <motion.p 
+          key={`count-${results.length}`}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.05 }}
-          className="w-full flex items-center gap-3 p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition-all group cursor-pointer"
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="text-xs text-gray-500 mb-3"
         >
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-            {user.avatar ? (
-              <Image
-                src={user.avatar}
-                alt={user.username}
-                width={40}
-                height={40}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            ) : (
-              <User className="w-5 h-5 text-white" />
-            )}
-          </div>
-          <div className="flex-1 text-left min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-white truncate">
-                {user.fullName || user.username}
-              </p>
-              {user.userType === 'artist' && (
-                <Star className="w-3 h-3 text-yellow-500 flex-shrink-0" />
-              )}
-            </div>
-            <p className="text-xs text-gray-500 truncate">@{user.username}</p>
-            {user.city && (
-              <div className="flex items-center gap-1 mt-1">
-                <MapPin className="w-3 h-3 text-gray-500" />
-                <p className="text-xs text-gray-500">{user.city}</p>
+          {results.length} resultado{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}
+        </motion.p>
+      </AnimatePresence>
+
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key={`results-${results.length}-${results[0]?.id || 'empty'}`}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          className="space-y-2"
+        >
+          {results.map((user, index) => (
+            <motion.div
+              key={user.id}
+              layout
+              variants={itemVariants}
+              onClick={() => handleUserClick(user.id)}
+              whileHover={{ 
+                scale: 1.02,
+                backgroundColor: "rgba(55, 65, 81, 1)", // gray-700
+                transition: { duration: 0.2 }
+              }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full flex items-center gap-3 p-3 bg-gray-800 rounded-xl cursor-pointer"
+            >
+              <motion.div 
+                layout
+                className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0 overflow-hidden"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 15,
+                  delay: 0.1
+                }}
+              >
+                {user.avatar ? (
+                  <Image
+                    src={user.avatar}
+                    alt={user.username}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <User className="w-5 h-5 text-white" />
+                )}
+              </motion.div>
+              <div className="flex-1 text-left min-w-0">
+                <motion.div 
+                  className="flex items-center gap-2"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 }}
+                >
+                  <p className="text-sm font-medium text-white truncate">
+                    {user.fullName || user.username}
+                  </p>
+                  {user.userType === 'artist' && (
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ 
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 12,
+                        delay: 0.2
+                      }}
+                    >
+                      <Star className="w-3 h-3 text-yellow-500 flex-shrink-0" />
+                    </motion.div>
+                  )}
+                </motion.div>
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-xs text-gray-500 truncate"
+                >
+                  @{user.username}
+                </motion.p>
+                {user.city && (
+                  <motion.div 
+                    className="flex items-center gap-1 mt-1"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                  >
+                    <MapPin className="w-3 h-3 text-gray-500" />
+                    <p className="text-xs text-gray-500">{user.city}</p>
+                  </motion.div>
+                )}
               </div>
-            )}
-          </div>
+            </motion.div>
+          ))}
         </motion.div>
-      ))}
-    </div>
+      </AnimatePresence>
+    </motion.div>
   )
 }
 
