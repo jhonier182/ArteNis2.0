@@ -27,10 +27,15 @@ export interface Post {
 }
 
 export interface CreatePostData {
-  title: string
+  title?: string
   description?: string
   imageUrl: string
+  cloudinaryPublicId?: string
+  type?: 'image' | 'video'
+  hashtags?: string[]
   tags?: string[]
+  visibility?: string
+  thumbnailUrl?: string
 }
 
 export interface PostFilters {
@@ -63,9 +68,35 @@ export const postService = {
     return responseData.post || responseData
   },
 
+  async uploadPostMedia(file: File): Promise<{ url: string; publicId: string; thumbnailUrl?: string; type: 'image' | 'video' }> {
+    const formData = new FormData()
+    formData.append('image', file)
+    
+    const response = await apiClient.getClient().post<{
+      success: boolean
+      message: string
+      data: {
+        url: string
+        publicId: string
+        thumbnailUrl?: string
+        type: 'image' | 'video'
+      }
+    }>('/posts/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    
+    return response.data.data
+  },
+
   async createPost(data: CreatePostData): Promise<Post> {
-    const response = await apiClient.getClient().post<Post>('/posts', data)
-    return response.data
+    const response = await apiClient.getClient().post<{
+      success: boolean
+      message: string
+      data: { post: Post }
+    }>('/posts', data)
+    return response.data.data.post
   },
 
   async updatePost(id: string, data: Partial<CreatePostData>): Promise<Post> {
