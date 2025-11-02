@@ -66,8 +66,6 @@ export function LikeButton({
   
   // Estado de carga local durante la petición API
   const [isLoading, setIsLoading] = useState(false)
-  // Estado de error para mostrar feedback
-  const [error, setError] = useState<string | null>(null)
 
   // Obtener estado de like desde el Context (fuente de verdad)
   // Si el Context aún está cargando, usar el estado inicial como fallback
@@ -103,8 +101,6 @@ export function LikeButton({
     // Evitar múltiples clics mientras está cargando
     if (isLoading) return
 
-    // Limpiar error previo al iniciar nueva acción
-    setError(null)
     setIsLoading(true)
 
     // Guardar estado anterior para posible reversión
@@ -137,7 +133,7 @@ export function LikeButton({
         // El estado ya fue actualizado optimistamente, solo notificar
         onToggle?.(true, likesCount + 1)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Error al cambiar estado de like:', err)
       
       // REVERTIR: Deshacer actualización optimista en caso de error
@@ -148,25 +144,8 @@ export function LikeButton({
         // Si no estaba liked y falló al agregar, remover
         removeLike(postId, previousLikesCount)
       }
-      
-      // Manejo de errores
-      let errorMessage = 'Error al conectar con el servidor'
-      
-      if (err.response?.status === 404) {
-        errorMessage = 'Post no encontrado'
-      } else if (err.response?.status === 401) {
-        errorMessage = 'Debes iniciar sesión para dar like'
-      } else if (err.code === 'ERR_NETWORK' || err.code === 'ERR_CONNECTION_REFUSED') {
-        errorMessage = 'Error al conectar con el servidor'
-      } else if (err.response?.data?.message) {
-        errorMessage = err.response.data.message
-      }
 
-      setError(errorMessage)
       onToggle?.(previousLiked, previousLikesCount)
-      
-      // Auto-ocultar error después de 3 segundos
-      setTimeout(() => setError(null), 3000)
     } finally {
       setIsLoading(false)
     }

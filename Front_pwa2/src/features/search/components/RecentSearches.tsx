@@ -53,7 +53,7 @@ export function RecentSearches({
           </button>
         ))}
       </div>
-      <style jsx global>{`
+      <style>{`
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;

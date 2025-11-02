@@ -86,10 +86,11 @@ export function useFollowing(): UseFollowingResult {
       }
 
       return following
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error('Error al cargar usuarios seguidos')
       console.error('Error cargando usuarios seguidos:', err)
       if (mountedRef.current) {
-        setError(err.message || 'Error al cargar usuarios seguidos')
+        setError(error.message || 'Error al cargar usuarios seguidos')
         setIsLoading(false)
       }
       return []

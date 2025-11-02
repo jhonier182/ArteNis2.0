@@ -32,7 +32,8 @@ export default function PublicUserProfilePage({
     posts,
     loading: loadingPosts,
     hasMore,
-    loadMore
+    loadMore,
+    error: postsError
   } = useUserPosts(userId)
 
   // Si estoy viendo mi propio perfil, redirigir a /profile
@@ -145,7 +146,14 @@ export default function PublicUserProfilePage({
           )}
 
           {/* Infinite Scroll Trigger */}
-          {hasMore && <InfiniteScrollTrigger onLoadMore={loadMore} loading={loadingPosts} />}
+          {hasMore && (
+            <InfiniteScrollTrigger 
+              loading={loadingPosts}
+              hasMore={hasMore}
+              error={postsError ? postsError.message : null}
+              onRetry={loadMore}
+            />
+          )}
         </div>
       </div>
     </div>

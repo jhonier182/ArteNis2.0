@@ -1,6 +1,5 @@
 import { apiClient } from '@/services/apiClient'
 import {
-  SearchType,
   SearchFilters,
   SearchResponse,
   SearchUser,
@@ -57,7 +56,7 @@ export const searchService = {
     const responseData = response.data.data || response.data
 
     // Normalizar posts (el backend puede devolver 'author' o 'User')
-    const normalizedPosts = (responseData.posts || []).map((post: any) => ({
+    const normalizedPosts = (responseData.posts || []).map((post: SearchPost & { author?: SearchPost['author']; User?: SearchPost['User'] }) => ({
       ...post,
       User: post.author || post.User,
       // Asegurar que type tenga un valor por defecto

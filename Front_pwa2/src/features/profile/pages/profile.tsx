@@ -17,8 +17,7 @@ import {
   Camera,
   Share2,
   Gift,
-  Zap,
-  Heart
+  Zap
 } from 'lucide-react'
 import { AxiosError } from 'axios'
 import { useAuth } from '@/context/AuthContext'

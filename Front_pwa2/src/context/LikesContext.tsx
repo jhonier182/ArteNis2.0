@@ -192,7 +192,7 @@ export function LikesProvider({ children }: { children: ReactNode }) {
       if (mountedRef.current && info) {
         updateLikeInfo(postId, info.isLiked, info.likesCount)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error cargando información de likes:', err)
     } finally {
       isLoadingRef.current = false

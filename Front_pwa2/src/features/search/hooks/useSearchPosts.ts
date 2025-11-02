@@ -102,7 +102,7 @@ export function useSearchPosts(
       const loadedPosts = await searchService.getDiscoverPosts(limit)
 
       // Normalizar posts (asegurar estructura consistente)
-      const normalizedPosts = loadedPosts.map((post: any) => ({
+      const normalizedPosts = loadedPosts.map((post: SearchPost & { author?: SearchPost['author']; User?: SearchPost['User'] }) => ({
         ...post,
         User: post.author || post.User,
         type: post.type || 'image'

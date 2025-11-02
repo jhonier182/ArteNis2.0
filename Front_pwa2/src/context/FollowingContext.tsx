@@ -131,11 +131,12 @@ export function FollowingProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(cacheTimestampKey, Date.now().toString())
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error cargando usuarios seguidos:', err)
       
       if (mountedRef.current) {
-        setError(err.message || 'Error al cargar usuarios seguidos')
+        const errorMessage = err instanceof Error ? err.message : 'Error al cargar usuarios seguidos'
+        setError(errorMessage)
         setIsLoading(false)
       }
     } finally {

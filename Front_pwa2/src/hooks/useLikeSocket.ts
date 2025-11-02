@@ -167,7 +167,7 @@ export function useLikeSocket() {
         currentUserIdRef.current = null
       }
     }
-  }, [isAuthenticated, user?.id, updateLikeInfo])
+  }, [isAuthenticated, user?.id, updateLikeInfo, getLikeInfo])
 
   // Retornar el socket para uso avanzado si es necesario
   return socketRef.current

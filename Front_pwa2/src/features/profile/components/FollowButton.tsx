@@ -148,12 +148,14 @@ export function FollowButton({
         // El estado ya fue actualizado optimistamente, solo notificar
         onFollowChange?.(true)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Error al cambiar estado de seguimiento:', err)
+      
+      const error = err as { response?: { status?: number; data?: { message?: string } }; code?: string }
       
       // CASO ESPECIAL: 409 Conflict - Usuario ya seguido
       // No es un error fatal, solo sincronizamos el estado
-      if (err.response?.status === 409) {
+      if (error.response?.status === 409) {
         console.log('🔄 409 Conflict: Usuario ya seguido, sincronizando estado...')
         
         // Asegurar que esté en el Context como "Siguiendo"
@@ -178,7 +180,7 @@ export function FollowButton({
       
       // CASO ESPECIAL: 404 Not Found - Al intentar dejar de seguir significa que no lo estás siguiendo
       // Simplemente establecer el estado a "no seguido" (false)
-      if (err.response?.status === 404 && previousState) {
+      if (error.response?.status === 404 && previousState) {
         console.log('🔄 404: No se está siguiendo a este usuario, estableciendo estado a false')
         
         // Asegurar que NO esté en el Context
@@ -211,18 +213,18 @@ export function FollowButton({
       // Manejo de otros errores
       let errorMessage = 'Error al conectar con el servidor'
       
-      if (err.response?.status === 404) {
+      if (error.response?.status === 404) {
         // 404: Usuario no encontrado (mensaje leve)
         errorMessage = 'Usuario no encontrado'
-      } else if (err.response?.status === 401) {
+      } else if (error.response?.status === 401) {
         // 401: No autenticado
         errorMessage = 'Debes iniciar sesión para seguir usuarios'
-      } else if (err.code === 'ERR_NETWORK' || err.code === 'ERR_CONNECTION_REFUSED') {
+      } else if (error.code === 'ERR_NETWORK' || error.code === 'ERR_CONNECTION_REFUSED') {
         // Errores de red
         errorMessage = 'Error al conectar con el servidor'
-      } else if (err.response?.data?.message) {
+      } else if (error.response?.data?.message) {
         // Mensaje personalizado del backend
-        errorMessage = err.response.data.message
+        errorMessage = error.response.data.message
       }
 
       setError(errorMessage)

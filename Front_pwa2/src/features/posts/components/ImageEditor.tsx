@@ -178,6 +178,11 @@ export function ImageEditor({
 
   const applyFiltersToCanvas = (): Promise<Blob> => {
     return new Promise((resolve, reject) => {
+      if (!imageUrl) {
+        reject(new Error('No image URL provided'))
+        return
+      }
+
       const canvas = document.createElement('canvas')
       
       const img = new window.Image()
@@ -879,7 +884,7 @@ export function ImageEditor({
       </div>
       )}
 
-      <style jsx global>{`
+      <style>{`
         .slider-blue::-webkit-slider-thumb {
           appearance: none;
           width: 18px;

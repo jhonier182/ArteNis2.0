@@ -135,7 +135,7 @@ function SearchResultsComponent({
           exit="exit"
           className="space-y-2"
         >
-          {results.map((user, index) => (
+          {results.map((user) => (
             <motion.div
               key={user.id}
               layout

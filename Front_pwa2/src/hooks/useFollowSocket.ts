@@ -22,7 +22,7 @@ import { useAuth } from '@/context/AuthContext'
  */
 export function useFollowSocket() {
   const { user, isAuthenticated } = useAuth()
-  const { addFollowing, removeFollowing, refreshFollowing } = useFollowingContext()
+  const { addFollowing, removeFollowing } = useFollowingContext()
   const socketRef = useRef<Socket | null>(null)
   const isConnectedRef = useRef(false)
   const currentUserIdRef = useRef<string | null>(null)

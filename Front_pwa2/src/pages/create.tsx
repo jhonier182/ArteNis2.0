@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { X } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { postService } from '@/features/posts/services/postService'
 import { ImageEditor } from '@/features/posts/components/ImageEditor'
@@ -177,9 +176,10 @@ export default function CreatePostPage() {
         navigateToProfile()
       }, 500)
 
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { message?: string; response?: { data?: { message?: string } } }
       console.error('Error al publicar:', err)
-      setError(err.response?.data?.message || err.message || 'No se pudo crear la publicación')
+      setError(error.response?.data?.message || error.message || 'No se pudo crear la publicación')
     } finally {
       setIsPublishing(false)
     }

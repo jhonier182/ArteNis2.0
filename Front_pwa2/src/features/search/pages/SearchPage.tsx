@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, memo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { ChevronLeft } from 'lucide-react'
@@ -11,6 +11,7 @@ import { SearchBar } from '../components/SearchBar'
 import { SearchResults } from '../components/SearchResults'
 import { RecentSearches } from '../components/RecentSearches'
 import { DiscoverPosts } from '../components/DiscoverPosts'
+import { SearchPost } from '../types'
 
 /**
  * Página de búsqueda completa
@@ -26,11 +27,11 @@ export default function SearchPage() {
     defaultType: 'artists'
   })
   const { recentSearches, addSearch, clearRecentSearches } = useRecentSearches()
-  const { posts, isLoading: loadingPosts, loadFilteredPosts } = useSearchPosts({
+  const { loadFilteredPosts } = useSearchPosts({
     autoLoad: false
   })
 
-  const [publicPosts, setPublicPosts] = useState<any[]>([])
+  const [publicPosts, setPublicPosts] = useState<SearchPost[]>([])
   const [isLoadingFilteredPosts, setIsLoadingFilteredPosts] = useState(false)
 
   // Memoizar followingIds para evitar recálculos
@@ -44,7 +45,7 @@ export default function SearchPage() {
     let isMounted = true
 
     const loadData = async () => {
-      if (user?.id && followingUsers.length >= 0 && isMounted) {
+      if (user?.id && followingIds.length >= 0 && isMounted) {
         setIsLoadingFilteredPosts(true)
         try {
           const filteredPosts = await loadFilteredPosts(followingIds, user.id)
@@ -170,7 +171,7 @@ export default function SearchPage() {
     <div className="min-h-screen bg-[#0f1419] text-white pb-20">
       <Head>
         <title>Buscar - InkEndin</title>
-        <style jsx global>{`
+        <style>{`
           .scrollbar-hide {
             -ms-overflow-style: none;
             scrollbar-width: none;

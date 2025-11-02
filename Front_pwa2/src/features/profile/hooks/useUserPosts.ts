@@ -37,7 +37,7 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
       const limit = 6
       const result = await profileService.getUserPosts(userId, pageNum, limit)
       
-      const paginationInfo = result.pagination as any
+      const paginationInfo = result.pagination as { totalItems?: number }
       const totalItems = paginationInfo?.totalItems
       
       console.log(`📄 Página ${pageNum}: ${result.posts.length} posts | hasNext: ${result.pagination.hasNext} | Total backend: ${totalItems || 'N/A'}`)

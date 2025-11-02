@@ -6,9 +6,8 @@ import Head from 'next/head'
 import { useAuth } from '@/context/AuthContext'
 import { postService, Post } from '@/features/posts/services/postService'
 import { LikeButton } from '@/features/likes/components/LikeButton'
-import { ChevronLeft, MessageCircle, Bookmark, Share2, Download } from 'lucide-react' // Añadimos el icono de comentarios, Bookmark y Share
+import { ChevronLeft, MessageCircle, Bookmark, Share2, Download } from 'lucide-react'
 import Image from 'next/image'
-import { useSavedPosts } from '@/features/profile/hooks/useSavedPosts'
 
 /**
  * Página de detalle de post
@@ -127,21 +126,22 @@ export default function PostDetailPage() {
       const postData = await postService.getPostById(id)
       console.log('✅ Post cargado:', postData)
       setPost(postData)
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { message?: string; response?: { data?: { message?: string }; status?: number } }
       console.error('❌ Error cargando post:', err)
       console.error('❌ Detalles del error:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
       })
-      setError(err.response?.data?.message || err.message || 'Error al cargar el post')
+      setError(error.response?.data?.message || error.message || 'Error al cargar el post')
     } finally {
       setIsLoading(false)
     }
   }
 
   // Mockup: cargar comentarios (en backend real sería un fetch)
-  const loadComments = async (id: string) => {
+  const loadComments = async (_id: string) => {
     setComments([
       { id: '1', author: 'Alice', text: 'Excelente post!' },
       { id: '2', author: 'Bob', text: '¡Muy interesante, gracias por compartir!' },
@@ -231,17 +231,17 @@ export default function PostDetailPage() {
       <div className="container-mobile px-4 pt-16 pb-24 max-w-md mx-auto">
         {/* Media */}
         {(post.imageUrl || post.mediaUrl) && (
-          <div className="mb-4 rounded-lg overflow-hidden bg-gray-900 relative">
+          <div className="mb-4 rounded-lg overflow-hidden bg-gray-900 relative" style={{width: '100%', aspectRatio: '9/16', maxHeight: '70vh'}}>
             {post.type === 'video' || (post.mediaUrl && (post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.webm') || post.mediaUrl.includes('.mov'))) ? (
               <>
                 <video
                   src={post.mediaUrl || post.imageUrl}
-                  controls
                   autoPlay
                   loop
                   playsInline
                   poster={post.thumbnailUrl}
-                  className="w-full h-auto max-h-[70vh] object-contain"
+                  className="w-full h-full object-cover"
+                  style={{ outline: 'none', aspectRatio: '9/16', maxHeight: '70vh', backgroundColor: '#0f1419' }}
                 />
                 {/* Botón de descarga */}
                 <button
@@ -358,9 +358,16 @@ export default function PostDetailPage() {
           </div>
 
           {/* Tags */}
-          {((post.tags && post.tags.length > 0) || ((post as any).hashtags && (post as any).hashtags.length > 0)) && (
+          {(() => {
+            const postWithHashtags = post as Post & { hashtags?: string[] }
+            const tags = post.tags || postWithHashtags.hashtags || []
+            return tags.length > 0
+          })() && (
             <div className="flex flex-wrap gap-2 pt-2">
-              {(post.tags || (post as any).hashtags || []).map((tag: string, index: number) => (
+              {(() => {
+                const postWithHashtags = post as Post & { hashtags?: string[] }
+                return (post.tags || postWithHashtags.hashtags || [])
+              })().map((tag: string, index: number) => (
                 <span
                   key={index}
                   className="px-3 py-1 bg-gray-800 rounded-full text-sm text-gray-300"

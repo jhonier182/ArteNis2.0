@@ -6,7 +6,6 @@
  * Re-exporta el componente PublicUserProfilePage del feature de profile
  */
 
-import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import PublicUserProfilePage from '@/features/profile/pages/PublicUserProfilePage'
 

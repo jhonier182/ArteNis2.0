@@ -131,7 +131,7 @@ export const profileService = {
   async getUserPosts(userId: string, page: number = 1, limit: number = 10): Promise<{ posts: UserPost[]; pagination: { hasNext: boolean; totalItems?: number; currentPage?: number; totalPages?: number } }> {
     console.log(`[profileService.getUserPosts] Requesting: userId=${userId}, page=${page}, limit=${limit}`)
     
-    const response = await apiClient.getClient().get<{ data: { posts: UserPost[]; pagination: PaginationResponse | any } }>(`/posts/user/${userId}`, {
+    const response = await apiClient.getClient().get<{ data: { posts: UserPost[]; pagination: PaginationResponse & { totalItems?: number } } }>(`/posts/user/${userId}`, {
       params: { page, limit }
     })
     

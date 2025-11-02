@@ -59,7 +59,7 @@ function SearchBarComponent({
       setLocalValue(value)
       isInitializedRef.current = true
     }
-  }, []) // Solo al montar
+  }, [value]) // Incluir value como dependencia
 
   // Limpiar timer al desmontar
   useEffect(() => {
@@ -69,23 +69,6 @@ function SearchBarComponent({
       }
     }
   }, [])
-
-  // Handler estable con useCallback para evitar re-creaciones
-  const handleInputChange = useCallback((newValue: string) => {
-    // Actualizar estado local inmediatamente (para que el input responda al instante)
-    setLocalValue(newValue)
-
-    // Limpiar timer anterior
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current)
-    }
-
-    // Programar actualización del estado padre con debounce
-    // Usar el ref para evitar que el callback cause re-renders
-    debounceTimerRef.current = setTimeout(() => {
-      onChangeRef.current(newValue)
-    }, debounceMs)
-  }, [debounceMs])
 
   const handleClear = useCallback(() => {
     setLocalValue('')
