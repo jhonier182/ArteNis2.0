@@ -6,7 +6,8 @@ import Head from 'next/head'
 import { useAuth } from '@/context/AuthContext'
 import { postService, Post } from '@/features/posts/services/postService'
 import { LikeButton } from '@/features/likes/components/LikeButton'
-import { ChevronLeft, MessageCircle, Bookmark, Share2 } from 'lucide-react' // Añadimos el icono de comentarios, Bookmark y Share
+import { ChevronLeft, MessageCircle, Bookmark, Share2, Download } from 'lucide-react' // Añadimos el icono de comentarios, Bookmark y Share
+import Image from 'next/image'
 import { useSavedPosts } from '@/features/profile/hooks/useSavedPosts'
 
 /**
@@ -87,6 +88,27 @@ export default function PostDetailPage() {
   const handleCotizar = () => {
     // Aquí puedes abrir un modal, redirigir, etc.
     alert('¡Gracias por tu interés! Te contactaremos para cotizar.');
+  }
+
+  // Handler para descargar video
+  const handleDownload = async () => {
+    if (!post?.mediaUrl) return
+    
+    try {
+      const response = await fetch(post.mediaUrl)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `video-${post.id}.mp4` || 'video.mp4'
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Error al descargar video:', error)
+      alert('Error al descargar el video')
+    }
   }
 
   useEffect(() => {
@@ -209,18 +231,49 @@ export default function PostDetailPage() {
       <div className="container-mobile px-4 pt-16 pb-24 max-w-md mx-auto">
         {/* Media */}
         {(post.imageUrl || post.mediaUrl) && (
-          <div className="mb-4 rounded-lg overflow-hidden bg-gray-900">
+          <div className="mb-4 rounded-lg overflow-hidden bg-gray-900 relative">
             {post.type === 'video' || (post.mediaUrl && (post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.webm') || post.mediaUrl.includes('.mov'))) ? (
-              <video
-                src={post.mediaUrl || post.imageUrl}
-                controls
-                autoPlay
-                muted
-                loop
-                playsInline
-                poster={post.thumbnailUrl}
-                className="w-full h-auto max-h-[70vh] object-contain"
-              />
+              <>
+                <video
+                  src={post.mediaUrl || post.imageUrl}
+                  controls
+                  autoPlay
+                  loop
+                  playsInline
+                  poster={post.thumbnailUrl}
+                  className="w-full h-auto max-h-[70vh] object-contain"
+                />
+                {/* Botón de descarga */}
+                <button
+                  onClick={handleDownload}
+                  className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black/80 rounded-full backdrop-blur-sm transition-all z-10"
+                  aria-label="Descargar video"
+                  title="Descargar video"
+                >
+                  <Download className="w-5 h-5 text-white" />
+                </button>
+                {/* Marca de agua del autor */}
+                {post.author && (
+                  <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-full px-3 py-2 z-10 border border-white/20">
+                    {post.author.avatar ? (
+                      <Image
+                        src={post.author.avatar}
+                        alt={post.author.username}
+                        width={24}
+                        height={24}
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                        {(post.author.username || post.author.fullName || 'U')[0].toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-white text-sm font-medium">
+                      @{post.author.username || post.author.fullName || 'Usuario'}
+                    </span>
+                  </div>
+                )}
+              </>
             ) : (
               <img
                 src={post.imageUrl || post.mediaUrl}
