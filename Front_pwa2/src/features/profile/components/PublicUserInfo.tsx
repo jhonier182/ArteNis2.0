@@ -4,6 +4,7 @@ import { Star, Share2, Calendar } from 'lucide-react'
 import { Profile } from '../services/profileService'
 import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/router'
+import { FollowButton } from './FollowButton'
 
 interface PublicUserInfoProps {
   /** Perfil del usuario */
@@ -122,6 +123,20 @@ export function PublicUserInfo({
                    {/* Action Buttons - Solo si NO es tu propio perfil */}
                    {!isOwnProfile && (
                      <div className="flex gap-2.5">
+                {/* Botón de Seguir/Dejar de seguir */}
+                <FollowButton
+                  targetUserId={profile.id}
+                  initialFollowState={profile.isFollowing ?? false}
+                  onFollowChange={(isFollowing) => {
+                    // Actualizar el estado del perfil localmente si es necesario
+                    if (profile) {
+                      // Esto solo afecta la UI, el perfil real se actualiza desde el backend
+                      console.log('Estado de seguimiento actualizado:', isFollowing)
+                    }
+                  }}
+                  size="md"
+                  showText={true}
+                />
                 <button
                   onClick={() => router.push('/appointments/book')}
                   className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-2.5 rounded-xl text-sm font-bold hover:shadow-xl hover:shadow-emerald-500/40 transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
@@ -183,6 +198,21 @@ export function PublicUserInfo({
         {/* Bio */}
         {profile.bio && (
           <p className="text-gray-300 mt-3 max-w-md mx-auto">{profile.bio}</p>
+        )}
+
+        {/* Botón de Seguir para usuarios normales - Solo si NO es tu propio perfil */}
+        {!isOwnProfile && (
+          <div className="flex justify-center mt-4">
+            <FollowButton
+              targetUserId={profile.id}
+              initialFollowState={profile.isFollowing ?? false}
+              onFollowChange={(isFollowing) => {
+                console.log('Estado de seguimiento actualizado:', isFollowing)
+              }}
+              size="md"
+              showText={true}
+            />
+          </div>
         )}
       </div>
 
