@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
 import { usePublicUserProfile } from '../hooks/usePublicUserProfile'
 import { useUserPosts } from '../hooks/useUserPosts'
@@ -101,14 +102,38 @@ export default function PublicUserProfilePage({
                 <div
                   key={post.id}
                   onClick={() => router.push(`/postDetail?postId=${post.id}`)}
-                  className="relative overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
+                  className="relative overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer group"
                 >
                   {post.mediaUrl ? (
-                    <img
-                      src={post.mediaUrl}
-                      alt={post.title || 'Post'}
-                      className="w-full h-full object-cover"
-                    />
+                    <>
+                      {post.type === 'video' ? (
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={post.thumbnailUrl || post.mediaUrl}
+                            alt={post.title || 'Post'}
+                            width={400}
+                            height={300}
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Overlay con icono de play para videos */}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                              <svg className="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <Image
+                          src={post.mediaUrl}
+                          alt={post.title || 'Post'}
+                          width={400}
+                          height={300}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </>
                   ) : (
                     <div className="w-full h-full bg-gray-700 flex items-center justify-center">
                       <span className="text-gray-400">Sin imagen</span>

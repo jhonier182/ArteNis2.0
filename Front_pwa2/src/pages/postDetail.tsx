@@ -208,13 +208,26 @@ export default function PostDetailPage() {
       {/* Content */}
       <div className="container-mobile px-4 pt-16 pb-24 max-w-md mx-auto">
         {/* Media */}
-        {(post.imageUrl || (post as any).mediaUrl) && (
-          <div className="mb-4 rounded-lg overflow-hidden">
-            <img
-              src={post.imageUrl || (post as any).mediaUrl}
-              alt={post.title || 'Post'}
-              className="w-full h-auto object-contain bg-gray-900"
-            />
+        {(post.imageUrl || post.mediaUrl) && (
+          <div className="mb-4 rounded-lg overflow-hidden bg-gray-900">
+            {post.type === 'video' || (post.mediaUrl && (post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.webm') || post.mediaUrl.includes('.mov'))) ? (
+              <video
+                src={post.mediaUrl || post.imageUrl}
+                controls
+                autoPlay
+                muted
+                loop
+                playsInline
+                poster={post.thumbnailUrl}
+                className="w-full h-auto max-h-[70vh] object-contain"
+              />
+            ) : (
+              <img
+                src={post.imageUrl || post.mediaUrl}
+                alt={post.title || 'Post'}
+                className="w-full h-auto object-contain"
+              />
+            )}
           </div>
         )}
 

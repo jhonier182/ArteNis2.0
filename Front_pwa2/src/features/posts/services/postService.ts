@@ -6,6 +6,8 @@ export interface Post {
   description?: string
   imageUrl?: string
   mediaUrl?: string // Compatibilidad con backend
+  thumbnailUrl?: string
+  type?: 'image' | 'video' | 'reel'
   authorId: string
   author: {
     id: string
