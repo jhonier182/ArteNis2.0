@@ -25,19 +25,32 @@ const verifyToken = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
+    logger.info(`🔐 Token decodificado - ID del token: ${decoded.id}`);
+    
     // ✅ Validar que el usuario existe y está activo en la base de datos
     const user = await User.findByPk(decoded.id, {
       attributes: ['id', 'username', 'email', 'userType', 'isActive', 'isPremium']
     });
     
     if (!user) {
+      logger.error(`❌ Usuario no encontrado en DB - Token ID: ${decoded.id}`);
       return res.status(401).json({
         success: false,
         message: 'Usuario no encontrado'
       });
     }
     
+    // VALIDACIÓN CRÍTICA: Asegurar que el ID del token coincide con el ID del usuario de la DB
+    if (decoded.id !== user.id) {
+      logger.error(`❌ INCONSISTENCIA CRÍTICA - Token ID (${decoded.id}) != Usuario DB ID (${user.id})`);
+      return res.status(401).json({
+        success: false,
+        message: 'Token inválido - inconsistencia detectada'
+      });
+    }
+    
     if (!user.isActive) {
+      logger.warn(`⚠️ Usuario inactivo intentando acceder - ID: ${user.id}`);
       return res.status(401).json({
         success: false,
         message: 'Cuenta desactivada'
@@ -52,6 +65,8 @@ const verifyToken = async (req, res, next) => {
       role: user.userType,
       isPremium: typeof user.isPremiumActive === 'function' ? user.isPremiumActive() : (user.isPremium || false)
     };
+    
+    logger.info(`✅ Usuario autenticado correctamente - ID: ${req.user.id}, Username: ${req.user.username}`);
     
     next();
   } catch (error) {

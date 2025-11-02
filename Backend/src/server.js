@@ -1,4 +1,6 @@
 require('dotenv').config();
+const http = require('http');
+const { Server } = require('socket.io');
 const app = require('./app');
 const { connectDB, closeDB } = require('./config/db');
 const logger = require('./utils/logger');
@@ -63,13 +65,61 @@ const startServer = async () => {
       // Optimizaciones fallidas - continuar sin ellas
     }
 
-    const server = app.listen(PORT, HOST, () => {
-      // Servidor iniciado silenciosamente
+    // Crear servidor HTTP para Express y Socket.io
+    const httpServer = http.createServer(app);
+    
+    // Configurar Socket.io
+    const io = new Server(httpServer, {
+      cors: {
+        origin: process.env.NODE_ENV === 'production' 
+          ? process.env.CORS_ORIGINS?.split(',') || ['https://artenis.app']
+          : [
+              'http://localhost:3000',
+              'http://localhost:3001',
+              'http://localhost:3002',
+              'http://localhost:8081',
+              'http://127.0.0.1:3000',
+              'http://127.0.0.1:3001',
+              'http://192.168.1.2:3000',
+              'http://192.168.1.2:3001',
+              'http://192.168.1.2:3002',
+            ],
+        methods: ['GET', 'POST'],
+        credentials: true
+      },
+      transports: ['websocket', 'polling']
+    });
+
+    // Manejar conexiones Socket.io
+    io.on('connection', (socket) => {
+      const userId = socket.handshake.auth?.userId;
+      
+      if (userId) {
+        // Unir al socket a la sala del usuario (para recibir sus eventos)
+        socket.join(userId);
+        logger.info(`🔌 Socket conectado - Usuario: ${userId}`);
+        
+        socket.on('disconnect', () => {
+          logger.info(`🔌 Socket desconectado - Usuario: ${userId}`);
+        });
+      } else {
+        logger.warn('⚠️ Socket conectado sin userId, desconectando...');
+        socket.disconnect();
+      }
+    });
+
+    // Exportar io para usar en otros módulos
+    global.io = io;
+
+    // Iniciar servidor HTTP (que incluye Express y Socket.io)
+    httpServer.listen(PORT, HOST, () => {
+      logger.info(`🚀 Servidor iniciado en ${HOST}:${PORT}`);
+      logger.info(`🔌 Socket.io configurado y escuchando`);
     });
 
     // Registrar graceful shutdown solo una vez por proceso (evita fugas)
     ['SIGTERM', 'SIGINT'].forEach(signal =>
-      process.once(signal, () => gracefulShutdown(server, signal))
+      process.once(signal, () => gracefulShutdown(httpServer, signal))
     );
   } catch (error) {
     logger.error('❌ Error iniciando el servidor:', error);
