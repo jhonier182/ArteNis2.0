@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
 import { apiClient } from '@/services/apiClient'
 import { storage } from '@/utils/storage'
 
@@ -30,11 +30,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const checkingRef = useRef(false) // Prevenir verificaciones duplicadas simultáneas
 
   useEffect(() => {
     // Verificar si hay sesión guardada y validar con el servidor
     const checkAuthStatus = async () => {
+      // Evitar verificaciones duplicadas simultáneas (útil en StrictMode)
+      if (checkingRef.current) {
+        return
+      }
+
       try {
+        checkingRef.current = true
         const savedUser = storage.get<User>('user')
         // El token se guarda como string plano en localStorage, no como JSON
         const token = typeof window !== 'undefined' 
@@ -114,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } finally {
         setIsLoading(false)
+        checkingRef.current = false
       }
     }
 

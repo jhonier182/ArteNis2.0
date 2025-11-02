@@ -119,22 +119,14 @@ export default function ProfilePage() {
       updateUser({ userType: newType })
     }
   }
+  // Optimizado: solo depende de userType, no del objeto completo user
+  // Esto evita recálculos innecesarios cuando otros campos de user cambian
   const isArtist = useMemo(() => {
-    if (!user) return false
+    if (!user?.userType) return false
     const userType = user.userType
-    const result = userType === 'artist' || 
-                   (typeof userType === 'string' && userType.toLowerCase() === 'artist')
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Profile Debug:', {
-        userType: user.userType,
-        typeOf: typeof user.userType,
-        isArtist: result,
-        fullUser: user
-      })
-    }
-    
-    return result
-  }, [user?.userType, user])
+    return userType === 'artist' || 
+           (typeof userType === 'string' && userType.toLowerCase() === 'artist')
+  }, [user?.userType])
 
   if (isLoading) {
     return (

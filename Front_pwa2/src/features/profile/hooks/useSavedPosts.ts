@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { profileService, SavedPost } from '../services/profileService'
 
 interface UseSavedPostsResult {
@@ -15,9 +15,16 @@ export function useSavedPosts(): UseSavedPostsResult {
   const [posts, setPosts] = useState<SavedPost[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const fetchingRef = useRef(false) // Prevenir llamadas duplicadas
 
   const fetchSavedPosts = async () => {
+    // Evitar llamadas duplicadas simultáneas (útil en StrictMode)
+    if (fetchingRef.current) {
+      return
+    }
+
     try {
+      fetchingRef.current = true
       setLoading(true)
       setError(null)
       const result = await profileService.getSavedPosts()
@@ -26,6 +33,7 @@ export function useSavedPosts(): UseSavedPostsResult {
       setError(err instanceof Error ? err : new Error('Error al cargar publicaciones guardadas'))
     } finally {
       setLoading(false)
+      fetchingRef.current = false
     }
   }
 

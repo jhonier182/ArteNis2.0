@@ -54,14 +54,21 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
     setPage(1)
     setHasMore(true)
     setError(null)
-    fetchPosts(1)
-  }, [fetchPosts])
+    if (userId) {
+      fetchPosts(1)
+    }
+  }, [userId, fetchPosts])
 
+  // Optimizado: usar fetchPosts directamente en lugar de reset para evitar dependencias circulares
   useEffect(() => {
     if (userId) {
-      reset()
+      setPosts([])
+      setPage(1)
+      setHasMore(true)
+      setError(null)
+      fetchPosts(1)
     }
-  }, [userId, reset])
+  }, [userId, fetchPosts])
 
   return {
     posts,
