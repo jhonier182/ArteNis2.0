@@ -25,6 +25,7 @@ export function useFollowSocket() {
   const { addFollowing, removeFollowing, refreshFollowing } = useFollowingContext()
   const socketRef = useRef<Socket | null>(null)
   const isConnectedRef = useRef(false)
+  const currentUserIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     // Solo conectar si hay usuario autenticado
@@ -35,12 +36,25 @@ export function useFollowSocket() {
         socketRef.current.disconnect()
         socketRef.current = null
         isConnectedRef.current = false
+        currentUserIdRef.current = null
       }
       return
     }
 
-    // Evitar múltiples conexiones
-    if (isConnectedRef.current && socketRef.current?.connected) {
+    // IMPORTANTE: Si el userId cambió, desconectar el socket anterior primero
+    if (currentUserIdRef.current && currentUserIdRef.current !== user.id) {
+      console.log(`🔄 Usuario cambió de ${currentUserIdRef.current} a ${user.id}, reconectando socket...`)
+      if (socketRef.current?.connected) {
+        socketRef.current.disconnect()
+        socketRef.current = null
+        isConnectedRef.current = false
+      }
+      currentUserIdRef.current = null
+    }
+
+    // Evitar múltiples conexiones para el mismo usuario
+    if (isConnectedRef.current && socketRef.current?.connected && currentUserIdRef.current === user.id) {
+      console.log('🔌 Socket ya conectado para este usuario')
       return
     }
 
@@ -84,8 +98,9 @@ export function useFollowSocket() {
 
     // Evento: Conexión exitosa
     socket.on('connect', () => {
-      console.log('✅ Socket.io conectado:', socket.id)
+      console.log(`✅ Socket.io conectado: ${socket.id} para usuario: ${user.id}`)
       isConnectedRef.current = true
+      currentUserIdRef.current = user.id
     })
 
     // Evento: Desconexión
@@ -113,6 +128,12 @@ export function useFollowSocket() {
       action: 'follow' | 'unfollow'
       timestamp: string
     }) => {
+      // CRÍTICO: Validar que el evento es para el usuario actual
+      if (currentUserIdRef.current !== user.id) {
+        console.warn(`⚠️ Evento FOLLOW_UPDATED ignorado: usuario del socket (${currentUserIdRef.current}) no coincide con usuario actual (${user.id})`)
+        return
+      }
+
       console.log('📡 Evento FOLLOW_UPDATED recibido:', data)
 
       // Actualizar el estado global según la acción
@@ -140,6 +161,7 @@ export function useFollowSocket() {
         socketRef.current.disconnect()
         socketRef.current = null
         isConnectedRef.current = false
+        currentUserIdRef.current = null
       }
     }
   }, [isAuthenticated, user?.id, addFollowing, removeFollowing])

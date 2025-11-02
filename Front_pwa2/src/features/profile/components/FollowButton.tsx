@@ -176,7 +176,20 @@ export function FollowButton({
         return
       }
       
-      // REVERTIR: Deshacer actualización optimista en caso de error
+      // CASO ESPECIAL: 404 Not Found - Al intentar dejar de seguir significa que no lo estás siguiendo
+      // Simplemente establecer el estado a "no seguido" (false)
+      if (err.response?.status === 404 && previousState) {
+        console.log('🔄 404: No se está siguiendo a este usuario, estableciendo estado a false')
+        
+        // Asegurar que NO esté en el Context
+        removeFollowing(targetUserId)
+        
+        onFollowChange?.(false)
+        setIsLoading(false)
+        return
+      }
+      
+      // REVERTIR: Deshacer actualización optimista en caso de otros errores
       if (previousState) {
         // Si estaba siguiendo y falló al dejar de seguir, volver a agregar
         if (userData) {
