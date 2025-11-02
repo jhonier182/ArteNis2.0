@@ -1,0 +1,211 @@
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/router'
+import Head from 'next/head'
+import { ChevronLeft } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
+import { useSearch } from '../hooks/useSearch'
+import { useSearchPosts } from '../hooks/useSearchPosts'
+import { useRecentSearches } from '../hooks/useRecentSearches'
+import { useFollowing } from '../hooks/useFollowing'
+import { SearchBar } from '../components/SearchBar'
+import { SearchResults } from '../components/SearchResults'
+import { RecentSearches } from '../components/RecentSearches'
+import { DiscoverPosts } from '../components/DiscoverPosts'
+import { profileService } from '@/features/profile/services/profileService'
+
+/**
+ * Página de búsqueda completa
+ * 
+ * Integra todos los componentes y hooks del feature de búsqueda
+ */
+export default function SearchPage() {
+  const router = useRouter()
+  const { user } = useAuth()
+  const { followingUsers, isFollowing, refreshFollowing } = useFollowing()
+  const { searchQuery, setSearchQuery, results, isSearching, clearSearch } = useSearch({
+    debounceMs: 300,
+    defaultType: 'artists'
+  })
+  const { recentSearches, addSearch, clearRecentSearches } = useRecentSearches()
+  const { posts, isLoading: loadingPosts, loadFilteredPosts } = useSearchPosts({
+    autoLoad: false
+  })
+
+  const [publicPosts, setPublicPosts] = useState<any[]>([])
+  const [isLoadingFilteredPosts, setIsLoadingFilteredPosts] = useState(false)
+
+  // Memoizar followingIds para evitar recálculos
+  const followingIds = useMemo(
+    () => followingUsers.map((u) => u.id),
+    [followingUsers]
+  )
+
+  // Cargar publicaciones cuando se carguen los usuarios seguidos
+  useEffect(() => {
+    let isMounted = true
+
+    const loadData = async () => {
+      if (user?.id && followingUsers.length >= 0 && isMounted) {
+        setIsLoadingFilteredPosts(true)
+        try {
+          const filteredPosts = await loadFilteredPosts(followingIds, user.id)
+          if (isMounted) {
+            setPublicPosts(filteredPosts)
+          }
+        } catch (error) {
+          console.error('Error cargando posts filtrados:', error)
+          if (isMounted) {
+            setPublicPosts([])
+          }
+        } finally {
+          if (isMounted) {
+            setIsLoadingFilteredPosts(false)
+          }
+        }
+      }
+    }
+
+    loadData()
+
+    return () => {
+      isMounted = false
+    }
+  }, [user?.id, followingIds, loadFilteredPosts])
+
+  // Memoizar handlers para evitar re-renders
+  const handleSelectUser = useCallback(
+    (userId: string) => {
+      // Agregar a búsquedas recientes
+      const foundUser = results.find((u) => u.id === userId)
+      if (foundUser) {
+        addSearch(foundUser.username)
+      }
+
+    // Navegar al perfil del usuario
+    router.push(`/userProfile?userId=${userId}`)
+    },
+    [results, addSearch, router]
+  )
+
+  const handleFollowUser = useCallback(
+    async (userId: string) => {
+      try {
+        await profileService.followUser(userId)
+        await refreshFollowing()
+
+        // Refrescar las publicaciones para ocultar las del usuario recién seguido
+        if (user?.id) {
+          const newFollowingIds = [...followingIds, userId]
+          const filteredPosts = await loadFilteredPosts(newFollowingIds, user.id)
+          setPublicPosts(filteredPosts)
+        }
+
+        console.log('Usuario seguido exitosamente')
+      } catch (error) {
+        console.error('Error following user:', error)
+      }
+    },
+    [user?.id, followingIds, loadFilteredPosts, refreshFollowing]
+  )
+
+  const handleClearSearch = useCallback(() => {
+    clearSearch()
+  }, [clearSearch])
+
+  // Memoizar contenido para evitar re-renders innecesarios
+  const hasSearchQuery = useMemo(() => !!searchQuery, [searchQuery])
+
+  // Memoizar el contenido según si hay búsqueda o no
+  const mainContent = useMemo(() => {
+    if (!hasSearchQuery) {
+      return (
+        <div>
+          {/* Búsquedas recientes */}
+          {recentSearches.length > 0 && (
+            <RecentSearches
+              searches={recentSearches}
+              onSelectSearch={setSearchQuery}
+              onClearAll={clearRecentSearches}
+            />
+          )}
+
+          {/* Publicaciones Públicas */}
+          <DiscoverPosts
+            posts={publicPosts}
+            isLoading={isLoadingFilteredPosts}
+          />
+        </div>
+      )
+    }
+
+    return (
+      <SearchResults
+        results={results}
+        isSearching={isSearching}
+        onSelectUser={handleSelectUser}
+        onFollowUser={handleFollowUser}
+        isFollowing={isFollowing}
+      />
+    )
+  }, [
+    hasSearchQuery,
+    recentSearches,
+    setSearchQuery,
+    clearRecentSearches,
+    publicPosts,
+    isLoadingFilteredPosts,
+    results,
+    isSearching,
+    handleSelectUser,
+    handleFollowUser,
+    isFollowing
+  ])
+
+  return (
+    <div className="min-h-screen bg-[#0f1419] text-white pb-20">
+      <Head>
+        <title>Buscar - InkEndin</title>
+        <style jsx global>{`
+          .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+      </Head>
+
+      {/* Header con búsqueda - Fijo en la parte superior */}
+      <header className="fixed top-0 left-0 right-0 z-[100] bg-[#0f1419]/95 backdrop-blur-sm border-b border-gray-800">
+        <div className="container-mobile px-4 py-3 max-w-md mx-auto">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="p-2 hover:bg-gray-800 rounded-full transition-colors flex-shrink-0"
+              aria-label="Volver"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <SearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Buscar tatuadores..."
+                isSearching={isSearching}
+                autoFocus={true}
+                onClear={handleClearSearch}
+              />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content - Con padding-top para compensar el header fijo */}
+      <main className="container-mobile max-w-md mx-auto px-4 py-6 pt-20">
+        {mainContent}
+      </main>
+    </div>
+  )
+}
+
