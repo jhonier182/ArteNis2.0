@@ -6,7 +6,8 @@ import Head from 'next/head'
 import { useAuth } from '@/context/AuthContext'
 import { postService, Post } from '@/features/posts/services/postService'
 import { LikeButton } from '@/features/likes/components/LikeButton'
-import { ChevronLeft, MessageCircle } from 'lucide-react' // Añadimos el icono de comentarios
+import { ChevronLeft, MessageCircle, Bookmark, Share2 } from 'lucide-react' // Añadimos el icono de comentarios, Bookmark y Share
+import { useSavedPosts } from '@/features/profile/hooks/useSavedPosts'
 
 /**
  * Página de detalle de post
@@ -26,6 +27,67 @@ export default function PostDetailPage() {
   const [comments, setComments] = useState<Array<{ id: string; author: string; text: string }>>([])
   const [newComment, setNewComment] = useState('')
   const [isCommenting, setIsCommenting] = useState(false)
+
+  // Estado para post guardado
+  const [isSaved, setIsSaved] = useState<boolean>(false)
+  const [isTogglingSave, setIsTogglingSave] = useState(false)
+
+  // Estado para compartir
+  const [isSharing, setIsSharing] = useState(false)
+
+  // Para simular guardado/quitado
+  useEffect(() => {
+    if (isAuthenticated && postId) {
+      // Aquí puedes hacer un fetch real. Por ahora suponemos no guardado.
+      setIsSaved(false)
+    }
+  }, [postId, isAuthenticated])
+
+  const handleToggleSave = async () => {
+    if (!isAuthenticated) return
+    setIsTogglingSave(true)
+    setTimeout(() => {
+      setIsSaved(prev => !prev)
+      setIsTogglingSave(false)
+    }, 350)
+    // TODO: Integrar con API real
+  }
+
+  // Handler para compartir
+  const handleShare = async () => {
+    if (!post) return
+    setIsSharing(true)
+    const shareUrl = typeof window !== "undefined" ? window.location.href : ''
+    if (navigator.share) {
+      // Web Share API
+      try {
+        await navigator.share({
+          title: post.title || 'Post en InkEndin',
+          text: post.description || '',
+          url: shareUrl,
+        })
+      } catch (e) {
+        // usuario pudo cancelar
+      }
+    } else {
+      // fallback: copiar enlace
+      if (typeof window !== 'undefined' && navigator.clipboard) {
+        try {
+          await navigator.clipboard.writeText(shareUrl)
+          alert('Enlace copiado al portapapeles')
+        } catch (e) {
+          alert('No se pudo copiar el enlace')
+        }
+      }
+    }
+    setIsSharing(false)
+  }
+
+  // Handler para "Cotizar"
+  const handleCotizar = () => {
+    // Aquí puedes abrir un modal, redirigir, etc.
+    alert('¡Gracias por tu interés! Te contactaremos para cotizar.');
+  }
 
   useEffect(() => {
     if (postId && typeof postId === 'string') {
@@ -58,8 +120,6 @@ export default function PostDetailPage() {
 
   // Mockup: cargar comentarios (en backend real sería un fetch)
   const loadComments = async (id: string) => {
-    // Aquí simulamos comentarios para ejemplo
-    // Reemplazar con fetch real si tienes backend
     setComments([
       { id: '1', author: 'Alice', text: 'Excelente post!' },
       { id: '2', author: 'Bob', text: '¡Muy interesante, gracias por compartir!' },
@@ -71,7 +131,6 @@ export default function PostDetailPage() {
     e.preventDefault()
     if (!newComment.trim()) return
     setIsCommenting(true)
-    // Aquí deberías hacer un POST real
     setTimeout(() => {
       setComments(c => [
         ...c,
@@ -173,18 +232,65 @@ export default function PostDetailPage() {
           )}
 
           {/* Actions */}
-          <div className="flex items-center gap-4 pt-4 border-t border-gray-800">
-            <LikeButton
-              postId={post.id}
-              initialLiked={post.isLiked || false}
-              initialLikesCount={post.likesCount || 0}
-              showCount={true}
-              variant="default"
-            />
-            {/* Comentarios */}
-            <div className="flex items-center gap-1 cursor-pointer text-gray-400 hover:text-blue-400 transition">
-              <MessageCircle className="w-6 h-6" />
-              <span className="text-sm">{comments.length}</span>
+          <div className="flex items-center gap-4 pt-4 border-t border-gray-800 justify-between">
+            <div className="flex items-center gap-4">
+              <LikeButton
+                postId={post.id}
+                initialLiked={post.isLiked || false}
+                initialLikesCount={post.likesCount || 0}
+                showCount={true}
+                variant="default"
+              />
+              {/* Comentarios */}
+              <div className="flex items-center gap-1 cursor-pointer text-gray-400 hover:text-blue-400 transition">
+                <MessageCircle className="w-6 h-6" />
+                <span className="text-sm">{comments.length}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Guardar */}
+              <button
+                className={`flex items-center gap-1 p-1 rounded-full transition border focus:outline-none ${
+                  isSaved
+                    ? 'bg-blue-900 text-blue-400 border-blue-700'
+                    : 'bg-transparent text-gray-400 border-transparent hover:bg-gray-800'
+                }`}
+                onClick={handleToggleSave}
+                aria-label={isSaved ? "Quitar de guardados" : "Guardar publicación"}
+                disabled={isTogglingSave || !isAuthenticated}
+                title={isSaved ? "Quitar de guardados" : "Guardar publicación"}
+                type="button"
+              >
+                <Bookmark
+                  className={`w-6 h-6 ${
+                    isSaved ? 'fill-blue-400' : 'fill-none'
+                  }`}
+                  strokeWidth={isSaved ? 2 : 1.8}
+                />
+              </button>
+
+               {/* Compartir */}
+               <button
+                className="flex items-center gap-1 p-1 rounded-full transition border focus:outline-none bg-transparent text-gray-400 border-transparent hover:bg-gray-800"
+                onClick={handleShare}
+                aria-label="Compartir publicación"
+                title="Compartir publicación"
+                type="button"
+                disabled={isSharing}
+              >
+                <Share2 className="w-6 h-6" />
+              </button>
+
+
+              {/* Botón Cotizar */}
+              <button
+                type="button"
+                onClick={handleCotizar}
+                className="ml-1 px-4 py-2 rounded-full font-bold text-sm transition-colors bg-gradient-to-r from-orange-400 to-red-500 text-white shadow hover:brightness-110 focus:outline-none"
+                style={{minWidth: '90px'}}
+              >
+                Cotizar
+              </button>
             </div>
           </div>
 
