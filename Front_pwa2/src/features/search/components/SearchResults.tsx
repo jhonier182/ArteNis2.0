@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -11,10 +12,6 @@ interface SearchResultsProps {
   isSearching: boolean
   /** Callback cuando se selecciona un usuario */
   onSelectUser?: (userId: string) => void
-  /** Callback para seguir/seguir de un usuario */
-  onFollowUser?: (userId: string) => Promise<void>
-  /** Función para verificar si está siguiendo a un usuario */
-  isFollowing?: (userId: string) => boolean
 }
 
 /**
@@ -31,12 +28,10 @@ interface SearchResultsProps {
  * />
  * ```
  */
-export function SearchResults({
+function SearchResultsComponent({
   results,
   isSearching,
-  onSelectUser,
-  onFollowUser,
-  isFollowing
+  onSelectUser
 }: SearchResultsProps) {
   const router = useRouter()
 
@@ -74,13 +69,13 @@ export function SearchResults({
         {results.length} resultado{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}
       </p>
       {results.map((user, index) => (
-        <motion.button
+        <motion.div
           key={user.id}
           onClick={() => handleUserClick(user.id)}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.05 }}
-          className="w-full flex items-center gap-3 p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition-all group"
+          className="w-full flex items-center gap-3 p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition-all group cursor-pointer"
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
             {user.avatar ? (
@@ -112,20 +107,11 @@ export function SearchResults({
               </div>
             )}
           </div>
-          {onFollowUser && !isFollowing?.(user.id) && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onFollowUser(user.id)
-              }}
-              className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 rounded-full transition-colors"
-            >
-              Seguir
-            </button>
-          )}
-        </motion.button>
+        </motion.div>
       ))}
     </div>
   )
 }
 
+// Memoizar el componente para evitar re-renders innecesarios
+export const SearchResults = memo(SearchResultsComponent)

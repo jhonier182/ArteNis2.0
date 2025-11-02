@@ -158,14 +158,6 @@ export const profileService = {
       createdAt: post.createdAt,
       Board: post.Board, // Si viene información del board
     }))
-  },
-
-  async followUser(userId: string): Promise<void> {
-    await apiClient.getClient().post(`/profile/${userId}/follow`)
-  },
-
-  async unfollowUser(userId: string): Promise<void> {
-    await apiClient.getClient().delete(`/profile/${userId}/follow`)
-  },
+  }
 }
 

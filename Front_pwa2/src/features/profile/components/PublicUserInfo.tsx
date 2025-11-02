@@ -2,7 +2,6 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { Star, Share2, Calendar } from 'lucide-react'
 import { Profile } from '../services/profileService'
-import { profileService } from '../services/profileService'
 import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/router'
 
@@ -13,8 +12,6 @@ interface PublicUserInfoProps {
   isArtist: boolean
   /** Si está cargando */
   isLoading?: boolean
-  /** Callback cuando se sigue al usuario */
-  onFollowChange?: () => void
 }
 
 /**
@@ -30,8 +27,7 @@ interface PublicUserInfoProps {
  */
 export function PublicUserInfo({
   profile,
-  isArtist,
-  onFollowChange
+  isArtist
 }: PublicUserInfoProps) {
   const router = useRouter()
   const { user: currentUser } = useAuth()
@@ -43,15 +39,6 @@ export function PublicUserInfo({
     rating: 4.5,
     completedAppointments: 150,
     responseRate: 98
-  }
-
-  const handleFollow = async () => {
-    try {
-      await profileService.followUser(profile.id)
-      onFollowChange?.()
-    } catch (error) {
-      console.error('Error al seguir usuario:', error)
-    }
   }
 
   if (isArtist) {
@@ -132,15 +119,9 @@ export function PublicUserInfo({
               <span className="text-sm font-semibold text-white">{stats.rating}</span>
             </div>
 
-            {/* Action Buttons - Solo si NO es tu propio perfil */}
-            {!isOwnProfile && (
-              <div className="flex gap-2.5">
-                <button
-                  onClick={handleFollow}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95 transition-all"
-                >
-                  Seguir
-                </button>
+                   {/* Action Buttons - Solo si NO es tu propio perfil */}
+                   {!isOwnProfile && (
+                     <div className="flex gap-2.5">
                 <button
                   onClick={() => router.push('/appointments/book')}
                   className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-2.5 rounded-xl text-sm font-bold hover:shadow-xl hover:shadow-emerald-500/40 transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
@@ -205,17 +186,6 @@ export function PublicUserInfo({
         )}
       </div>
 
-      {/* Action Buttons para Usuario Normal - Solo si NO es tu propio perfil */}
-      {!isOwnProfile && (
-        <div className="flex gap-3 mb-8">
-          <button
-            onClick={handleFollow}
-            className="flex-1 py-3 rounded-xl font-bold bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 text-white hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95 transition-all"
-          >
-            Seguir
-          </button>
-        </div>
-      )}
     </>
   )
 }

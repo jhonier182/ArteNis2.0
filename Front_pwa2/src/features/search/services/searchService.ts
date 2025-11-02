@@ -26,8 +26,17 @@ export const searchService = {
   ): Promise<SearchResponse> {
     const { type = 'all', city, page = 1, limit = 20 } = filters
 
+    // El middleware del backend requiere 'q' con al menos 2 caracteres
+    // Si hay query válido (>= 2 caracteres), usarlo
+    // Si type es específico y no hay query válido, usar el type como query mínimo
+    const queryParam = query && query.trim().length >= 2 
+      ? query.trim() 
+      : type !== 'all' 
+      ? type // Usar el type como query mínimo para pasar validación del middleware
+      : 'all' // Para type='all' sin query, usar 'all' como query mínimo
+    
     const params = new URLSearchParams({
-      ...(query && { q: query }),
+      q: queryParam,
       type,
       page: page.toString(),
       limit: limit.toString(),
@@ -123,7 +132,9 @@ export const searchService = {
    * @param limit Cantidad de posts a obtener
    */
   async getDiscoverPosts(limit: number = 50): Promise<SearchPost[]> {
-    const results = await this.search('', { type: 'posts', limit })
+    // El middleware del backend requiere 'q' con al menos 2 caracteres
+    // Enviamos un query mínimo que el backend puede ignorar cuando type es específico
+    const results = await this.search('posts', { type: 'posts', limit })
     return results.posts
   }
 }

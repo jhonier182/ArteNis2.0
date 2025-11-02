@@ -11,7 +11,6 @@ import { SearchBar } from '../components/SearchBar'
 import { SearchResults } from '../components/SearchResults'
 import { RecentSearches } from '../components/RecentSearches'
 import { DiscoverPosts } from '../components/DiscoverPosts'
-import { profileService } from '@/features/profile/services/profileService'
 
 /**
  * Página de búsqueda completa
@@ -21,7 +20,7 @@ import { profileService } from '@/features/profile/services/profileService'
 export default function SearchPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const { followingUsers, isFollowing, refreshFollowing } = useFollowing()
+  const { followingUsers } = useFollowing()
   const { searchQuery, setSearchQuery, results, isSearching, clearSearch } = useSearch({
     debounceMs: 300,
     defaultType: 'artists'
@@ -87,26 +86,6 @@ export default function SearchPage() {
     [results, addSearch, router]
   )
 
-  const handleFollowUser = useCallback(
-    async (userId: string) => {
-      try {
-        await profileService.followUser(userId)
-        await refreshFollowing()
-
-        // Refrescar las publicaciones para ocultar las del usuario recién seguido
-        if (user?.id) {
-          const newFollowingIds = [...followingIds, userId]
-          const filteredPosts = await loadFilteredPosts(newFollowingIds, user.id)
-          setPublicPosts(filteredPosts)
-        }
-
-        console.log('Usuario seguido exitosamente')
-      } catch (error) {
-        console.error('Error following user:', error)
-      }
-    },
-    [user?.id, followingIds, loadFilteredPosts, refreshFollowing]
-  )
 
   const handleClearSearch = useCallback(() => {
     clearSearch()
@@ -139,13 +118,11 @@ export default function SearchPage() {
     }
 
     return (
-      <SearchResults
-        results={results}
-        isSearching={isSearching}
-        onSelectUser={handleSelectUser}
-        onFollowUser={handleFollowUser}
-        isFollowing={isFollowing}
-      />
+          <SearchResults
+            results={results}
+            isSearching={isSearching}
+            onSelectUser={handleSelectUser}
+          />
     )
   }, [
     hasSearchQuery,
@@ -156,9 +133,7 @@ export default function SearchPage() {
     isLoadingFilteredPosts,
     results,
     isSearching,
-    handleSelectUser,
-    handleFollowUser,
-    isFollowing
+    handleSelectUser
   ])
 
   return (
