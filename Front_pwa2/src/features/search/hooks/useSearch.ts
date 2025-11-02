@@ -88,7 +88,8 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchResult {
   )
 
   /**
-   * Actualizar query con debounce
+   * Actualizar query con debounce (solo si debounceMs > 0)
+   * Si debounceMs es 0, ejecutar inmediatamente (el SearchBar ya tiene su propio debounce)
    */
   const handleSetSearchQuery = useCallback(
     (query: string) => {
@@ -100,10 +101,15 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchResult {
       }
 
       if (query.trim()) {
-        // Configurar nuevo timer
-        debounceTimerRef.current = setTimeout(() => {
+        if (debounceMs > 0) {
+          // Configurar nuevo timer
+          debounceTimerRef.current = setTimeout(() => {
+            performSearch(query)
+          }, debounceMs)
+        } else {
+          // Si debounceMs es 0, ejecutar inmediatamente (SearchBar ya tiene debounce)
           performSearch(query)
-        }, debounceMs)
+        }
       } else {
         setResults([])
       }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { ChevronLeft } from 'lucide-react'
@@ -22,7 +22,7 @@ export default function SearchPage() {
   const { user } = useAuth()
   const { followingUsers } = useFollowing()
   const { searchQuery, setSearchQuery, results, isSearching, clearSearch } = useSearch({
-    debounceMs: 300,
+    debounceMs: 0, // El SearchBar ya maneja el debounce internamente
     defaultType: 'artists'
   })
   const { recentSearches, addSearch, clearRecentSearches } = useRecentSearches()
@@ -71,7 +71,7 @@ export default function SearchPage() {
     }
   }, [user?.id, followingIds, loadFilteredPosts])
 
-  // Memoizar handlers para evitar re-renders
+  // Handler estable para evitar re-creaciones
   const handleSelectUser = useCallback(
     (userId: string) => {
       // Agregar a búsquedas recientes
@@ -79,22 +79,52 @@ export default function SearchPage() {
       if (foundUser) {
         addSearch(foundUser.username)
       }
-
-    // Navegar al perfil del usuario
-    router.push(`/userProfile?userId=${userId}`)
+      // Navegar al perfil del usuario
+      router.push(`/userProfile?userId=${userId}`)
     },
     [results, addSearch, router]
   )
-
 
   const handleClearSearch = useCallback(() => {
     clearSearch()
   }, [clearSearch])
 
+  // Handler para onChange del SearchBar - estable para evitar re-renders
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query)
+  }, [setSearchQuery])
+
   // Memoizar contenido para evitar re-renders innecesarios
   const hasSearchQuery = useMemo(() => !!searchQuery, [searchQuery])
 
-  // Memoizar el contenido según si hay búsqueda o no
+  // Separar el header del contenido principal para evitar re-renders del header
+  // IMPORTANTE: NO incluir isSearching en las dependencias para evitar re-renders
+  const searchHeader = useMemo(() => (
+    <header className="fixed top-0 left-0 right-0 z-[100] bg-[#0f1419]/95 backdrop-blur-sm border-b border-gray-800">
+      <div className="container-mobile px-4 py-3 max-w-md mx-auto">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="p-2 hover:bg-gray-800 rounded-full transition-colors flex-shrink-0"
+            aria-label="Volver"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <SearchBar
+              onChange={handleSearchChange}
+              placeholder="Buscar tatuadores..."
+              autoFocus={true}
+              onClear={handleClearSearch}
+              debounceMs={500}
+            />
+          </div>
+        </div>
+      </div>
+    </header>
+  ), [router, handleSearchChange, handleClearSearch]) // NO incluir isSearching
+
+  // Memoizar el contenido principal - solo se re-renderiza cuando cambian resultados
   const mainContent = useMemo(() => {
     if (!hasSearchQuery) {
       return (
@@ -118,11 +148,11 @@ export default function SearchPage() {
     }
 
     return (
-          <SearchResults
-            results={results}
-            isSearching={isSearching}
-            onSelectUser={handleSelectUser}
-          />
+      <SearchResults
+        results={results}
+        isSearching={isSearching}
+        onSelectUser={handleSelectUser}
+      />
     )
   }, [
     hasSearchQuery,
@@ -151,30 +181,8 @@ export default function SearchPage() {
         `}</style>
       </Head>
 
-      {/* Header con búsqueda - Fijo en la parte superior */}
-      <header className="fixed top-0 left-0 right-0 z-[100] bg-[#0f1419]/95 backdrop-blur-sm border-b border-gray-800">
-        <div className="container-mobile px-4 py-3 max-w-md mx-auto">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="p-2 hover:bg-gray-800 rounded-full transition-colors flex-shrink-0"
-              aria-label="Volver"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <div className="flex-1 min-w-0">
-              <SearchBar
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Buscar tatuadores..."
-                isSearching={isSearching}
-                autoFocus={true}
-                onClear={handleClearSearch}
-              />
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Header con búsqueda - Memoizado para evitar re-renders */}
+      {searchHeader}
 
       {/* Main Content - Con padding-top para compensar el header fijo */}
       <main className="container-mobile max-w-md mx-auto px-4 py-6 pt-20">
