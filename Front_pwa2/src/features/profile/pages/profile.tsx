@@ -21,7 +21,6 @@ import {
 } from 'lucide-react'
 import { AxiosError } from 'axios'
 import { useAuth } from '@/context/AuthContext'
-import EditProfileModal from '../components/EditProfileModal'
 import SettingsModal from '../components/SettingsModal'
 import { useUserPosts } from '../hooks/useUserPosts'
 import { useSavedPosts } from '../hooks/useSavedPosts'
@@ -32,7 +31,6 @@ import { LikeButton } from '@/features/likes/components/LikeButton'
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, updateUser } = useAuth()
   const router = useRouter()
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -111,6 +109,69 @@ export default function ProfilePage() {
     }
   }, [user?.userType, resetPosts])
 
+  // Recargar perfil completo desde el servidor cuando se regresa de editar perfil
+  useEffect(() => {
+    const loadProfileFromServer = async () => {
+      if (!user?.id) return
+      
+      try {
+        const { profileService } = await import('../services/profileService')
+        const updatedProfile = await profileService.getCurrentProfile()
+        
+        // Actualizar el contexto con todos los datos del perfil actualizado
+        if (updateUser) {
+          const userType = updatedProfile.userType === 'admin' ? 'user' : (updatedProfile.userType as 'user' | 'artist' | undefined)
+          console.log('🔄 Actualizando contexto con perfil:', {
+            fullName: updatedProfile.fullName,
+            username: updatedProfile.username,
+            country: updatedProfile.country
+          })
+          updateUser({
+            id: updatedProfile.id,
+            username: updatedProfile.username,
+            email: updatedProfile.email,
+            avatar: updatedProfile.avatar,
+            bio: updatedProfile.bio,
+            fullName: updatedProfile.fullName,
+            city: updatedProfile.city,
+            userType: userType
+          })
+          console.log('✅ Contexto actualizado, usuario ahora tiene fullName:', updatedProfile.fullName)
+        }
+      } catch (error) {
+        console.error('Error al recargar perfil:', error)
+      }
+    }
+
+    // Escuchar cuando se regresa de editar perfil
+    const handleProfileUpdated = () => {
+      console.log('📢 Evento profileUpdated recibido, recargando perfil...')
+      loadProfileFromServer()
+    }
+
+    // Escuchar evento personalizado
+    window.addEventListener('profileUpdated', handleProfileUpdated)
+    
+    // También verificar si venimos de la página de editar
+    const checkRoute = () => {
+      if (typeof window !== 'undefined') {
+        const profileUpdated = sessionStorage.getItem('profileUpdated')
+        if (profileUpdated === 'true') {
+          console.log('📢 sessionStorage indica perfil actualizado, recargando...')
+          loadProfileFromServer()
+          sessionStorage.removeItem('profileUpdated')
+        }
+      }
+    }
+
+    // Verificar al montar el componente
+    checkRoute()
+
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdated)
+    }
+  }, [user?.id, updateUser, router.asPath])
+
   // Refrescar posts cuando se navega al perfil (por si acaso)
   useEffect(() => {
     const isArtist = user?.userType === 'artist' || 
@@ -124,6 +185,17 @@ export default function ProfilePage() {
       return () => clearTimeout(timer)
     }
   }, [router.asPath, user?.id, user?.userType, resetPosts])
+
+  // Log para depuración: ver qué tiene user en el render
+  useEffect(() => {
+    if (user) {
+      console.log('👤 Usuario actual en render:', {
+        fullName: user.fullName,
+        username: user.username,
+        hasFullName: !!user.fullName
+      })
+    }
+  }, [user])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -162,6 +234,7 @@ export default function ProfilePage() {
     logout()
     router.push('/login')
   }
+
 
   const handleAvatarUpdated = (newAvatarUrl: string) => {
     if (user) {
@@ -284,7 +357,7 @@ export default function ProfilePage() {
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <h2 className="text-xl font-bold mb-1 truncate">
-                      {user.username}
+                      {user?.fullName || user?.username || 'Usuario'}
                     </h2>
                     <p className="text-sm text-gray-400 mb-2">
                       Tatuador/a
@@ -361,7 +434,7 @@ export default function ProfilePage() {
 
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold mb-1">
-                {user.username}
+                {user.fullName || user.username}
               </h2>
               <p className="text-gray-400">
                 Usuario
@@ -674,13 +747,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <EditProfileModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        currentAvatar={user.avatar}
-        onAvatarUpdated={handleAvatarUpdated}
-        userId={user.id}
-      />
 
       <SettingsModal
         isOpen={isSettingsModalOpen}

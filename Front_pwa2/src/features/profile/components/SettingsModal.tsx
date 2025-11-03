@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { AxiosError } from 'axios'
 import { useState } from 'react'
+import { useRouter } from 'next/router'
 import { profileService } from '../services/profileService'
 
 interface SettingsModalProps {
@@ -22,6 +23,7 @@ interface SettingsModalProps {
   userEmail?: string
   userType?: 'user' | 'artist'
   onUserTypeChange?: (newType: 'user' | 'artist') => void
+  onEditProfile?: () => void
 }
 
 export default function SettingsModal({ 
@@ -31,8 +33,10 @@ export default function SettingsModal({
   userName,
   userEmail,
   userType = 'user',
-  onUserTypeChange
+  onUserTypeChange,
+  onEditProfile
 }: SettingsModalProps) {
+  const router = useRouter()
   const [isChangingType, setIsChangingType] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -44,7 +48,7 @@ export default function SettingsModal({
 
   const handleEditProfile = () => {
     onClose()
-    // Por ahora no hay página de edición de perfil
+    router.push('/profile/edit')
   }
 
   const handleChangeUserType = async () => {
@@ -122,9 +126,9 @@ export default function SettingsModal({
       />
 
       <div
-        className="fixed inset-x-0 bottom-10 z-50 max-h-[90vh] overflow-hidden"
+        className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-h-[90vh] overflow-hidden max-w-md mx-auto"
       >
-            <div className="bg-neutral-900 rounded-t-3xl shadow-2xl border-t border-neutral-800">
+            <div className="bg-neutral-900 rounded-3xl shadow-2xl border border-neutral-800">
               <div className="flex items-center justify-between p-6 border-b border-neutral-800">
                 <div>
                   <h2 className="text-xl font-bold text-white">Configuración</h2>
@@ -141,7 +145,7 @@ export default function SettingsModal({
                 </button>
               </div>
 
-              <div className="overflow-y-auto max-h-[calc(90vh-180px)] pb-4">
+              <div className="overflow-y-auto max-h-[calc(90vh-220px)] pb-4">
                 {message && (
                   <div className={`mx-4 mt-4 p-3 rounded-lg text-sm ${
                     message.type === 'success' 

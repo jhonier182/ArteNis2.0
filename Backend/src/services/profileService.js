@@ -118,6 +118,13 @@ class ProfileService {
         throw new Error('Usuario no encontrado');
       }
 
+      console.log('📥 [Backend] Datos recibidos para actualizar:', profileData);
+      console.log('📥 [Backend] Usuario actual antes de actualizar:', {
+        id: user.id,
+        fullName: user.fullName,
+        username: user.username
+      });
+
       // Campos permitidos para actualización
       const allowedFields = [
         'fullName', 'bio', 'phone', 'city', 'state', 'country',
@@ -132,8 +139,19 @@ class ProfileService {
         }
       });
 
+      console.log('📤 [Backend] Datos que se van a actualizar:', updateData);
+
       // Actualizar usuario
       await user.update(updateData);
+      
+      // Recargar el usuario desde la base de datos para obtener los valores actualizados
+      await user.reload();
+      
+      console.log('✅ [Backend] Usuario actualizado. Nuevos valores:', {
+        id: user.id,
+        fullName: user.fullName,
+        username: user.username
+      });
 
       return {
         user: user.toJSON(),
