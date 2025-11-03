@@ -7,7 +7,6 @@ const path = require('path');
 // Middlewares locales
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { devRateLimit, strictRateLimit } = require('./middlewares/devRateLimit');
-const { smartCacheMiddleware, cacheStatsMiddleware } = require('./middlewares/httpCache');
 const logger = require('./utils/logger');
 const { sequelize } = require('./config/db');
 
@@ -161,13 +160,6 @@ app.use(compression({
 
 // Middleware de logging simple para tiempo de respuesta
 app.use(responseTimeLogger);
-
-// Middleware de caché HTTP inteligente
-app.use(smartCacheMiddleware);
-
-// Middleware de estadísticas de caché
-app.use(cacheStatsMiddleware);
-
 
 // Parseo de JSON y URL encoded
 app.use(express.json({ limit: '10mb' }));

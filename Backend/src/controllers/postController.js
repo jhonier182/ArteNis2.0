@@ -60,11 +60,11 @@ class PostController {
   static async getFeed(req, res, next) {
     try {
       const options = PostService.buildFeedOptions(req.query, req.user?.id);
-      const result = await PostService.getFeedWithCache(options);
+      const result = await PostService.getFeed(options);
       
       res.status(200).json({
         success: true,
-        message: result.fromCache ? 'Feed obtenido exitosamente (desde caché)' : 'Feed obtenido exitosamente',
+        message: 'Feed obtenido exitosamente',
         data: result
       });
     } catch (error) {

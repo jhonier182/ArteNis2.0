@@ -1,6 +1,5 @@
 const { User, Follow } = require('../models');
 const { sequelize } = require('../config/db');
-const cache = require('memory-cache');
 const { NotFoundError, BadRequestError, ConflictError } = require('../utils/errors');
 const logger = require('../utils/logger');
 
@@ -50,9 +49,6 @@ class FollowService {
         ]);
       });
 
-      // OPTIMIZACIÓN: Invalidar cache de follows
-      this.invalidateFollowCache(followerId);
-
       logger.info('Usuario seguido exitosamente', { followerId, followingId });
       
       return { message: 'Usuario seguido exitosamente' };
@@ -95,9 +91,6 @@ class FollowService {
         });
       });
 
-      // OPTIMIZACIÓN: Invalidar cache de follows
-      this.invalidateFollowCache(followerId);
-
       logger.info('Usuario dejado de seguir exitosamente', { followerId, followingId });
       
       return { message: 'Has dejado de seguir al usuario' };
@@ -131,18 +124,9 @@ class FollowService {
     }
   }
 
-  // Obtener usuarios que sigues (ULTRA OPTIMIZADO CON CACHE)
+  // Obtener usuarios que sigues
   static async getFollowingUsers(userId) {
     try {
-      // OPTIMIZACIÓN 1: Verificar cache primero
-      const cacheKey = `following:${userId}`;
-      const cachedData = cache.get(cacheKey);
-      
-      if (cachedData) {
-        logger.debug('Datos encontrados en caché', { userId, count: cachedData.length });
-        return cachedData;
-      }
-
       // Consulta optimizada
       const follows = await Follow.findAll({
         where: { followerId: userId },
@@ -162,9 +146,6 @@ class FollowService {
         order: [['username', 'ASC']]
       });
 
-      // OPTIMIZACIÓN 4: Guardar en cache
-      cache.put(cacheKey, followingUsers, 300000); // 5 minutos en ms
-
       logger.info('Usuarios seguidos obtenidos', { userId, count: followingUsers.length });
 
       return followingUsers;
@@ -175,24 +156,6 @@ class FollowService {
         stack: error.stack
       });
       throw error;
-    }
-  }
-
-  // Invalidar cache de follows cuando se sigue/deja de seguir
-  static invalidateFollowCache(userId) {
-    const keys = cache.keys();
-    const targetKey = `following:${userId}`;
-    
-    const userKeys = [];
-    for (let i = 0; i < keys.length; i++) {
-      if (keys[i].includes(targetKey)) {
-        userKeys.push(keys[i]);
-      }
-    }
-    
-    if (userKeys.length > 0) {
-      cache.del(userKeys);
-      logger.debug('Cache de follows invalidado', { userId, keysCount: userKeys.length });
     }
   }
 }

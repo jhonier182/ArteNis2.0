@@ -2,7 +2,6 @@ const { Op } = require('sequelize');
 const { Post, User, Comment, Like, Follow, SavedPost } = require('../models');
 const { sequelize } = require('../config/db');
 const { deletePostImage, deletePostVideo } = require('../config/cloudinary');
-const { getCachedData, invalidateCache, getPopularPosts } = require('../config/performanceOptimization');
 const taskQueue = require('../utils/taskQueue');
 const { NotFoundError, ForbiddenError, BadRequestError } = require('../utils/errors');
 const logger = require('../utils/logger');
@@ -137,9 +136,6 @@ class PostService {
         where: { id: userId }
       });
 
-      // Invalidar caché de posts populares
-      invalidateCache('popular_posts');
-
       return post;
     } catch (error) {
       logger.error('Error creando post', {
@@ -150,34 +146,6 @@ class PostService {
     }
   }
 
-  // Obtener feed de publicaciones con caché
-  static async getFeedWithCache(options = {}) {
-    const { userId = null } = options;
-    
-    // Si es una consulta de posts populares sin filtros específicos, usar caché
-    if (!userId && !options.search && !options.type && !options.style) {
-      const limit = parseInt(options.limit) || 15;
-      try {
-        const cachedPosts = await getPopularPosts(limit);
-        
-        if (cachedPosts && cachedPosts.length > 0) {
-          // Transformar posts del caché al formato esperado
-          return {
-            posts: cachedPosts.map(post => this.transformPostForFrontendSync(post, userId)),
-            total: cachedPosts.length,
-            hasMore: cachedPosts.length === limit,
-            fromCache: true
-          };
-        }
-      } catch (error) {
-        logger.warn('Error obteniendo posts del caché', { error: error.message });
-        // Continuar con consulta normal si el caché falla
-      }
-    }
-    
-    // Consulta normal sin caché
-    return this.getFeed(options);
-  }
 
   // Obtener feed de publicaciones
   static async getFeed(options = {}) {
@@ -952,9 +920,6 @@ class PostService {
         });
       }
 
-      // Invalidar caché de posts populares
-      invalidateCache('popular_posts');
-
       return { message: 'Publicación eliminada exitosamente' };
     } catch (error) {
       logger.error('Error eliminando publicación', {
@@ -1089,14 +1054,9 @@ class PostService {
     }
   }
 
-  // Obtener posts de usuarios seguidos (OPTIMIZADO CON CACHE) - COMENTADO TEMPORALMENTE
+  // Obtener posts de usuarios seguidos (MÉTODO ANTIGUO - SIN USAR)
   static async getFollowingPosts_OLD(userId, page, limit, offset) {
     try {
-      // OPTIMIZACIÓN 1: Cache para posts de usuarios seguidos
-      const cacheKey = `following_posts:${userId}:${page}:${limit}`;
-      
-      // Usar el sistema de caché optimizado
-      const cachedData = await getCachedData(cacheKey, async () => {
         // OPTIMIZACIÓN 2: Obtener IDs de usuarios seguidos de forma más eficiente
         const followingUsers = await Follow.findAll({
           where: { followerId: userId },
@@ -1191,9 +1151,6 @@ class PostService {
             itemsPerPage: parseInt(limit)
           }
         };
-      }, 300000); // Cache por 5 minutos
-
-      return cachedData;
 
     } catch (error) {
       // Error silencioso - devolver datos vacíos
