@@ -29,6 +29,8 @@ export default function RegisterPage() {
     fullName: '',
     password: '',
     confirmPassword: '',
+    acceptTerms: false,
+    acceptPrivacy: false,
   })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -49,9 +51,10 @@ export default function RegisterPage() {
   }, [formData.password])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: type === 'checkbox' ? checked : value,
     })
     setError('')
   }
@@ -72,6 +75,16 @@ export default function RegisterPage() {
       return false
     }
 
+    if (!formData.acceptTerms) {
+      setError('Debes aceptar los términos y condiciones para registrarte')
+      return false
+    }
+
+    if (!formData.acceptPrivacy) {
+      setError('Debes aceptar la política de privacidad para registrarte')
+      return false
+    }
+
     return true
   }
 
@@ -86,7 +99,7 @@ export default function RegisterPage() {
     try {
       // Extraer username del nombre completo (primera palabra)
       const username = formData.fullName.trim().split(' ')[0].toLowerCase()
-      await register(username, formData.email, formData.password)
+      await register(username, formData.email, formData.password, formData.acceptTerms, formData.acceptPrivacy)
       router.push('/login?registered=true')
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>
@@ -359,6 +372,44 @@ export default function RegisterPage() {
                 )}
               </div>
 
+              {/* Checkboxes de Términos y Privacidad */}
+              <div className="space-y-3 mt-4">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    name="acceptTerms"
+                    checked={formData.acceptTerms}
+                    onChange={handleChange}
+                    className="mt-1 w-5 h-5 rounded border-neutral-700 bg-neutral-900 text-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-offset-0 focus:ring-offset-neutral-900 cursor-pointer transition-all"
+                    required
+                  />
+                  <span className="text-sm text-gray-300 leading-relaxed">
+                    Acepto los{' '}
+                    <Link href="/terms" target="_blank" className="text-purple-400 hover:text-purple-300 underline">
+                      Términos y Condiciones
+                    </Link>
+                    {' '}de uso
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    name="acceptPrivacy"
+                    checked={formData.acceptPrivacy}
+                    onChange={handleChange}
+                    className="mt-1 w-5 h-5 rounded border-neutral-700 bg-neutral-900 text-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-offset-0 focus:ring-offset-neutral-900 cursor-pointer transition-all"
+                    required
+                  />
+                  <span className="text-sm text-gray-300 leading-relaxed">
+                    Acepto la{' '}
+                    <Link href="/privacy" target="_blank" className="text-purple-400 hover:text-purple-300 underline">
+                      Política de Privacidad
+                    </Link>
+                  </span>
+                </label>
+              </div>
+
               {/* Submit Button */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -388,18 +439,6 @@ export default function RegisterPage() {
                 )}
               </motion.button>
             </form>
-
-            {/* Terms */}
-            <p className="text-xs text-gray-500 text-center mt-4">
-              Al registrarte, aceptas nuestros{' '}
-              <Link href="/terms" className="text-purple-400 hover:text-purple-300">
-                Términos de Servicio
-              </Link>{' '}
-              y{' '}
-              <Link href="/privacy" className="text-purple-400 hover:text-purple-300">
-                Política de Privacidad
-              </Link>
-            </p>
           </motion.div>
 
           {/* Login Link */}

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { User, RefreshToken, Token } = require('../models');
-const { ConflictError, UnauthorizedError } = require('../utils/errors');
+const { ConflictError, UnauthorizedError, BadRequestError } = require('../utils/errors');
 
 class AuthService {
   // Generar nombre de usuario automáticamente
@@ -164,10 +164,16 @@ class AuthService {
       throw new ConflictError('El email ya está en uso');
     }
 
+    // Validar que se aceptaron términos y privacidad
+    if (!userData.acceptTerms || !userData.acceptPrivacy) {
+      throw new BadRequestError('Debes aceptar los términos y condiciones y la política de privacidad para registrarte');
+    }
+
     // Generar nombre de usuario automáticamente
     const username = await this.generateUniqueUsername(userData.fullName);
 
-    // Crear nuevo usuario
+    // Crear nuevo usuario con fechas de aceptación
+    const now = new Date();
     const user = await User.create({
       username: username,
       email: userData.email,
@@ -176,7 +182,9 @@ class AuthService {
       userType: userData.userType || 'user',
       phone: userData.phone,
       location: userData.location,
-      bio: userData.bio
+      bio: userData.bio,
+      termsAcceptedAt: now,
+      privacyAcceptedAt: now
     });
 
     // Generar tokens

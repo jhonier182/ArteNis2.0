@@ -195,6 +195,19 @@ const User = sequelize.define('User', {
     type: DataTypes.DATE,
     allowNull: true,
     field: 'last_login_at'
+  },
+  // Aceptación de términos y condiciones
+  termsAcceptedAt: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    field: 'terms_accepted_at',
+    comment: 'Fecha de aceptación de términos y condiciones'
+  },
+  privacyAcceptedAt: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    field: 'privacy_accepted_at',
+    comment: 'Fecha de aceptación de política de privacidad'
   }
 }, {
   tableName: 'users',

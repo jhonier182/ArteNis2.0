@@ -22,7 +22,7 @@ interface AuthContextType {
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
-  register: (username: string, email: string, password: string) => Promise<void>
+  register: (username: string, email: string, password: string, acceptTerms?: boolean, acceptPrivacy?: boolean) => Promise<void>
   updateUser: (userData: Partial<User>) => void
 }
 
@@ -403,7 +403,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (
     username: string,
     email: string,
-    password: string
+    password: string,
+    acceptTerms: boolean = false,
+    acceptPrivacy: boolean = false
   ): Promise<void> => {
     try {
       // CRÍTICO: Limpiar sesión anterior antes de registrar nueva cuenta
@@ -426,6 +428,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         fullName: username, // El backend requiere fullName
         userType: 'user', // Por defecto es 'user'
+        acceptTerms,
+        acceptPrivacy
       })
 
       // El backend devuelve { success, message, data: { user, token, refreshToken } }
