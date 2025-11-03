@@ -119,7 +119,7 @@ export default function RegisterPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] relative overflow-hidden">
+    <div className="min-h-screen bg-black relative overflow-hidden">
       <Head>
         <title>Registro - Inkedin</title>
       </Head>
@@ -186,7 +186,7 @@ export default function RegisterPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-[#1a1a1a]/80 backdrop-blur-xl rounded-3xl p-6 border border-gray-800/50 shadow-2xl max-h-[90vh] overflow-y-auto"
+            className="bg-neutral-900/80 backdrop-blur-xl rounded-3xl p-6 border border-neutral-800/50 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             {error && (
               <motion.div
@@ -214,7 +214,7 @@ export default function RegisterPage() {
                     value={formData.fullName}
                     onChange={handleChange}
                     placeholder="Juan Pérez"
-                    className="w-full pl-12 pr-4 py-3 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full pl-12 pr-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                 </div>
@@ -234,7 +234,7 @@ export default function RegisterPage() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="tu@email.com"
-                    className="w-full pl-12 pr-4 py-3.5 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full pl-12 pr-4 py-3.5 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                 </div>
@@ -254,7 +254,7 @@ export default function RegisterPage() {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full pl-12 pr-12 py-3 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full pl-12 pr-12 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                   <button
@@ -288,7 +288,7 @@ export default function RegisterPage() {
                         <div
                           key={i}
                           className={`h-1 flex-1 rounded-full transition-all ${
-                            i < passwordStrength ? getPasswordStrengthColor() : 'bg-gray-800'
+                            i < passwordStrength ? getPasswordStrengthColor() : 'bg-neutral-800'
                           }`}
                         />
                       ))}
@@ -327,7 +327,7 @@ export default function RegisterPage() {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full pl-12 pr-12 py-3 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full pl-12 pr-12 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                   <button

@@ -1,4 +1,3 @@
-import { motion, AnimatePresence } from 'framer-motion'
 import { 
   X, 
   LogOut, 
@@ -113,27 +112,20 @@ export default function SettingsModal({
     }
   ]
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/80 z-50 backdrop-blur-sm"
-          />
+  if (!isOpen) return null
 
-          <motion.div
-            initial={{ opacity: 0, y: '100%' }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-10 z-50 max-h-[90vh] overflow-hidden"
-          >
-            <div className="bg-[#1a1f26] rounded-t-3xl shadow-2xl border-t border-gray-800">
-              <div className="flex items-center justify-between p-6 border-b border-gray-800">
+  return (
+    <>
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/80 z-50 backdrop-blur-sm"
+      />
+
+      <div
+        className="fixed inset-x-0 bottom-10 z-50 max-h-[90vh] overflow-hidden"
+      >
+            <div className="bg-neutral-900 rounded-t-3xl shadow-2xl border-t border-neutral-800">
+              <div className="flex items-center justify-between p-6 border-b border-neutral-800">
                 <div>
                   <h2 className="text-xl font-bold text-white">Configuración</h2>
                   <p className="text-sm text-gray-400 mt-1">{userName}</p>
@@ -143,7 +135,7 @@ export default function SettingsModal({
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-gray-800 rounded-full transition-colors"
+                  className="p-2 hover:bg-neutral-800 rounded-full transition-colors"
                 >
                   <X className="w-6 h-6 text-gray-400" />
                 </button>
@@ -162,42 +154,36 @@ export default function SettingsModal({
 
                 <div className="px-4 py-2">
                   {settingsOptions.map((option, index) => (
-                    <motion.button
+                    <button
                       key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
                       onClick={option.onClick}
-                      className="w-full flex items-center gap-4 p-4 hover:bg-gray-800/50 rounded-xl transition-all group"
+                      className="w-full flex items-center gap-4 p-4 hover:bg-neutral-800 rounded-xl transition-colors group"
                     >
-                      <div className={`p-3 rounded-xl bg-gray-800 ${option.color} group-hover:scale-110 transition-transform`}>
+                      <div className={`p-3 rounded-xl bg-neutral-800 ${option.color}`}>
                         <option.icon className="w-5 h-5" />
                       </div>
                       <div className="flex-1 text-left">
                         <p className="font-medium text-white">{option.label}</p>
                         <p className="text-sm text-gray-400">{option.description}</p>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-gray-400 transition-colors" />
-                    </motion.button>
+                      <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-gray-400 transition-colors" />
+                    </button>
                   ))}
                 </div>
 
-                <div className="border-t border-gray-800 my-2"></div>
+                <div className="border-t border-neutral-800 my-2"></div>
 
                 <div className="px-4 py-2">
-                  <motion.button
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: settingsOptions.length * 0.05 }}
+                  <button
                     onClick={() => setShowConfirmModal(true)}
                     disabled={isChangingType}
-                    className="w-full flex items-center gap-4 p-4 hover:bg-purple-500/10 rounded-xl transition-all group disabled:opacity-50"
+                    className="w-full flex items-center gap-4 p-4 hover:bg-purple-500/10 rounded-xl transition-colors group disabled:opacity-50"
                   >
-                    <div className="p-3 rounded-xl bg-purple-500/20 text-purple-500 group-hover:scale-110 transition-transform">
+                    <div className="p-3 rounded-xl bg-purple-500/20 text-purple-400">
                       <RefreshCw className={`w-5 h-5 ${isChangingType ? 'animate-spin' : ''}`} />
                     </div>
                     <div className="flex-1 text-left">
-                      <p className="font-medium text-purple-500">
+                      <p className="font-medium text-purple-400">
                         Cambiar a {userType === 'user' ? 'Tatuador' : 'Usuario'}
                       </p>
                       <p className="text-sm text-gray-400">
@@ -212,55 +198,46 @@ export default function SettingsModal({
                     ) : (
                       <User className="w-5 h-5 text-purple-400" />
                     )}
-                  </motion.button>
+                  </button>
                 </div>
 
-                <div className="border-t border-gray-800 my-2"></div>
+                <div className="border-t border-neutral-800 my-2"></div>
 
                 <div className="px-4 py-2">
-                  <motion.button
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: settingsOptions.length * 0.05 }}
+                  <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-4 p-4 hover:bg-red-500/10 rounded-xl transition-all group"
+                    className="w-full flex items-center gap-4 p-4 hover:bg-red-500/10 rounded-xl transition-colors group"
                   >
-                    <div className="p-3 rounded-xl bg-red-500/20 text-red-500 group-hover:scale-110 transition-transform">
+                    <div className="p-3 rounded-xl bg-red-500/20 text-red-500">
                       <LogOut className="w-5 h-5" />
                     </div>
                     <div className="flex-1 text-left">
                       <p className="font-medium text-red-500">Cerrar Sesión</p>
                       <p className="text-sm text-gray-400">Salir de tu cuenta</p>
                     </div>
-                  </motion.button>
+                  </button>
                 </div>
               </div>
 
-              <div className="px-6 py-4 border-t border-gray-800">
+              <div className="px-6 py-4 border-t border-neutral-800">
                 <p className="text-center text-xs text-gray-500">
                   Inkedin • Versión 1.0.0
                 </p>
               </div>
             </div>
-          </motion.div>
+      </div>
 
-          {showConfirmModal && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowConfirmModal(false)}
-                className="fixed inset-0 bg-black/90 z-[60] backdrop-blur-sm"
-              />
+      {showConfirmModal && (
+        <>
+          <div
+            onClick={() => setShowConfirmModal(false)}
+            className="fixed inset-0 bg-black/90 z-[60] backdrop-blur-sm"
+          />
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="fixed inset-x-4 top-[40%] -translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:max-w-sm z-[60]"
-              >
-                <div className="bg-[#1a1f26] rounded-3xl shadow-2xl overflow-hidden border border-gray-800 p-6">
+          <div
+            className="fixed inset-x-4 top-[40%] -translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:max-w-sm z-[60]"
+          >
+                <div className="bg-neutral-900 rounded-3xl shadow-2xl overflow-hidden border border-neutral-800 p-6">
                   <div className="text-center mb-6">
                     <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                       <RefreshCw className="w-8 h-8 text-purple-500" />
@@ -294,18 +271,16 @@ export default function SettingsModal({
                     <button
                       onClick={() => setShowConfirmModal(false)}
                       disabled={isChangingType}
-                      className="w-full bg-gray-800 text-white py-3 rounded-xl font-semibold hover:bg-gray-700 transition-all disabled:opacity-50"
+                      className="w-full bg-neutral-800 text-white py-3 rounded-xl font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-50"
                     >
                       Cancelar
                     </button>
                   </div>
                 </div>
-              </motion.div>
-            </>
-          )}
+          </div>
         </>
       )}
-    </AnimatePresence>
+    </>
   )
 }
 

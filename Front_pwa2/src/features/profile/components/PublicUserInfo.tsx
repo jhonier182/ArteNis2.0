@@ -54,7 +54,7 @@ export function PublicUserInfo({
           {/* Avatar pequeño */}
           <div className="flex-shrink-0">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-blue-600 p-0.5">
-              <div className="w-full h-full rounded-full bg-[#0f1419] p-0.5">
+              <div className="w-full h-full rounded-full bg-black p-0.5">
                 {profile.avatar ? (
                   <Image
                     src={profile.avatar}
@@ -167,7 +167,7 @@ export function PublicUserInfo({
         className="flex justify-center mb-6"
       >
         <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
-          <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
+          <div className="w-full h-full rounded-full bg-black p-1">
             {profile.avatar ? (
               <Image
                 src={profile.avatar}

@@ -168,7 +168,7 @@ export default function SearchPage() {
   ])
 
   return (
-    <div className="min-h-screen bg-[#0f1419] text-white pb-20">
+    <div className="min-h-screen bg-black text-white pb-20">
       <Head>
         <title>Buscar - InkEndin</title>
         <style>{`

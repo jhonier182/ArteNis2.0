@@ -59,7 +59,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-screen bg-[#0a0a0a] relative overflow-hidden">
+    <div className="h-screen bg-black relative overflow-hidden">
       <Head>
         <title>Iniciar Sesión - Inkedin</title>
       </Head>
@@ -126,7 +126,7 @@ export default function LoginPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-[#1a1a1a]/80 backdrop-blur-xl rounded-3xl p-6 border border-gray-800/50 shadow-2xl"
+            className="bg-neutral-900/80 backdrop-blur-xl rounded-3xl p-6 border border-neutral-800/50 shadow-2xl"
           >
             <h2 className="text-xl font-bold text-white mb-4">Iniciar Sesión</h2>
 
@@ -155,7 +155,7 @@ export default function LoginPage() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="tu@email.com"
-                    className="w-full pl-12 pr-4 py-3 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full pl-12 pr-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                 </div>
@@ -175,7 +175,7 @@ export default function LoginPage() {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full pl-12 pr-12 py-3 bg-[#0f0f0f] border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full pl-12 pr-12 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                   <button
@@ -231,10 +231,10 @@ export default function LoginPage() {
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-800"></div>
+                <div className="w-full border-t border-neutral-800"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-[#1a1a1a] text-gray-500">O continúa con</span>
+                <span className="px-4 bg-neutral-900 text-gray-500">O continúa con</span>
               </div>
             </div>
 
@@ -243,7 +243,7 @@ export default function LoginPage() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center py-2.5 bg-[#0f0f0f] border border-gray-800 rounded-xl hover:border-gray-700 transition-all group"
+                className="flex items-center justify-center py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-neutral-700 transition-all group"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#EA4335" d="M12 11v2.6h3.9c-.2 1-1.2 3-3.9 3-2.4 0-4.3-2-4.3-4.4s1.9-4.4 4.3-4.4c1.4 0 2.3.6 2.8 1.1l2.1-2C15.5 5.6 13.9 5 12 5c-3.9 0-7 3.1-7 7s3.1 7 7 7c4 0 6.7-2.8 6.7-6.8 0-.5 0-.8-.1-1.2H12z"/>
@@ -256,7 +256,7 @@ export default function LoginPage() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center py-2.5 bg-[#0f0f0f] border border-gray-800 rounded-xl hover:border-gray-700 transition-all group"
+                className="flex items-center justify-center py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-neutral-700 transition-all group"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="white">
                   <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
@@ -266,7 +266,7 @@ export default function LoginPage() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center py-2.5 bg-[#0f0f0f] border border-gray-800 rounded-xl hover:border-gray-700 transition-all group"
+                className="flex items-center justify-center py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-neutral-700 transition-all group"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>

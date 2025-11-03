@@ -45,7 +45,7 @@ export default function PublicUserProfilePage({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     )
@@ -53,7 +53,7 @@ export default function PublicUserProfilePage({
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f1419] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">Error al cargar perfil</h2>
           <p className="text-gray-400 mb-4">
@@ -73,7 +73,7 @@ export default function PublicUserProfilePage({
   const isArtist = profile.userType === 'artist'
 
   return (
-    <div className="min-h-screen bg-[#0f1419] text-white pb-20">
+    <div className="min-h-screen bg-black text-white pb-20">
       <Head>
         <title>{profile.fullName || profile.username} - InkEndin</title>
       </Head>

@@ -16,7 +16,7 @@ export default function UserProfile() {
   // Si no hay userId, mostrar error o redirigir
   if (!userId || typeof userId !== 'string') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f1419] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">Usuario no encontrado</h2>
           <button

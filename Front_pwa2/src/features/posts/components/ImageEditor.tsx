@@ -389,9 +389,9 @@ export function ImageEditor({
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1419] text-white flex flex-col">
+    <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0f1419] border-b border-gray-800">
+      <header className="sticky top-0 z-50 bg-black border-b border-neutral-800">
         <div className="container-mobile px-4 py-4 max-w-md mx-auto">
           <div className="flex items-center justify-between">
             <button
@@ -490,7 +490,7 @@ export function ImageEditor({
 
       {/* Descripción - Solo mostrar si hay imagen */}
       {imageUrl && (
-        <div className="bg-[#0f1419] border-t border-gray-800 px-4 py-5">
+        <div className="bg-black border-t border-neutral-800 px-4 py-5">
           <div className="container-mobile max-w-md mx-auto space-y-3">
             <div className="flex items-center justify-between">
               <label className="block text-sm font-bold text-gray-200">
@@ -548,7 +548,7 @@ export function ImageEditor({
 
       {/* Tabs - Solo mostrar si hay imagen */}
       {imageUrl && (
-        <div className="bg-[#0f1419] border-t border-gray-800">
+        <div className="bg-black border-t border-neutral-800">
           <div className="container-mobile flex max-w-md mx-auto">
             <button
               onClick={() => setActiveTab('adjust')}
@@ -586,7 +586,7 @@ export function ImageEditor({
 
       {/* Controls Area - Solo mostrar si hay imagen */}
       {imageUrl && (
-        <div className="bg-[#0f1419] border-t border-gray-800 pb-safe max-h-[40vh] overflow-y-auto">
+        <div className="bg-black border-t border-neutral-800 pb-safe max-h-[40vh] overflow-y-auto">
           <div className="container-mobile p-4 max-w-md mx-auto">
             {activeTab === 'adjust' ? (
             <div className="space-y-4">

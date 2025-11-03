@@ -28,7 +28,7 @@ export default function HomePage() {
   // Mostrar loader mientras verifica autenticación
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-400">Cargando...</p>
@@ -44,13 +44,13 @@ export default function HomePage() {
 
   // Si está autenticado, mostrar la página de inicio con navegación
   return (
-    <div className="min-h-screen bg-[#0f1419] text-white pb-20">
+    <div className="min-h-screen bg-black text-white pb-20">
       <Head>
         <title>Inkedin - Inicio</title>
       </Head>
       
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0f1419]">
+      <header className="sticky top-0 z-50 bg-black">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">

@@ -169,7 +169,7 @@ export default function PostDetailPage() {
 
   if (!postId || typeof postId !== 'string') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f1419] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">Post no encontrado</h2>
           <button
@@ -185,7 +185,7 @@ export default function PostDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     )
@@ -193,7 +193,7 @@ export default function PostDetailPage() {
 
   if (error || !post) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f1419] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">Error al cargar el post</h2>
           <p className="text-gray-400 mb-4">{error || 'No se pudo cargar el post'}</p>
@@ -209,7 +209,7 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1419] text-white pb-32">
+    <div className="min-h-screen bg-black text-white pb-32">
       <Head>
         <title>{post.title || 'Post'} - InkEndin</title>
       </Head>
@@ -295,7 +295,7 @@ export default function PostDetailPage() {
           )}
 
           {/* Actions */}
-          <div className="flex items-center gap-4 pt-4 border-t border-gray-800 justify-between">
+          <div className="flex items-center gap-4 pt-4 border-t border-neutral-800 justify-between">
             <div className="flex items-center gap-4">
               <LikeButton
                 postId={post.id}
@@ -380,7 +380,7 @@ export default function PostDetailPage() {
 
           {/* Author Info */}
           {post.author && (
-            <div className="pt-4 border-t border-gray-800">
+            <div className="pt-4 border-t border-neutral-800">
               <p className="text-sm text-gray-400">
                 Publicado por{' '}
                 <span className="text-white font-medium">
@@ -419,7 +419,7 @@ export default function PostDetailPage() {
       {/* Barra de envío de comentario (sticky bottom) */}
       <form
         // MOVEMOS UN POCO HACIA ARRIBA usando bottom-4 en vez de bottom-0
-        className="fixed bottom-4 left-0 right-0 z-50 bg-[#131A22] py-3 border-t border-gray-800"
+        className="fixed bottom-4 left-0 right-0 z-50 bg-neutral-900 py-3 border-t border-neutral-800"
         style={{boxShadow: '0 -4px 16px 0 #0f141980'}}
         onSubmit={handleCommentSend}
       >

@@ -114,12 +114,12 @@ export default function EditProfileModal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:max-w-md z-50"
           >
-            <div className="bg-[#1a1f26] rounded-3xl shadow-2xl overflow-hidden border border-gray-800">
-              <div className="flex items-center justify-between p-6 border-b border-gray-800">
+            <div className="bg-neutral-900 rounded-3xl shadow-2xl overflow-hidden border border-neutral-800">
+              <div className="flex items-center justify-between p-6 border-b border-neutral-800">
                 <h2 className="text-xl font-bold text-white">Cambiar foto de perfil</h2>
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-gray-800 rounded-full transition-colors"
+                  className="p-2 hover:bg-neutral-800 rounded-full transition-colors"
                 >
                   <X className="w-6 h-6 text-gray-400" />
                 </button>
@@ -129,7 +129,7 @@ export default function EditProfileModal({
                 <div className="flex justify-center mb-6">
                   <div className="relative">
                     <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
-                      <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
+                      <div className="w-full h-full rounded-full bg-black p-1">
                         {selectedImage || currentAvatar ? (
                           <Image
                             src={selectedImage || currentAvatar || ''}
@@ -190,7 +190,7 @@ export default function EditProfileModal({
                         <button
                           onClick={handleRemoveAvatar}
                           disabled={isUploading}
-                          className="w-full bg-gray-800 text-red-500 py-3 rounded-xl font-semibold hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          className="w-full bg-neutral-800 text-red-500 py-3 rounded-xl font-semibold hover:bg-neutral-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                           <Trash2 className="w-5 h-5" />
                           Eliminar foto actual

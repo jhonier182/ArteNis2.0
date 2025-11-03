@@ -185,7 +185,7 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     )
@@ -219,7 +219,7 @@ export default function ProfilePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0f1419] text-white pb-20">
+    <div className="min-h-screen bg-black text-white pb-20">
       <Head>
         <title>Perfil - Inkedin</title>
       </Head>
@@ -259,7 +259,7 @@ export default function ProfilePage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1 hover:from-orange-500 hover:to-orange-700 transition-all"
                 >
-                  <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
+                  <div className="w-full h-full rounded-full bg-black p-1">
                     {user.avatar ? (
                       <Image
                         src={user.avatar}
@@ -337,7 +337,7 @@ export default function ProfilePage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1 hover:from-orange-500 hover:to-orange-700 transition-all"
                 >
-                  <div className="w-full h-full rounded-full bg-[#0f1419] p-1">
+                  <div className="w-full h-full rounded-full bg-black p-1">
                     {user.avatar ? (
                       <Image
                         src={user.avatar}
@@ -373,7 +373,7 @@ export default function ProfilePage() {
         {isArtist && (
           <div className="mb-8">
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#1a1f26] rounded-xl py-3 px-4 flex items-center gap-3">
+              <div className="bg-neutral-900 rounded-xl py-3 px-4 flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M9 11l3 3L22 4"/>
@@ -386,7 +386,7 @@ export default function ProfilePage() {
                 </div>
               </div>
               
-              <div className="bg-[#1a1f26] rounded-xl py-3 px-4 flex items-center gap-3">
+              <div className="bg-neutral-900 rounded-xl py-3 px-4 flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
@@ -702,7 +702,7 @@ export default function ProfilePage() {
 
       {isUploadingAvatar && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-[#0f1419] p-6 rounded-2xl flex items-center gap-3">
+          <div className="bg-black p-6 rounded-2xl flex items-center gap-3">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500" />
             <span className="text-white font-medium">Subiendo foto...</span>
           </div>
