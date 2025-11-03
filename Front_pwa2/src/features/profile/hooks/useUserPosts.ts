@@ -56,8 +56,12 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
           return
         }
       } else {
-        // Páginas siguientes: agregar progresivamente
-        setPosts(prev => [...prev, ...result.posts])
+        // Páginas siguientes: agregar progresivamente, eliminando duplicados por ID
+        setPosts(prev => {
+          const existingIds = new Set(prev.map(p => p.id))
+          const newPosts = result.posts.filter(p => !existingIds.has(p.id))
+          return [...prev, ...newPosts]
+        })
       }
       
       // AUTO-CARGA CONTINUA tipo "flux": seguir cargando mientras haya más

@@ -99,7 +99,10 @@ export default function PublicUserProfilePage({
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 auto-rows-[200px]">
-              {posts.map((post, index) => (
+              {posts.filter((post, index, self) => 
+                // Filtrar duplicados por ID como medida de seguridad adicional
+                index === self.findIndex((p) => p.id === post.id)
+              ).map((post, index) => (
                 <div
                   key={post.id}
                   onClick={() => router.push(`/postDetail?postId=${post.id}`)}
