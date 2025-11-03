@@ -49,18 +49,10 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    // Importar y lanzar optimizaciones de base de datos en paralelo solo si existen
+    // Importar y crear índices optimizados adicionales si existen
     try {
       const dbOpt = require('./config/dbOptimization');
-      const perfOpt = require('./config/performanceOptimization');
-      
-      await Promise.allSettled([
-        dbOpt.createOptimizedIndexes?.(),
-        dbOpt.analyzeSlowQueries?.(),
-        dbOpt.optimizeMySQLConfig?.(),
-        dbOpt.createMaterializedViews?.(),
-        perfOpt.optimizeDatabaseConnections?.()
-      ]);
+      await dbOpt.createOptimizedIndexes?.();
     } catch (optErr) {
       // Optimizaciones fallidas - continuar sin ellas
     }
@@ -97,13 +89,13 @@ const startServer = async () => {
       if (userId) {
         // Unir al socket a la sala del usuario (para recibir sus eventos)
         socket.join(userId);
-        logger.info(`🔌 Socket conectado - Usuario: ${userId}`);
+        logger.info(`Socket conectado - Usuario: ${userId}`);
         
         socket.on('disconnect', () => {
-          logger.info(`🔌 Socket desconectado - Usuario: ${userId}`);
+          logger.info(`Socket desconectado - Usuario: ${userId}`);
         });
       } else {
-        logger.warn('⚠️ Socket conectado sin userId, desconectando...');
+        logger.warn(' Socket conectado sin userId, desconectando...');
         socket.disconnect();
       }
     });
@@ -113,8 +105,8 @@ const startServer = async () => {
 
     // Iniciar servidor HTTP (que incluye Express y Socket.io)
     httpServer.listen(PORT, HOST, () => {
-      logger.info(`🚀 Servidor iniciado en ${HOST}:${PORT}`);
-      logger.info(`🔌 Socket.io configurado y escuchando`);
+      logger.info(`Servidor iniciado en ${HOST}:${PORT}`);
+      logger.info(`Socket.io configurado y escuchando`);
     });
 
     // Registrar graceful shutdown solo una vez por proceso (evita fugas)
