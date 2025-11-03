@@ -268,10 +268,14 @@ export default function PostDetailPage() {
                 )}
               </>
             ) : (
-              <img
-                src={post.imageUrl || post.mediaUrl}
+              <Image
+                src={post.imageUrl || post.mediaUrl || ''}
                 alt={post.title || 'Post'}
+                width={800}
+                height={1200}
                 className="w-full h-auto object-contain"
+                priority
+                quality={90}
               />
             )}
           </div>

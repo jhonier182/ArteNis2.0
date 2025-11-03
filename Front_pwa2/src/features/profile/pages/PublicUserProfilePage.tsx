@@ -99,7 +99,7 @@ export default function PublicUserProfilePage({
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 auto-rows-[200px]">
-              {posts.map((post) => (
+              {posts.map((post, index) => (
                 <div
                   key={post.id}
                   onClick={() => router.push(`/postDetail?postId=${post.id}`)}
@@ -115,6 +115,8 @@ export default function PublicUserProfilePage({
                             width={400}
                             height={300}
                             className="w-full h-full object-cover"
+                            priority={index < 4}
+                            loading={index < 4 ? 'eager' : 'lazy'}
                           />
                           {/* Overlay con icono de play para videos */}
                           <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
@@ -132,6 +134,8 @@ export default function PublicUserProfilePage({
                           width={400}
                           height={300}
                           className="w-full h-full object-cover"
+                          priority={index < 4}
+                          loading={index < 4 ? 'eager' : 'lazy'}
                         />
                       )}
                     </>

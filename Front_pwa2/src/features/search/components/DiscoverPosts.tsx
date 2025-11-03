@@ -96,6 +96,8 @@ export function DiscoverPosts({
                         width={400}
                         height={300}
                         className="w-full h-full object-cover"
+                        priority={index < 4}
+                        loading={index < 4 ? 'eager' : 'lazy'}
                       />
                     )}
                     {/* Overlay con icono de play para videos */}

@@ -320,6 +320,7 @@ export default function ProfilePage() {
                         width={200}
                         height={200}
                         className="w-full h-full rounded-full object-cover"
+                        priority
                       />
                     ) : (
                       <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
@@ -398,6 +399,7 @@ export default function ProfilePage() {
                         width={200}
                         height={200}
                         className="w-full h-full rounded-full object-cover"
+                        priority
                       />
                     ) : (
                       <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
@@ -601,6 +603,8 @@ export default function ProfilePage() {
                               width={300}
                               height={300}
                               className="w-full h-full object-cover"
+                              priority={index < 4}
+                              loading={index < 4 ? 'eager' : 'lazy'}
                             />
                           )}
                         </>

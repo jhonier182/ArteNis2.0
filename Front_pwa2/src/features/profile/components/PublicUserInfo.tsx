@@ -175,6 +175,7 @@ export function PublicUserInfo({
                 width={128}
                 height={128}
                 className="w-full h-full rounded-full object-cover"
+                priority
               />
             ) : (
               <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
