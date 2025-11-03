@@ -220,67 +220,91 @@ export default function PostDetailPage() {
         </div>
       </header>
 
+      {/* Media */}
+      {(post.imageUrl || post.mediaUrl) && (
+        <div
+          className="mb-4 relative overflow-hidden bg-gray-900 rounded-xl"
+          style={{
+            width: 'calc(100vw - 32px)', // 16px margin each side for espacio
+            maxWidth: 'calc(100vw - 32px)',
+            aspectRatio: '9/16',
+            maxHeight: '70vh',
+            left: '50%',
+            transform: 'translateX(-50%)'
+          }}
+        >
+          {post.type === 'video' ||
+          (post.mediaUrl &&
+            (post.mediaUrl.includes('.mp4') ||
+              post.mediaUrl.includes('.webm') ||
+              post.mediaUrl.includes('.mov'))) ? (
+            <>
+              <video
+                src={post.mediaUrl || post.imageUrl}
+                autoPlay
+                loop
+                playsInline
+                poster={post.thumbnailUrl}
+                className="w-full h-full object-cover rounded-xl"
+                style={{
+                  outline: 'none',
+                  aspectRatio: '9/16',
+                  maxHeight: '70vh',
+                  backgroundColor: '#0f1419'
+                }}
+              />
+              {/* Botón de descarga */}
+              <button
+                onClick={handleDownload}
+                className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black/80 rounded-full backdrop-blur-sm transition-all z-10"
+                aria-label="Descargar video"
+                title="Descargar video"
+              >
+                <Download className="w-5 h-5 text-white" />
+              </button>
+              {/* Marca de agua del autor */}
+              {post.author && (
+                <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-full px-3 py-2 z-10 border border-white/20">
+                  {post.author.avatar ? (
+                    <Image
+                      src={post.author.avatar}
+                      alt={post.author.username}
+                      width={24}
+                      height={24}
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                      {(post.author.username || post.author.fullName || 'U')[0].toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-white text-sm font-medium">
+                    @{post.author.username || post.author.fullName || 'Usuario'}
+                  </span>
+                </div>
+              )}
+            </>
+          ) : (
+            <Image
+              src={post.imageUrl || post.mediaUrl || ''}
+              alt={post.title || 'Post'}
+              fill
+              className="object-contain rounded-xl"
+              priority
+              quality={90}
+              style={{
+                width: '100%',
+                height: '100%',
+                maxWidth: '100vw',
+                maxHeight: '70vh'
+              }}
+            />
+          )}
+        </div>
+      )}
+
       {/* Content */}
       <div className="container-mobile px-4 pt-16 pb-24 max-w-md mx-auto">
-        {/* Media */}
-        {(post.imageUrl || post.mediaUrl) && (
-          <div className="mb-4 rounded-lg overflow-hidden bg-gray-900 relative" style={{width: '100%', aspectRatio: '9/16', maxHeight: '70vh'}}>
-            {post.type === 'video' || (post.mediaUrl && (post.mediaUrl.includes('.mp4') || post.mediaUrl.includes('.webm') || post.mediaUrl.includes('.mov'))) ? (
-              <>
-                <video
-                  src={post.mediaUrl || post.imageUrl}
-                  autoPlay
-                  loop
-                  playsInline
-                  poster={post.thumbnailUrl}
-                  className="w-full h-full object-cover"
-                  style={{ outline: 'none', aspectRatio: '9/16', maxHeight: '70vh', backgroundColor: '#0f1419' }}
-                />
-                {/* Botón de descarga */}
-                <button
-                  onClick={handleDownload}
-                  className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black/80 rounded-full backdrop-blur-sm transition-all z-10"
-                  aria-label="Descargar video"
-                  title="Descargar video"
-                >
-                  <Download className="w-5 h-5 text-white" />
-                </button>
-                {/* Marca de agua del autor */}
-                {post.author && (
-                  <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-full px-3 py-2 z-10 border border-white/20">
-                    {post.author.avatar ? (
-                      <Image
-                        src={post.author.avatar}
-                        alt={post.author.username}
-                        width={24}
-                        height={24}
-                        className="w-6 h-6 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                        {(post.author.username || post.author.fullName || 'U')[0].toUpperCase()}
-                      </div>
-                    )}
-                    <span className="text-white text-sm font-medium">
-                      @{post.author.username || post.author.fullName || 'Usuario'}
-                    </span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <Image
-                src={post.imageUrl || post.mediaUrl || ''}
-                alt={post.title || 'Post'}
-                width={800}
-                height={1200}
-                className="w-full h-auto object-contain"
-                priority
-                quality={90}
-              />
-            )}
-          </div>
-        )}
-
         {/* Post Info */}
         <div className="space-y-4">
           {/* Title and Description */}
@@ -375,18 +399,7 @@ export default function PostDetailPage() {
             </div>
           )}
 
-          {/* Author Info */}
-          {post.author && (
-            <div className="pt-4 border-t border-neutral-800">
-              <p className="text-sm text-gray-400">
-                Publicado por{' '}
-                <span className="text-white font-medium">
-                  {post.author.fullName || post.author.username}
-                </span>
-              </p>
-            </div>
-          )}
-
+        
           {/* Lista de comentarios */}
           <div className="pt-6">
             <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
