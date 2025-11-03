@@ -4,16 +4,9 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('📱 Para generar los iconos de tu PWA:');
-console.log('');
-console.log('1. Ve a: https://www.pwabuilder.com/imageGenerator');
-console.log('2. Sube tu logo (mínimo 512x512px)');
-console.log('3. Descarga el paquete de iconos');
-console.log('4. Copia icon-192x192.png y icon-512x512.png a public/');
-console.log('');
-console.log('O usa el SVG en public/icon.svg como base');
-console.log('');
-console.log('Mientras tanto, la app usará iconos de respaldo.');
+
+
+
 
 // Crear archivo de instrucciones
 const instructions = `
@@ -48,5 +41,5 @@ fs.writeFileSync(
   instructions
 );
 
-console.log('✅ Instrucciones guardadas en public/GENERATE_ICONS.txt');
+
 

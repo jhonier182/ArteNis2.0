@@ -25,32 +25,7 @@ export interface LikeButtonProps {
   variant?: 'default' | 'minimal' | 'icon-only'
 }
 
-/**
- * Componente de botón de like totalmente sincronizado globalmente
- * 
- * Características:
- * - Estado sincronizado en toda la aplicación (Context API)
- * - Actualizaciones optimistas (UI inmediata)
- * - Sincronización en tiempo real con Socket.io
- * - Animaciones suaves con framer-motion
- * - Estados de carga con feedback visual
- * - Persistencia entre navegaciones
- * 
- * El estado se mantiene sincronizado automáticamente:
- * - Si das like en el feed, aparece como "Liked" en el detalle del post
- * - Si quitas like en el detalle, se actualiza en el feed
- * - El estado persiste al navegar entre páginas
- * 
- * @example
- * ```tsx
- * <LikeButton
- *   postId="post-123"
- *   initialLiked={post.isLiked}
- *   initialLikesCount={post.likesCount}
- *   onToggle={(liked, count) => console.log('Like:', liked, count)}
- * />
- * ```
- */
+
 export function LikeButton({
   postId,
   initialLiked = false,
@@ -113,28 +88,25 @@ export function LikeButton({
       if (isLiked) {
         // ACTUALIZACIÓN OPTIMISTA: Remover like inmediatamente
         removeLike(postId, Math.max(0, likesCount - 1))
-        console.log('🔄 Actualización optimista: Removiendo like')
+        
 
         // Acción: Quitar like
         await client.post(`/posts/${postId}/like`)
-        console.log('✅ Like removido exitosamente')
         
         // El estado ya fue actualizado optimistamente, solo notificar
         onToggle?.(false, Math.max(0, likesCount - 1))
       } else {
         // ACTUALIZACIÓN OPTIMISTA: Agregar like inmediatamente
         addLike(postId, likesCount + 1)
-        console.log('🔄 Actualización optimista: Agregando like')
+        
 
         // Acción: Dar like
         await client.post(`/posts/${postId}/like`)
-        console.log('✅ Like agregado exitosamente')
         
         // El estado ya fue actualizado optimistamente, solo notificar
         onToggle?.(true, likesCount + 1)
       }
     } catch (err: unknown) {
-      console.error('❌ Error al cambiar estado de like:', err)
       
       // REVERTIR: Deshacer actualización optimista en caso de error
       if (previousLiked) {

@@ -245,6 +245,6 @@ export const clearSearchPostsCache = () => {
   globalPostsCache = null
   globalCacheTimestamp = 0
   isLoadingGlobally = false
-  console.log('🧹 Caché de posts de búsqueda limpiado')
+  return
 }
 

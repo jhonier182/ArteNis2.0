@@ -36,11 +36,10 @@ async function createIcon(size, filename) {
     .png()
     .toFile(path.join(publicDir, filename));
 
-  console.log(`✅ Generado: ${filename} (${size}x${size})`);
+  
 }
 
 async function generateIcons() {
-  console.log('🎨 Generando íconos para PWA...\n');
 
   try {
     // Asegurar que el directorio public existe
@@ -54,11 +53,8 @@ async function generateIcons() {
     // Generar ícono 512x512
     await createIcon(512, 'icon-512x512.png');
 
-    console.log('\n✨ ¡Íconos generados exitosamente!');
-    console.log('📁 Ubicación: public/');
-    console.log('\n💡 Puedes reemplazar estos íconos con tus propios diseños más adelante.');
   } catch (error) {
-    console.error('❌ Error al generar íconos:', error.message);
+    return
     process.exit(1);
   }
 }

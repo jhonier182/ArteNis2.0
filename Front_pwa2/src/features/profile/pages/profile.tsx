@@ -62,7 +62,6 @@ export default function ProfilePage() {
                      (typeof user?.userType === 'string' && user?.userType.toLowerCase() === 'artist')
     if (isArtist) {
       const handleNewPost = () => {
-        console.log('🔄 Nueva publicación detectada, refrescando perfil...')
         // Pequeño delay para asegurar que el backend haya procesado el post
         setTimeout(() => {
           resetPosts()
@@ -91,7 +90,6 @@ export default function ProfilePage() {
           const now = Date.now()
           // Si el post se creó en los últimos 30 segundos, refrescar
           if (now - timestamp < 30000) {
-            console.log('🔄 Post reciente detectado, refrescando perfil...')
             handleNewPost()
             localStorage.removeItem('newPostCreated')
           }
@@ -121,11 +119,6 @@ export default function ProfilePage() {
         // Actualizar el contexto con todos los datos del perfil actualizado
         if (updateUser) {
           const userType = updatedProfile.userType === 'admin' ? 'user' : (updatedProfile.userType as 'user' | 'artist' | undefined)
-          console.log('🔄 Actualizando contexto con perfil:', {
-            fullName: updatedProfile.fullName,
-            username: updatedProfile.username,
-            country: updatedProfile.country
-          })
           updateUser({
             id: updatedProfile.id,
             username: updatedProfile.username,
@@ -136,7 +129,6 @@ export default function ProfilePage() {
             city: updatedProfile.city,
             userType: userType
           })
-          console.log('✅ Contexto actualizado, usuario ahora tiene fullName:', updatedProfile.fullName)
         }
       } catch (error) {
         console.error('Error al recargar perfil:', error)
@@ -145,7 +137,6 @@ export default function ProfilePage() {
 
     // Escuchar cuando se regresa de editar perfil
     const handleProfileUpdated = () => {
-      console.log('📢 Evento profileUpdated recibido, recargando perfil...')
       loadProfileFromServer()
     }
 
@@ -157,7 +148,6 @@ export default function ProfilePage() {
       if (typeof window !== 'undefined') {
         const profileUpdated = sessionStorage.getItem('profileUpdated')
         if (profileUpdated === 'true') {
-          console.log('📢 sessionStorage indica perfil actualizado, recargando...')
           loadProfileFromServer()
           sessionStorage.removeItem('profileUpdated')
         }
@@ -186,16 +176,6 @@ export default function ProfilePage() {
     }
   }, [router.asPath, user?.id, user?.userType, resetPosts])
 
-  // Log para depuración: ver qué tiene user en el render
-  useEffect(() => {
-    if (user) {
-      console.log('👤 Usuario actual en render:', {
-        fullName: user.fullName,
-        username: user.username,
-        hasFullName: !!user.fullName
-      })
-    }
-  }, [user])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

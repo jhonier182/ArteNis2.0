@@ -67,7 +67,6 @@ export function useFollowing(): UseFollowingReturn {
         setError(null)
       }
 
-      console.log('🔄 Cargando usuarios seguidos...')
       const response = await apiClient.get('/api/follow/following')
       const following = response.data.data.followingUsers || []
       
@@ -80,11 +79,9 @@ export function useFollowing(): UseFollowingReturn {
         setIsLoading(false)
       }
 
-      console.log(`✅ Usuarios seguidos cargados: ${following.length}`)
       return following
 
     } catch (err: any) {
-      console.error('❌ Error cargando usuarios seguidos:', err)
       if (mountedRef.current) {
         setError(err.message || 'Error al cargar usuarios seguidos')
         setIsLoading(false)
@@ -125,5 +122,4 @@ export function useFollowing(): UseFollowingReturn {
 export const clearFollowingCache = () => {
   globalFollowingCache = null
   globalCacheTimestamp = 0
-  console.log('🧹 Caché de usuarios seguidos limpiado')
 }

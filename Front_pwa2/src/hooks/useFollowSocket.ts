@@ -32,7 +32,6 @@ export function useFollowSocket() {
     if (!isAuthenticated || !user?.id) {
       // Si ya hay una conexión, desconectarla
       if (socketRef.current?.connected) {
-        console.log('🔌 Desconectando socket: Usuario no autenticado')
         socketRef.current.disconnect()
         socketRef.current = null
         isConnectedRef.current = false
@@ -43,7 +42,6 @@ export function useFollowSocket() {
 
     // IMPORTANTE: Si el userId cambió, desconectar el socket anterior primero
     if (currentUserIdRef.current && currentUserIdRef.current !== user.id) {
-      console.log(`🔄 Usuario cambió de ${currentUserIdRef.current} a ${user.id}, reconectando socket...`)
       if (socketRef.current?.connected) {
         socketRef.current.disconnect()
         socketRef.current = null
@@ -54,7 +52,6 @@ export function useFollowSocket() {
 
     // Evitar múltiples conexiones para el mismo usuario
     if (isConnectedRef.current && socketRef.current?.connected && currentUserIdRef.current === user.id) {
-      console.log('🔌 Socket ya conectado para este usuario')
       return
     }
 
@@ -80,7 +77,6 @@ export function useFollowSocket() {
     }
 
     const backendUrl = getBackendUrl()
-    console.log(`🔌 Conectando Socket.io a: ${backendUrl}`)
 
     // Crear conexión Socket.io
     const socket = io(backendUrl, {
@@ -98,26 +94,22 @@ export function useFollowSocket() {
 
     // Evento: Conexión exitosa
     socket.on('connect', () => {
-      console.log(`✅ Socket.io conectado: ${socket.id} para usuario: ${user.id}`)
       isConnectedRef.current = true
       currentUserIdRef.current = user.id
     })
 
     // Evento: Desconexión
-    socket.on('disconnect', (reason: string) => {
-      console.log('🔌 Socket.io desconectado:', reason)
+    socket.on('disconnect', () => {
       isConnectedRef.current = false
     })
 
     // Evento: Error de conexión
-    socket.on('connect_error', (error: Error) => {
-      console.error('❌ Error conectando Socket.io:', error.message)
+    socket.on('connect_error', () => {
       isConnectedRef.current = false
     })
 
     // Evento: Reconexión exitosa
-    socket.on('reconnect', (attemptNumber: number) => {
-      console.log(`🔄 Socket.io reconectado después de ${attemptNumber} intentos`)
+    socket.on('reconnect', () => {
       isConnectedRef.current = true
     })
 
@@ -130,21 +122,16 @@ export function useFollowSocket() {
     }) => {
       // CRÍTICO: Validar que el evento es para el usuario actual
       if (currentUserIdRef.current !== user.id) {
-        console.warn(`⚠️ Evento FOLLOW_UPDATED ignorado: usuario del socket (${currentUserIdRef.current}) no coincide con usuario actual (${user.id})`)
         return
       }
-
-      console.log('📡 Evento FOLLOW_UPDATED recibido:', data)
 
       // Actualizar el estado global según la acción
       if (data.isFollowing) {
         // Usuario seguido - agregar al Context
         addFollowing(data.targetUserId)
-        console.log(`✅ Sincronizado: Siguiendo a ${data.targetUserId}`)
       } else {
         // Usuario dejado de seguir - remover del Context
         removeFollowing(data.targetUserId)
-        console.log(`✅ Sincronizado: Dejado de seguir a ${data.targetUserId}`)
       }
 
       // Opcional: Refrescar la lista completa desde el servidor para asegurar consistencia
@@ -157,7 +144,6 @@ export function useFollowSocket() {
     // Cleanup al desmontar o cuando cambia el usuario
     return () => {
       if (socketRef.current?.connected) {
-        console.log('🔌 Desconectando socket: Cleanup')
         socketRef.current.disconnect()
         socketRef.current = null
         isConnectedRef.current = false

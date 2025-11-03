@@ -75,17 +75,14 @@ export const saveAuthData = async (authData: AuthData): Promise<void> => {
         request.onerror = () => reject(request.error);
       });
       
-      console.log('Datos de autenticación guardados en IndexedDB');
+      return
     } catch (error) {
-      console.log('Error guardando en IndexedDB:', error);
+      return
     }
-    
-    console.log('Datos de autenticación guardados en todos los métodos disponibles');
     
     // Limpiar cache para forzar nueva verificación
     clearLoginCache();
   } catch (error) {
-    console.error('Error guardando datos de autenticación:', error);
     throw error;
   }
 };
@@ -127,17 +124,14 @@ export const clearAuthData = async (): Promise<void> => {
         request.onerror = () => reject(request.error);
       });
       
-      console.log('Datos de autenticación eliminados de IndexedDB');
+      return
     } catch (error) {
-      console.log('Error eliminando de IndexedDB:', error);
+      return
     }
-    
-    console.log('Datos de autenticación eliminados de todos los métodos');
     
     // Limpiar cache para forzar nueva verificación
     clearLoginCache();
   } catch (error) {
-    console.error('Error eliminando datos de autenticación:', error);
     throw error;
   }
 };
@@ -168,7 +162,7 @@ export const forceClearAllAuthData = async (): Promise<void> => {
         });
       }
     } catch (error) {
-      console.log('Error eliminando IndexedDB:', error);
+      return
     }
     
     // Limpiar caché del navegador si es posible
@@ -179,16 +173,16 @@ export const forceClearAllAuthData = async (): Promise<void> => {
           cacheNames.map(cacheName => caches.delete(cacheName))
         );
       } catch (error) {
-        console.log('Error limpiando caché:', error);
+          return
       }
     }
     
-    console.log('Limpieza completa de datos de autenticación realizada');
+    return
     
     // Limpiar cache para forzar nueva verificación
     clearLoginCache();
   } catch (error) {
-    console.error('Error en limpieza completa:', error);
+      return
     throw error;
   }
 };
@@ -219,11 +213,10 @@ export const checkUserLoggedIn = async (): Promise<boolean> => {
         const parsedUser = JSON.parse(userData);
         if (parsedUser && token !== 'null' && token !== 'undefined') {
           loginCheckCache = { result: true, timestamp: Date.now() };
-          console.log('Usuario logueado detectado (localStorage)');
           return true;
         }
       } catch (error) {
-        console.log('Error parsing localStorage user data:', error);
+          return false;
       }
     }
     
@@ -236,11 +229,10 @@ export const checkUserLoggedIn = async (): Promise<boolean> => {
         const parsedUser = JSON.parse(sessionUserData);
         if (parsedUser && sessionToken !== 'null' && sessionToken !== 'undefined') {
           loginCheckCache = { result: true, timestamp: Date.now() };
-          console.log('Usuario logueado detectado (sessionStorage)');
           return true;
         }
       } catch (error) {
-        console.log('Error parsing sessionStorage user data:', error);
+        
       }
     }
     
@@ -265,7 +257,6 @@ export const checkUserLoggedIn = async (): Promise<boolean> => {
           
           // Verificar si el object store existe antes de hacer la transacción
           if (!db.objectStoreNames.contains('userData')) {
-            console.log('Object store no existe, saltando IndexedDB');
             resolve();
             return;
           }
@@ -294,22 +285,20 @@ export const checkUserLoggedIn = async (): Promise<boolean> => {
           const parsedUser = typeof indexedDBUser === 'string' ? JSON.parse(indexedDBUser) : indexedDBUser;
           if (parsedUser && indexedDBToken !== 'null' && indexedDBToken !== 'undefined') {
             loginCheckCache = { result: true, timestamp: Date.now() };
-            console.log('Usuario logueado detectado (IndexedDB)');
             return true;
           }
         } catch (error) {
-          console.log('Error parsing IndexedDB user data:', error);
+            return false
         }
       }
     } catch (error) {
-      console.log('IndexedDB no disponible:', error);
+    
     }
     
     // Cache el resultado negativo también
     loginCheckCache = { result: false, timestamp: Date.now() };
     return false;
   } catch (error) {
-    console.log('Error checking user login:', error);
     loginCheckCache = { result: false, timestamp: Date.now() };
     return false;
   }

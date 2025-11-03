@@ -62,7 +62,7 @@ export default function CollectionsPage() {
     try {
       setLoading(true)
       const response = await apiClient.get('/api/boards/me/boards')
-      console.log('Publicaciones guardadas:', response.data)
+     
       
       // Extraer todas las publicaciones de todos los boards
       let allPosts = response.data?.data?.boards?.flatMap((board: any) => board.Posts || []) || []
@@ -81,9 +81,8 @@ export default function CollectionsPage() {
               }
             }
           } catch (error) {
-            console.log(`No se pudo cargar likes para post ${post.id}:`, error)
+              return
           }
-          return post
         })
         
         allPosts = await Promise.all(likesPromises)
@@ -92,7 +91,6 @@ export default function CollectionsPage() {
       setSavedPosts(allPosts)
       setFilteredPosts(allPosts)
     } catch (error) {
-      console.error('Error al cargar publicaciones guardadas:', error)
       setSavedPosts([])
       setFilteredPosts([])
     } finally {
@@ -103,12 +101,10 @@ export default function CollectionsPage() {
   const handleRemoveFromCollection = async (postId: string) => {
     try {
       // Aquí implementarías la lógica para remover de la colección
-      console.log('Remover post:', postId)
       // Por ahora solo actualizamos el estado local
       setSavedPosts(prev => prev.filter(post => post.id !== postId))
       setFilteredPosts(prev => prev.filter(post => post.id !== postId))
     } catch (error) {
-      console.error('Error al remover de colección:', error)
     }
   }
 
@@ -118,7 +114,6 @@ export default function CollectionsPage() {
       const updatedSavedPosts = savedPosts.map((post: any) => {
         if (post.id === postId) {
           const isCurrentlyLiked = post.isLiked || false
-          console.log(`🔄 Toggle like para post ${postId}: ${isCurrentlyLiked} -> ${!isCurrentlyLiked}`)
           return {
             ...post,
             isLiked: !isCurrentlyLiked,
@@ -136,7 +131,6 @@ export default function CollectionsPage() {
       // Actualizar con la respuesta real del servidor
       if (response.data.success) {
         const { isLiked, likesCount } = response.data.data
-        console.log(`✅ Respuesta del servidor para post ${postId}: isLiked=${isLiked}, likesCount=${likesCount}`)
         const finalPosts = updatedSavedPosts.map((post: any) => {
           if (post.id === postId) {
             return {
@@ -150,8 +144,7 @@ export default function CollectionsPage() {
         setSavedPosts(finalPosts)
         setFilteredPosts(finalPosts)
       }
-    } catch (error) {
-      console.error('Error al dar like:', error)
+    } catch (error) { 
       
       // Revertir cambios en caso de error
       const revertedPosts = savedPosts.map((post: any) => {

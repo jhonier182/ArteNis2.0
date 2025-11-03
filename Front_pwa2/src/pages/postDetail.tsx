@@ -122,18 +122,11 @@ export default function PostDetailPage() {
       setIsLoading(true)
       setError(null)
       
-      console.log('📥 Cargando post con ID:', id)
+      
       const postData = await postService.getPostById(id)
-      console.log('✅ Post cargado:', postData)
       setPost(postData)
     } catch (err: unknown) {
       const error = err as { message?: string; response?: { data?: { message?: string }; status?: number } }
-      console.error('❌ Error cargando post:', err)
-      console.error('❌ Detalles del error:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      })
       setError(error.response?.data?.message || error.message || 'Error al cargar el post')
     } finally {
       setIsLoading(false)
@@ -154,7 +147,7 @@ export default function PostDetailPage() {
     if (!newComment.trim()) return
     setIsCommenting(true)
     setTimeout(() => {
-      setComments(c => [
+      setComments(c => [  
         ...c,
         {
           id: String(Date.now()),

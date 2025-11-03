@@ -235,8 +235,6 @@ class PostController {
       const limit = parseInt(req.query.limit) || 15;
       const page = parseInt(req.query.page) || 1;
       
-      console.log(`[PostController.getUserPosts] userId: ${userId}, page: ${page}, limit: ${limit}, requesterId: ${req.user?.id || null}`);
-      
       const options = {
         page,
         limit,

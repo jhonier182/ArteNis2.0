@@ -266,7 +266,7 @@ export function clearLikesCache() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('liked_posts_cache')
     localStorage.removeItem('liked_posts_cache_timestamp')
-    console.log('🧹 Caché de likes limpiado')
+    
   }
 }
 

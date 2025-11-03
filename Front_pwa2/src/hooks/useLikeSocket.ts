@@ -32,7 +32,6 @@ export function useLikeSocket() {
     if (!isAuthenticated || !user?.id) {
       // Si ya hay una conexión, desconectarla
       if (socketRef.current?.connected) {
-        console.log('🔌 Desconectando socket de likes: Usuario no autenticado')
         socketRef.current.disconnect()
         socketRef.current = null
         isConnectedRef.current = false
@@ -43,7 +42,6 @@ export function useLikeSocket() {
 
     // IMPORTANTE: Si el userId cambió, desconectar el socket anterior primero
     if (currentUserIdRef.current && currentUserIdRef.current !== user.id) {
-      console.log(`🔄 Usuario cambió de ${currentUserIdRef.current} a ${user.id}, reconectando socket de likes...`)
       if (socketRef.current?.connected) {
         socketRef.current.disconnect()
         socketRef.current = null
@@ -56,7 +54,6 @@ export function useLikeSocket() {
     // Reutilizar el socket existente si ya está conectado para follows
     // (compartimos la misma conexión Socket.io)
     if (isConnectedRef.current && socketRef.current?.connected && currentUserIdRef.current === user.id) {
-      console.log('🔌 Socket de likes ya conectado para este usuario')
       return
     }
 
@@ -82,7 +79,6 @@ export function useLikeSocket() {
     }
 
     const backendUrl = getBackendUrl()
-    console.log(`🔌 Conectando Socket.io para likes a: ${backendUrl}`)
 
     // Crear conexión Socket.io (o reutilizar si ya existe)
     // NOTA: Podríamos reutilizar el socket de useFollowSocket, pero por ahora creamos uno nuevo
@@ -102,26 +98,22 @@ export function useLikeSocket() {
 
     // Evento: Conexión exitosa
     socket.on('connect', () => {
-      console.log(`✅ Socket.io conectado para likes: ${socket.id} para usuario: ${user.id}`)
       isConnectedRef.current = true
       currentUserIdRef.current = user.id
     })
 
     // Evento: Desconexión
-    socket.on('disconnect', (reason: string) => {
-      console.log('🔌 Socket.io de likes desconectado:', reason)
+    socket.on('disconnect', () => {
       isConnectedRef.current = false
     })
 
     // Evento: Error de conexión
-    socket.on('connect_error', (error: Error) => {
-      console.error('❌ Error conectando Socket.io de likes:', error.message)
+    socket.on('connect_error', () => {
       isConnectedRef.current = false
     })
 
     // Evento: Reconexión exitosa
-    socket.on('reconnect', (attemptNumber: number) => {
-      console.log(`🔄 Socket.io de likes reconectado después de ${attemptNumber} intentos`)
+    socket.on('reconnect', () => {
       isConnectedRef.current = true
     })
 
@@ -133,8 +125,6 @@ export function useLikeSocket() {
       action: 'like' | 'unlike'
       timestamp: string
     }) => {
-      console.log('📡 Evento LIKE_UPDATED recibido:', data)
-
       // IMPORTANTE: Actualizar el estado siempre, sin importar quién hizo el like
       // Esto permite que el contador de likes se actualice en tiempo real para todos
       // los usuarios que están viendo el post, no solo para quien hizo el like
@@ -153,14 +143,11 @@ export function useLikeSocket() {
         // Si no hay estado previo, usar los datos del evento
         updateLikeInfo(data.postId, data.isLiked, data.likesCount)
       }
-      
-      console.log(`✅ Sincronizado: Post ${data.postId} - Likes: ${data.likesCount}`)
     })
 
     // Cleanup al desmontar o cuando cambia el usuario
     return () => {
       if (socketRef.current?.connected) {
-        console.log('🔌 Desconectando socket de likes: Cleanup')
         socketRef.current.disconnect()
         socketRef.current = null
         isConnectedRef.current = false

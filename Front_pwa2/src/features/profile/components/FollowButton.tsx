@@ -26,32 +26,7 @@ interface FollowButtonProps {
   showText?: boolean
 }
 
-/**
- * Componente de botón "Seguir / Dejar de seguir" totalmente sincronizado globalmente
- * 
- * Características:
- * - Estado sincronizado en toda la aplicación (Context API)
- * - Actualizaciones optimistas (UI inmediata)
- * - Animaciones suaves con framer-motion
- * - Estados de carga con spinner
- * - Manejo de errores con feedback visual
- * - Estilos tipo Instagram/X
- * - Persistencia entre navegaciones
- * 
- * El estado se mantiene sincronizado automáticamente:
- * - Si sigues a un usuario en el feed, aparece como "Siguiendo" en su perfil
- * - Si dejas de seguir en el perfil, desaparece de la lista de seguidos
- * - El estado persiste al navegar entre páginas
- * 
- * @example
- * ```tsx
- * <FollowButton
- *   targetUserId="user-123"
- *   userData={{ username: 'johndoe', fullName: 'John Doe' }}
- *   onFollowChange={(isFollowing) => console.log(isFollowing)}
- * />
- * ```
- */
+
 export function FollowButton({
   targetUserId,
   userData,
@@ -115,12 +90,12 @@ export function FollowButton({
       if (isFollowing) {
         // ACTUALIZACIÓN OPTIMISTA: Remover del Context inmediatamente
         removeFollowing(targetUserId)
-        console.log('🔄 Actualización optimista: Removiendo de lista de seguidos')
+      
 
         // Acción: Dejar de seguir
         // Endpoint: DELETE /api/follow/:userId
         await client.delete(`/follow/${targetUserId}`)
-        console.log('✅ Usuario dejado de seguir exitosamente')
+          
         
         // El estado ya fue actualizado optimistamente, solo notificar
         onFollowChange?.(false)
@@ -138,25 +113,24 @@ export function FollowButton({
           // Si no tenemos datos completos, solo agregar el ID
           addFollowing(targetUserId)
         }
-        console.log('🔄 Actualización optimista: Agregando a lista de seguidos')
 
         // Acción: Seguir usuario
         // Endpoint: POST /api/follow con body: { userId: targetUserId }
         await client.post('/follow', { userId: targetUserId })
-        console.log('✅ Usuario seguido exitosamente')
+        
         
         // El estado ya fue actualizado optimistamente, solo notificar
         onFollowChange?.(true)
       }
     } catch (err: unknown) {
-      console.error('❌ Error al cambiar estado de seguimiento:', err)
+    
       
       const error = err as { response?: { status?: number; data?: { message?: string } }; code?: string }
       
       // CASO ESPECIAL: 409 Conflict - Usuario ya seguido
       // No es un error fatal, solo sincronizamos el estado
       if (error.response?.status === 409) {
-        console.log('🔄 409 Conflict: Usuario ya seguido, sincronizando estado...')
+
         
         // Asegurar que esté en el Context como "Siguiendo"
         if (!previousState) {
@@ -175,20 +149,20 @@ export function FollowButton({
         
         onFollowChange?.(true)
         setIsLoading(false)
-        return
+       
       }
       
       // CASO ESPECIAL: 404 Not Found - Al intentar dejar de seguir significa que no lo estás siguiendo
       // Simplemente establecer el estado a "no seguido" (false)
       if (error.response?.status === 404 && previousState) {
-        console.log('🔄 404: No se está siguiendo a este usuario, estableciendo estado a false')
+       
         
         // Asegurar que NO esté en el Context
         removeFollowing(targetUserId)
         
         onFollowChange?.(false)
         setIsLoading(false)
-        return
+        
       }
       
       // REVERTIR: Deshacer actualización optimista en caso de otros errores

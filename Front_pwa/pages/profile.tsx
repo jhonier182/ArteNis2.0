@@ -94,7 +94,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user?.userType === 'artist') {
       const handleNewPost = () => {
-        console.log('🔄 Nueva publicación detectada, refrescando perfil...')
         resetPosts()
       }
 
@@ -124,12 +123,10 @@ export default function ProfilePage() {
     try {
       setLoadingSavedPosts(true)
       const response = await apiClient.get('/api/boards/me/boards')
-      console.log('Publicaciones guardadas:', response.data)
       // Extraer todas las publicaciones de todos los boards
       const allPosts = response.data?.data?.boards?.flatMap((board: any) => board.Posts || []) || []
       setSavedPosts(allPosts)
     } catch (error) {
-      console.error('Error al cargar publicaciones guardadas:', error)
       setSavedPosts([])
     } finally {
       setLoadingSavedPosts(false)
@@ -174,8 +171,7 @@ export default function ProfilePage() {
       if (newAvatarUrl && setUser && user?.id) {
         setUser({ ...user, avatar: newAvatarUrl })
       }
-    } catch (error: any) {
-      console.error('Error al subir avatar:', error)
+    } catch (error: any) {  
       alert(error.response?.data?.message || 'Error al subir la imagen')
     } finally {
       setIsUploadingAvatar(false)

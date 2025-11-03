@@ -11,7 +11,7 @@ interface User {
   email: string
   avatar?: string
   bio?: string
-  userType?: 'user' | 'artist'
+  userType?: 'user' | 'artist' | 'admin'
   fullName?: string
   city?: string
 }
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // CRÍTICO: Si no hay token, limpiar todo inmediatamente
         if (!token) {
-          console.log('🔐 No hay token, limpiando sesión')
+
           storage.remove('user')
           storage.remove('authToken')
           if (typeof window !== 'undefined') {
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(validatedUser)
           storage.set('user', validatedUser)
           
-          console.log(`✅ Sesión validada - Usuario: ${validatedUser.username} (${validatedUser.id})`)
+            
           
         } catch (error) {
           // Manejar errores de forma inteligente
@@ -179,18 +179,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const isAuthError = status === 401 || status === 403
           const isNetworkError = !axiosError.response || axiosError.code === 'ERR_NETWORK' || axiosError.code === 'ECONNREFUSED' || axiosError.code === 'ETIMEDOUT'
           
-          console.log(`🔍 Error durante validación de sesión:`, {
-            status,
-            code: axiosError.code,
-            message: axiosError.message,
-            isAuthError,
-            isNetworkError,
-            hasSavedUser: !!savedUser
-          })
-          
+       
           if (isAuthError) {
             // SOLO limpiar si es error de autenticación real
-            console.error(`❌ Error de autenticación (${status}), limpiando sesión`)
+            return
             storage.remove('user')
             storage.remove('authToken')
             if (typeof window !== 'undefined') {
@@ -220,30 +212,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   if (decoded?.id && decoded.id === savedUser.id) {
                     // El usuario guardado coincide con el token → Usar como fallback
                     setUser(savedUser)
-                    console.log(`✅ Usando usuario guardado como fallback: ${savedUser.username} (${savedUser.id})`)
+                    return
                   } else {
-                    // Inconsistencia: pero NO limpiar el token, solo no mostrar usuario
-                    console.error('❌ Usuario guardado no coincide con token (no crítico)')
+                    
                     setUser(null)
                   }
                 } else {
-                  // Token malformado pero existe → Usar usuario guardado
+                  // Token malformado pero existe →  Usar usuario guardado
                   setUser(savedUser)
                 }
               } catch (decodeError) {
-                // Si no se puede decodificar, usar el usuario guardado de forma condicional
-                console.warn('⚠️ No se pudo validar token, usando usuario guardado condicionalmente')
                 setUser(savedUser)
               }
             } else {
               // No hay usuario guardado, pero no limpiar token por error de red
-              console.warn('⚠️ Error de red y no hay usuario guardado, manteniendo token')
+              
               setUser(null)
             }
           } else {
-            // Otro tipo de error (500, 404, etc.): NO limpiar token, solo no mostrar usuario
-            console.warn(`⚠️ Error inesperado validando sesión (${status || 'unknown'}):`, axiosError.message)
-            console.warn('⚠️ NO se limpia el token por este tipo de error, solo no se muestra usuario')
+                 
             // Mantener el token en localStorage, no limpiarlo
             if (savedUser) {
               setUser(savedUser)
@@ -253,8 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (error) {
-        // Error crítico fuera del try/catch de validación
-        console.error('❌ Error crítico en checkAuthStatus:', error)
+       
         
         // Solo limpiar si realmente no hay token guardado
         const token = typeof window !== 'undefined' 
@@ -277,10 +263,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Hay token → Intentar usar usuario guardado como fallback
           const savedUser = storage.get<User>('user')
           if (savedUser) {
-            console.warn('⚠️ Error crítico pero hay token, usando usuario guardado como fallback')
+          
             setUser(savedUser)
           } else {
-            console.warn('⚠️ Error crítico pero hay token, no se limpia para evitar pérdida de sesión')
+          
             setUser(null)
           }
         }
@@ -297,7 +283,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // CRÍTICO: Limpiar sesión anterior antes de iniciar nueva sesión
       // Esto previene mezclar datos de usuarios diferentes
-      console.log('🔐 Iniciando login, limpiando sesión anterior...')
+       
       storage.remove('user')
       storage.remove('authToken')
       storage.remove('refreshToken')
@@ -359,7 +345,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn('⚠️ No se pudo validar token (continuando):', jwtError)
       }
 
-      console.log(`✅ Login exitoso - Usuario: ${userData.username} (${userData.id})`)
+    
 
       // Guardar token ANTES de configurar en apiClient
       if (typeof window !== 'undefined') {
@@ -370,10 +356,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Verificar que se guardó correctamente
         const savedToken = localStorage.getItem('authToken')
         if (savedToken !== token) {
-          console.error('❌ ERROR: El token no se guardó correctamente en localStorage')
           throw new Error('Error al guardar token en localStorage')
         }
-        console.log('✅ Token guardado en localStorage correctamente')
+        
       }
       
       // Configurar token en apiClient
@@ -400,7 +385,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Actualizar estado del usuario (último paso)
       setUser(userToSave)
       
-      console.log(`✅ Sesión iniciada y guardada correctamente - Token: ${token.substring(0, 20)}...`)
+      
     } catch (error) {
       // Si hay error, asegurar que todo está limpio
       storage.remove('user')
@@ -422,7 +407,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<void> => {
     try {
       // CRÍTICO: Limpiar sesión anterior antes de registrar nueva cuenta
-      console.log('🔐 Registrando nueva cuenta, limpiando sesión anterior...')
+    
       storage.remove('user')
       storage.remove('authToken')
       storage.remove('refreshToken')
@@ -486,7 +471,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       storage.set('user', userToSave)
       setUser(userToSave)
       
-      console.log(`✅ Registro exitoso - Usuario: ${userToSave.username} (${userToSave.id})`)
+     
     } catch (error) {
       storage.remove('user')
       storage.remove('authToken')
@@ -501,7 +486,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = (): void => {
-    console.log('🔐 Cerrando sesión, limpiando todo...')
+  
     
     // Limpiar storage
     storage.remove('user')
@@ -524,7 +509,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Limpiar estado
     setUser(null)
     
-    console.log('✅ Sesión cerrada completamente')
+   
   }
 
   const updateUser = (userData: Partial<User>): void => {

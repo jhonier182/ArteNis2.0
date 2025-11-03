@@ -134,7 +134,6 @@ export function useInfiniteScroll<T>(
   // Cargar datos iniciales (OPTIMIZADO)
   useEffect(() => {
     if (enabled && isInitialLoad && !loading && !isLoadingRef.current) {
-      console.log('🔄 Cargando datos iniciales...')
       loadMore()
     }
   }, [enabled, isInitialLoad, loading]) // Removido loadMore de las dependencias

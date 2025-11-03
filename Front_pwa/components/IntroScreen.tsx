@@ -44,7 +44,7 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
           return
         }
 
-        console.log('Usuario no logueado, iniciando video de introducción')
+        
         // Si no está logueado, proceder con el video de introducción
         const video = videoRef.current
         if (video && isMounted) {

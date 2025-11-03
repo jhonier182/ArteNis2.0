@@ -87,16 +87,14 @@ class ApiClient {
             // Log para debugging: verificar si el token cambió a otro usuario
             const oldToken = getStorageItem('token');
             const oldUserProfile = getStorageItem('userProfile');
-            console.log('🔄 Refrescando token...');
+        
             
             if (oldToken && oldToken !== newToken) {
-              console.log('⚠️ Token refrescado (nuevo token obtenido)');
               if (oldUserProfile) {
                 try {
                   const oldUser = JSON.parse(oldUserProfile);
-                  console.log('👤 Usuario guardado antes del refresh:', oldUser.id);
                 } catch (e) {
-                  console.log('Error parseando usuario guardado:', e);
+                  return
                 }
               }
             }
@@ -132,10 +130,9 @@ class ApiClient {
                     };
                   }
                 } catch (indexedDBError) {
-                  console.log('Error actualizando IndexedDB en refresh:', indexedDBError);
+                  return
                 }
               }
-              console.log('✅ Usuario sincronizado después del refresh:', newUser.id);
             }
 
             setStorageItem('token', newToken);
@@ -200,8 +197,7 @@ class ApiClient {
          (error.response?.status >= 500 && error.response?.status < 600));
 
       if (shouldRetry) {
-        console.log(`Reintentando petición (${retryCount + 1}/${this.maxRetries})...`);
-        
+          
         // Esperar con delay exponencial
         const delay = this.retryDelay * Math.pow(2, retryCount);
         await new Promise(resolve => setTimeout(resolve, delay));

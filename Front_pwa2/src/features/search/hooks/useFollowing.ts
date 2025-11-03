@@ -133,6 +133,6 @@ export function useFollowing(): UseFollowingResult {
 export const clearFollowingCache = () => {
   globalFollowingCache = null
   globalCacheTimestamp = 0
-  console.log('🧹 Caché de usuarios seguidos limpiado')
+
 }
 

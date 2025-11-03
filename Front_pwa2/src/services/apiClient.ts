@@ -33,7 +33,6 @@ class ApiClient {
           // Si el puerto es diferente y parece ser el frontend, usar el mismo hostname para el backend
           if (port !== backendPort && port !== '443' && port !== '80') {
             baseURL = `${protocol}//${hostname}:${backendPort}`
-            console.log('📱 Detectado dispositivo móvil/remoto, usando:', baseURL)
           }
         }
       }
@@ -48,8 +47,6 @@ class ApiClient {
       baseURL = baseURL.replace(/\/$/, '') + '/api'
     }
 
-    console.log('🔧 ApiClient baseURL configurado:', baseURL) // Debug
-
     this.client = axios.create({
       baseURL,
       timeout: 30000,
@@ -62,13 +59,9 @@ class ApiClient {
   }
 
   private setupInterceptors(): void {
-    // Interceptor de request: añade token de autenticación y loguea la URL
+    // Interceptor de request: añade token de autenticación
     this.client.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
-        // Loggear la URL completa para debug
-        const fullUrl = (config.baseURL || '') + (config.url || '')
-        console.log('📡 Request URL completa:', fullUrl)
-        
         // Añadir token de autenticación
         const token = this.getAuthToken()
         
@@ -78,19 +71,13 @@ class ApiClient {
           '/posts/', // Ver feed público (opcional)
         ]
         
+        const fullUrl = (config.baseURL || '') + (config.url || '')
         const isPublicEndpoint = publicEndpoints.some(endpoint => fullUrl.includes(endpoint))
         
         if (token && config.headers) {
           // Limpiar el token de espacios y caracteres inválidos
           const cleanToken = token.trim()
           config.headers.Authorization = `Bearer ${cleanToken}`
-          console.log('🔑 Token añadido al header:', cleanToken.substring(0, 20) + '...')
-        } else if (!isPublicEndpoint) {
-          // Solo mostrar warning si NO es un endpoint público
-          console.warn('⚠️ No hay token disponible para la petición:', fullUrl)
-        } else {
-          // Endpoint público - no mostrar warning
-          console.log('🌐 Petición pública (sin token requerido):', fullUrl)
         }
         return config
       },
@@ -104,18 +91,7 @@ class ApiClient {
       (response: AxiosResponse) => response,
       async (error: AxiosError<{ message?: string }>) => {
         
-        if (error.response?.status === 401) {
-          const url = error.response.config?.url
-          const message = error.response.data?.message || 'Sin mensaje'
-          const authHeader = error.response.config?.headers?.Authorization
-          const authHeaderStr = typeof authHeader === 'string' ? authHeader : ''
-          console.error('❌ Error 401:', {
-            url,
-            message,
-            hasToken: !!authHeader,
-            tokenPreview: authHeaderStr.substring(0, 30) || 'Sin token'
-          })
-        }
+        // Manejar errores 401 si es necesario en el futuro
         
         return Promise.reject(error)
       }
@@ -133,7 +109,6 @@ class ApiClient {
     // Remover comillas dobles si el token fue guardado como JSON por error
     if (cleanToken.startsWith('"') && cleanToken.endsWith('"')) {
       cleanToken = cleanToken.slice(1, -1)
-      console.warn('⚠️ Token tenía comillas, removidas:', cleanToken.substring(0, 20) + '...')
       // Guardar el token limpio de nuevo
       localStorage.setItem('authToken', cleanToken)
     }
@@ -143,7 +118,6 @@ class ApiClient {
       return cleanToken
     }
     
-    console.error('Token almacenado no tiene formato válido:', cleanToken.substring(0, 50))
     return null
   }
 

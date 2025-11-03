@@ -51,16 +51,10 @@ export default function FollowButton({
       setIsLoading(true)
       
       if (isFollowing) {
-        // Dejar de seguir
-        console.log(`🔄 FollowButton: Intentando dejar de seguir usuario ${userId}`)
         await apiClient.delete(`/api/follow/${userId}`)
-        console.log(`✅ FollowButton: Usuario dejado de seguir exitosamente`)
         setIsFollowing(false)
       } else {
-        // Seguir
-        console.log(`🔄 FollowButton: Intentando seguir usuario ${userId}`)
         await apiClient.post('/api/follow', { userId })
-        console.log(`✅ FollowButton: Usuario seguido exitosamente`)
         setIsFollowing(true)
       }
       
@@ -73,23 +67,20 @@ export default function FollowButton({
       }
       
     } catch (error: any) {
-      console.error('❌ FollowButton: Error al cambiar seguimiento:', error)
+        
       
       // Revertir el estado en caso de error
       setIsFollowing(!isFollowing)
       
       // Mostrar mensaje de error específico
       if (error.code === 'ERR_NETWORK' || error.code === 'ERR_CONNECTION_REFUSED') {
-        console.error('❌ FollowButton: Error de conexión - el backend podría estar reiniciándose')
         // Podrías mostrar una notificación al usuario aquí
       } else if (error.response?.data?.message === 'No sigues a este usuario') {
-        console.error('❌ FollowButton: Desincronización detectada - actualizando estado')
         // Si el backend dice que no sigues al usuario, actualizar el estado local
         setIsFollowing(false)
         // Refrescar el estado global para sincronizar
         await refreshFollowing()
       } else {
-        console.error('❌ FollowButton: Error del servidor:', error.response?.data?.message)
       }
     } finally {
       setIsLoading(false)

@@ -91,28 +91,28 @@ export default function SettingsModal({
       icon: Lock,
       label: 'Privacidad',
       description: 'Controla tu privacidad',
-      onClick: () => console.log('Privacidad'),
+      onClick: () => {},
       color: 'text-green-500'
     },
     {
       icon: Shield,
       label: 'Seguridad',
       description: 'Cambiar contraseña',
-      onClick: () => console.log('Seguridad'),
+      onClick: () => {},
       color: 'text-yellow-500'
     },
     {
       icon: Globe,
       label: 'Idioma',
       description: 'Español (ES)',
-      onClick: () => console.log('Idioma'),
+      onClick: () => {},
       color: 'text-cyan-500'
     },
     {
       icon: HelpCircle,
       label: 'Ayuda y Soporte',
       description: 'Obtén ayuda',
-      onClick: () => console.log('Ayuda'),
+        onClick: () => {},
       color: 'text-gray-500'
     }
   ]

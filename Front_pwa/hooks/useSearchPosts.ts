@@ -82,7 +82,6 @@ export function useSearchPosts(): UseSearchPostsReturn {
         setError(null)
       }
 
-      console.log('🔄 Cargando posts de búsqueda...')
       // Usar endpoint unificado de búsqueda con tipo posts
       // Cuando type está especificado, el query puede estar vacío para obtener todos
       const response = await apiClient.get('/api/search?type=posts&limit=50')
@@ -103,11 +102,9 @@ export function useSearchPosts(): UseSearchPostsReturn {
         setIsLoading(false)
       }
 
-      console.log(`✅ Posts de búsqueda cargados: ${normalizedPosts.length}`)
       return normalizedPosts
 
     } catch (err: any) {
-      console.error('❌ Error cargando posts de búsqueda:', err)
       if (mountedRef.current) {
         setError(err.message || 'Error al cargar publicaciones')
         setIsLoading(false)
@@ -173,11 +170,9 @@ export function useSearchPosts(): UseSearchPostsReturn {
       
       const finalPosts = finalFilteredPosts.slice(0, 20) // Limitar a 20 posts total
       
-      console.log(`✅ Posts filtrados: ${finalPosts.length} de ${allPosts.length} totales`)
       return finalPosts
       
     } catch (error) {
-      console.error('❌ Error filtrando posts:', error)
       return []
     }
   }, [loadSearchPosts])
@@ -208,5 +203,4 @@ export function useSearchPosts(): UseSearchPostsReturn {
 export const clearSearchPostsCache = () => {
   globalPostsCache = null
   globalCacheTimestamp = 0
-  console.log('🧹 Caché de posts de búsqueda limpiado')
 }

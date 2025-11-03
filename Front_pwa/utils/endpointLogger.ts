@@ -58,7 +58,7 @@ class EndpointLogger {
       statusColor = '🟡';
     }
 
-    console.log(`${statusColor} ${speedIndicator} ${method} ${endpoint} - ${responseTime}ms - ${statusCode}`);
+    return
   }
 
   // Mostrar estadísticas de endpoints
@@ -67,7 +67,6 @@ class EndpointLogger {
 
     const totalCalls = this.logs.length;
     if (totalCalls === 0) {
-      console.log('📊 No hay llamadas a endpoints registradas');
       return;
     }
 
@@ -77,34 +76,26 @@ class EndpointLogger {
       .slice(0, 5);
 
     console.group('📊 Estadísticas de Endpoints');
-    console.log(`Total de llamadas: ${totalCalls}`);
-    console.log(`Tiempo promedio: ${Math.round(averageTime)}ms`);
     
-    if (slowestEndpoints.length > 0) {
-      console.log('🐌 Endpoints más lentos:');
-      slowestEndpoints.forEach((log, index) => {
-        console.log(`${index + 1}. ${log.method} ${log.endpoint} - ${log.responseTime}ms`);
-      });
-    }
     
     console.groupEnd();
   }
 
   // Limpiar logs
   clearLogs() {
-    this.logs = [];
-    console.log('🗑️ Logs de endpoints limpiados');
+    this.logs = []; 
+    return
   }
 
   // Habilitar/deshabilitar logging
   enable() {
     this.isEnabled = true;
-    console.log('✅ Logger de endpoints habilitado');
+    return
   }
 
   disable() {
     this.isEnabled = false;
-    console.log('❌ Logger de endpoints deshabilitado');
+    return
   }
 }
 

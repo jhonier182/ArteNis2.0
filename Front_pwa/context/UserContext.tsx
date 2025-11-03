@@ -46,15 +46,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (savedUserProfile) {
         try {
           savedUser = JSON.parse(savedUserProfile);
-        } catch (e) {
-          console.log('Error parseando usuario guardado:', e);
+        } catch (e) { 
+
         }
       }
 
-      console.log('🔐 Cargando usuario con token:', token.substring(0, 20) + '...');
-      if (savedUser) {
-        console.log('👤 Usuario guardado localmente:', savedUser.username, savedUser.id);
-      }
+      
       
       const response = await apiClient.get('/api/profile/me');
       
@@ -68,10 +65,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (tokenParts.length === 3) {
               const decoded = JSON.parse(atob(tokenParts[1]));
               if (decoded.id !== userData.id) {
-                console.error('⚠️ CRÍTICO: El ID del token no coincide con el usuario del servidor!');
-                console.error('ID del token:', decoded.id);
-                console.error('ID del servidor:', userData.id);
-                
                 // Limpiar todo y forzar relogin
                 await forceClearAllAuthData();
                 setUser(null);
@@ -82,7 +75,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
         } catch (tokenError) {
-          console.error('Error validando token:', tokenError);
+          
           // Si hay error decodificando el token, limpiar y forzar relogin
           await forceClearAllAuthData();
           setUser(null);
@@ -93,10 +86,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // ✅ Validar que el usuario del servidor coincida con el guardado localmente
         if (savedUser && savedUser.id !== userData.id) {
-          console.error('⚠️ ALERTA: El usuario del servidor NO coincide con el guardado localmente!');
-          console.error('Usuario guardado:', savedUser.id, savedUser.username);
-          console.error('Usuario del servidor:', userData.id, userData.username);
-          
           // Limpiar todo y pedir nuevo login
           await forceClearAllAuthData();
           
@@ -136,17 +125,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
           }
         } catch (indexedDBError) {
-          console.log('Error actualizando IndexedDB:', indexedDBError);
+
         }
         
-        console.log('✅ Usuario cargado exitosamente:', userData.username, userData.id);
       } else {
-        console.log('⚠️ No se encontraron datos de usuario en la respuesta');
         setIsAuthenticated(false);
         setUser(null);
       }
     } catch (error) {
-      console.error('❌ Error al cargar usuario:', error);
+      
       setIsAuthenticated(false);
       setUser(null);
       // Limpiar datos inválidos
@@ -184,10 +171,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userData);
       setIsAuthenticated(true);
       
-      console.log('Login exitoso para:', userData.username, userData.id);
-      
     } catch (error: any) {
-      console.error('Error en login:', error);
       
       setUser(null);
       setIsAuthenticated(false);
@@ -225,7 +209,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           await apiClient.post('/api/auth/logout', { refreshToken });
         } catch (error) {
-          console.log('Error al revocar token en servidor:', error);
         }
       }
 
@@ -236,9 +219,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setIsAuthenticated(false);
       
-      console.log('Logout completado');
     } catch (error) {
-      console.error('Error en logout:', error);
       // Asegurar que el estado esté limpio incluso si hay error
       setUser(null);
       setIsAuthenticated(false);
@@ -254,9 +235,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setIsAuthenticated(false);
       
-      console.log('Logout forzado completado');
-    } catch (error) {
-      console.error('Error en logout forzado:', error);
+    } catch (error) {   
       // Asegurar que el estado esté limpio incluso si hay error
       setUser(null);
       setIsAuthenticated(false);

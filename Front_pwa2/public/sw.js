@@ -9,12 +9,12 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Cache abierto');
+        
         // Cachear URLs individualmente para que los errores no detengan todo el proceso
         return Promise.allSettled(
           urlsToCache.map((url) => {
             return cache.add(url).catch((error) => {
-              console.warn(`No se pudo cachear ${url}:`, error);
+              return
               // Continuar aunque falle una URL
               return null;
             });
@@ -22,10 +22,10 @@ self.addEventListener('install', (event) => {
         );
       })
       .then(() => {
-        console.log('Service Worker instalado');
+        return
       })
       .catch((error) => {
-        console.error('Error instalando Service Worker:', error);
+        return
       })
   );
   self.skipWaiting();

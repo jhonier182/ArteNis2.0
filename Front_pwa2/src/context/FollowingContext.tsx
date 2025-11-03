@@ -259,7 +259,6 @@ export function clearFollowingCache() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('following_users_cache')
     localStorage.removeItem('following_users_cache_timestamp')
-    console.log('🧹 Caché de usuarios seguidos limpiado')
   }
 }
 

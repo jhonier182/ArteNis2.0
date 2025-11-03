@@ -75,14 +75,6 @@ export default function BookAppointmentPage() {
       error('Datos incompletos', 'Por favor selecciona fecha y hora')
       return
     }
-
-    console.log({
-      type: appointmentType,
-      date: selectedDate,
-      time: selectedTime,
-      description
-    })
-
     // Aquí iría la llamada al API
     success('¡Solicitud enviada!', 'Tu cita ha sido solicitada exitosamente')
     router.back()

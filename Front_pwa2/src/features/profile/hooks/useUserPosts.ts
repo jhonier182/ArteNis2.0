@@ -24,7 +24,6 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
 
   const fetchPosts = useCallback(async (pageNum: number, autoLoadNext = false) => {
     if (!userId || isLoadingRef.current) {
-      console.log(`🚫 Fetch cancelado: userId=${!!userId}, isLoading=${isLoadingRef.current}`)
       return
     }
 
@@ -38,9 +37,6 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
       const result = await profileService.getUserPosts(userId, pageNum, limit)
       
       const paginationInfo = result.pagination as { totalItems?: number }
-      const totalItems = paginationInfo?.totalItems
-      
-      console.log(`📄 Página ${pageNum}: ${result.posts.length} posts | hasNext: ${result.pagination.hasNext} | Total backend: ${totalItems || 'N/A'}`)
       
       // ACTUALIZAR hasMore basado en la respuesta real
       const actuallyHasMore = result.pagination.hasNext
@@ -49,15 +45,11 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
       if (pageNum === 1) {
         // Primera carga: mostrar inmediatamente
         setPosts(result.posts)
-        console.log(`✅ Posts iniciales cargados: ${result.posts.length}`)
         // Iniciar auto-carga desde la primera página si hay más
         if (actuallyHasMore) {
           const timeoutId = setTimeout(() => {
-            console.log(`🔄 [FLUX] Iniciando auto-carga desde página 1...`)
             setPage(2)
-            fetchPosts(2, true).catch(err => {
-              console.error('Error iniciando auto-carga:', err)
-            })
+            fetchPosts(2, true).catch(() => {})
           }, 800)
           timeoutRefsRef.current.push(timeoutId)
           // No continuar con la lógica de auto-carga abajo para página 1
@@ -65,11 +57,7 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
         }
       } else {
         // Páginas siguientes: agregar progresivamente
-        setPosts(prev => {
-          const newPosts = [...prev, ...result.posts]
-          console.log(`✅ Total acumulado: ${newPosts.length} posts${totalItems ? ` / ${totalItems} total` : ''}`)
-          return newPosts
-        })
+        setPosts(prev => [...prev, ...result.posts])
       }
       
       // AUTO-CARGA CONTINUA tipo "flux": seguir cargando mientras haya más
@@ -83,25 +71,19 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
           setHasMore(currentHasMore => {
             if (currentHasMore && !isLoadingRef.current && userId) {
               const nextPage = pageNum + 1
-              console.log(`🔄 [FLUX] Auto-cargando página ${nextPage}... (delay: ${delay}ms)`)
               setPage(nextPage)
               
               // Continuar el flujo automáticamente
-              fetchPosts(nextPage, true).catch(err => {
-                console.error('Error en auto-carga:', err)
-              })
+              fetchPosts(nextPage, true).catch(() => {})
               
               return currentHasMore // Mantener el estado
             } else {
-              console.log(`🏁 [FLUX] Detenido: hasMore=${currentHasMore}, isLoading=${isLoadingRef.current}`)
               return false
             }
           })
         }, delay)
         
         timeoutRefsRef.current.push(timeoutId)
-      } else if (!actuallyHasMore) {
-        console.log(`🏁 [FLUX] Fin de carga: No hay más posts${totalItems ? ` (Total: ${totalItems})` : ''}`)
       }
       
     } catch (err) {
@@ -119,11 +101,9 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) {
-      console.log(`🚫 No se puede cargar más: loading=${loading}, hasMore=${hasMore}`)
       return
     }
     const nextPage = page + 1
-    console.log(`⬇️ Cargando manualmente página ${nextPage}...`)
     setPage(nextPage)
     await fetchPosts(nextPage)
   }, [page, loading, hasMore, fetchPosts])

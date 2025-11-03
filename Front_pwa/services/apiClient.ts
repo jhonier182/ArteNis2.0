@@ -28,13 +28,12 @@ apiClient.interceptors.request.use(
 
     // Log de requests en desarrollo
     if (process.env.NODE_ENV === 'development') {
-      console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      
     }
 
     return config;
   },
   (error) => {
-    console.error('❌ Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -44,21 +43,11 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Log de responses exitosos en desarrollo
     if (process.env.NODE_ENV === 'development') {
-      console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
     }
     return response;
   },
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
-
-    // Log de errores
-    console.error('❌ API Error:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      message: error.message,
-      code: error.code
-    });
 
     // Manejar error 401 (No autorizado)
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -125,9 +114,7 @@ async function retryRequest(originalRequest: AxiosRequestConfig & { _retry?: boo
 
   // Incrementar contador de reintentos
   originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
-
-  console.log(`🔄 Reintentando request: ${originalRequest.method?.toUpperCase()} ${originalRequest.url} (intento ${originalRequest._retryCount})`);
-
+  
   return apiClient(originalRequest);
 }
 

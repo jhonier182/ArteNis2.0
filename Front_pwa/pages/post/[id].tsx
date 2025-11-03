@@ -27,12 +27,10 @@ export async function getServerSideProps() {
 }
 
 export default function PostDetailPage() {
-  console.log('🎬 Componente PostDetailPage iniciando...')
+    
   const router = useRouter()
   const { id } = router.query
-  console.log('🔍 Router query:', { id })
   const { user, isAuthenticated } = useUser()
-  console.log('👤 Usuario y autenticación:', { user, isAuthenticated })
   const { isFollowing: isFollowingUser, refreshFollowing } = useFollowing()
   const { alerts, success, error, removeAlert } = useAlert()
   const [post, setPost] = useState<any>(null)
@@ -48,13 +46,13 @@ export default function PostDetailPage() {
   const { 
     isLiked, 
     likesCount, 
-    isToggling, 
+    isToggling,   
     toggleLike, 
     updateLocalState 
   } = useLikePost(undefined, post?.isLiked || false, post?.likesCount || 0)
 
   useEffect(() => {
-    console.log('🔄 useEffect ejecutándose:', { id, isAuthenticated })
+    
     if (id) {
       loadPost()
     }
@@ -62,37 +60,14 @@ export default function PostDetailPage() {
 
   // Monitorear cambios en la autenticación
   useEffect(() => {
-    console.log('🔄 Cambio en autenticación:', {
-      isAuthenticated,
-      user: user?.id,
-      isLoading
-    })
   }, [isAuthenticated, user, isLoading])
 
   useEffect(() => {
-    console.log('🔍 useEffect de seguimiento ejecutándose:', {
-      hasPost: !!post,
-      hasAuthor: !!post?.author?.id,
-      isAuthenticated,
-      authorId: post?.author?.id,
-      currentUserId: user?.id
-    })
-    
+
     if (post?.author?.id && isAuthenticated && user?.id) {
       const followingStatus = isFollowingUser(post.author.id)
-      console.log('🔍 Verificando estado de seguimiento:', {
-        authorId: post.author.id,
-        currentUserId: user.id,
-        isFollowing: followingStatus,
-        isOwnPost: user.id === post.author.id
-      })
       setIsFollowing(followingStatus)
     } else {
-      console.log('⚠️ No se puede verificar seguimiento:', {
-        reason: !post?.author?.id ? 'No hay autor' : 
-                !isAuthenticated ? 'No autenticado' : 
-                !user?.id ? 'No hay usuario' : 'Desconocido'
-      })
       setIsFollowing(false)
     }
   }, [post?.author?.id, isAuthenticated, user?.id, isFollowingUser])
@@ -122,7 +97,6 @@ export default function PostDetailPage() {
       }
       
     } catch (err) {
-      console.error('Error al cargar post:', err)
       error('Error al cargar', 'No se pudo cargar la publicación')
       router.push('/')
     } finally {
@@ -141,27 +115,18 @@ export default function PostDetailPage() {
     try {
       setIsFollowLoading(true)
       
-      console.log('🔄 Cambiando estado de seguimiento:', {
-        authorId: post.author.id,
-        currentState: isFollowing,
-        action: isFollowing ? 'UNFOLLOW' : 'FOLLOW'
-      })
-      
       if (isFollowing) {
         await userService.unfollowUser(post.author.id)
         setIsFollowing(false)
-        console.log('✅ Dejaste de seguir al usuario')
       } else {
         await userService.followUser(post.author.id)
         setIsFollowing(true)
-        console.log('✅ Empezaste a seguir al usuario')
       }
       
       // Refrescar la lista de usuarios seguidos usando el hook
       await refreshFollowing()
       
     } catch (err: any) {
-      console.error('Error al cambiar seguimiento:', err)
       error('Error al seguir', err.response?.data?.message || 'No se pudo actualizar el seguimiento')
     } finally {
       setIsFollowLoading(false)
@@ -201,7 +166,6 @@ export default function PostDetailPage() {
         router.push('/')
       }, 2000)
     } catch (err: any) {
-      console.error('Error al eliminar post:', err)
       const errorMessage = err.response?.data?.message || err.message || 'No se pudo eliminar la publicación'
       error('Error al eliminar', errorMessage)
     } finally {

@@ -72,11 +72,6 @@ export default function EditProfilePage() {
       try {
         setIsLoading(true)
         const profile = await profileService.getCurrentProfile()
-        console.log('📥 [EditProfilePage] Perfil cargado desde servidor:', {
-          fullName: profile.fullName,
-          username: profile.username,
-          country: profile.country
-        })
         setCurrentProfile(profile)
         setFormData({
           fullName: profile.fullName || '',
@@ -152,12 +147,8 @@ export default function EditProfilePage() {
         }
       })
 
-      console.log('📤 Enviando datos de actualización:', updateData)
-
       // Actualizar perfil
       const updatedProfile = await profileService.updateProfile(updateData)
-      
-      console.log('✅ Perfil actualizado recibido:', updatedProfile)
       
       if (updateUser) {
         // Actualizar solo los campos compatibles con el tipo User

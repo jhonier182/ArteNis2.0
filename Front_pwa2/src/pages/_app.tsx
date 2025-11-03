@@ -19,11 +19,9 @@ export default function App({ Component, pageProps }: AppProps) {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
-          console.log('Service Worker registrado con éxito:', registration.scope)
+
         })
-        .catch((error) => {
-          console.log('Error al registrar Service Worker:', error)
-        })
+        .catch((error) => {return})
     }
 
     // Detectar si la app está instalada
@@ -35,7 +33,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
     // Detectar cuando la app es instalada
     window.addEventListener('appinstalled', () => {
-      console.log('PWA instalada exitosamente')
+      return
       ;(window as WindowWithDeferredPrompt).deferredPrompt = null
     })
   }, [])

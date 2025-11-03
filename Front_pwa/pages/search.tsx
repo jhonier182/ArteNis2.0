@@ -176,7 +176,7 @@ export default function Search() {
         setPublicPosts(filteredPosts as Post[])
       }
       
-      console.log('Usuario seguido exitosamente')
+          
     } catch (error) {
       console.error('Error following user:', error)
     }

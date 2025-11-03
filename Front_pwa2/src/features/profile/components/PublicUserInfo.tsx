@@ -133,7 +133,7 @@ export function PublicUserInfo({
                   }}
                   initialFollowState={profile.isFollowing ?? false}
                   onFollowChange={(isFollowing) => {
-                    console.log('Estado de seguimiento actualizado:', isFollowing)
+                   
                   }}
                   size="md"
                   showText={true}
@@ -213,7 +213,7 @@ export function PublicUserInfo({
               }}
               initialFollowState={profile.isFollowing ?? false}
               onFollowChange={(isFollowing) => {
-                console.log('Estado de seguimiento actualizado:', isFollowing)
+               
               }}
               size="md"
               showText={true}

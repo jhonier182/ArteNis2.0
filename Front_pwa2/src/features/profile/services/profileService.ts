@@ -124,36 +124,24 @@ export const profileService = {
   },
 
   async updateProfile(data: UpdateProfileData): Promise<Profile> {
-    console.log('📤 [profileService.updateProfile] Enviando request:', {
-      url: '/profile/me',
-      method: 'PUT',
-      data
-    })
-
     const response = await apiClient.getClient().put<{ 
       success: boolean
       message?: string
       data: { user: Profile } | Profile 
     }>('/profile/me', data)
     
-    console.log('📥 [profileService.updateProfile] Respuesta completa:', response.data)
-    
     // El backend devuelve: { success: true, message: string, data: { user: Profile, message: string } }
     const responseData = response.data.data
-    
-    console.log('📦 [profileService.updateProfile] responseData:', responseData)
     
     // El backend devuelve data como { user: Profile, message: string }
     if (responseData && typeof responseData === 'object' && 'user' in responseData) {
       // Si viene dentro de un objeto 'user', extraerlo
       const userProfile = (responseData as { user: Profile }).user
-      console.log('✅ [profileService.updateProfile] Perfil extraído:', userProfile)
       return userProfile
     }
     
     // Fallback: si responseData es directamente Profile
     const profile = responseData as Profile
-    console.log('✅ [profileService.updateProfile] Perfil (fallback):', profile)
     return profile
   },
 
@@ -172,8 +160,6 @@ export const profileService = {
   },
 
   async getUserPosts(userId: string, page: number = 1, limit: number = 10): Promise<{ posts: UserPost[]; pagination: { hasNext: boolean; totalItems?: number; currentPage?: number; totalPages?: number } }> {
-    console.log(`[profileService.getUserPosts] Requesting: userId=${userId}, page=${page}, limit=${limit}`)
-    
     const response = await apiClient.getClient().get<{ data: { posts: UserPost[]; pagination: PaginationResponse & { totalItems?: number } } }>(`/posts/user/${userId}`, {
       params: { page, limit }
     })
@@ -182,8 +168,6 @@ export const profileService = {
     const posts = responseData.posts || responseData || []
     const pagination = responseData.pagination || {}
     
-    console.log(`[profileService.getUserPosts] Response: posts.length=${posts.length}, pagination=`, pagination)
-    
     // Calcular hasNext si no está presente en la respuesta
     let hasNext = false
     if (pagination.hasNext !== undefined) {
@@ -191,11 +175,9 @@ export const profileService = {
     } else if (pagination.currentPage !== undefined && pagination.totalPages !== undefined) {
       // Calcular basándose en currentPage y totalPages
       hasNext = pagination.currentPage < pagination.totalPages
-      console.log(`[profileService.getUserPosts] Calculated hasNext from pagination: ${pagination.currentPage} < ${pagination.totalPages} = ${hasNext}`)
     } else {
       // Fallback: si hay posts y la cantidad es igual al límite, probablemente hay más
       hasNext = posts.length === limit
-      console.log(`[profileService.getUserPosts] Fallback hasNext: ${posts.length} === ${limit} = ${hasNext}`)
     }
     
     return {
