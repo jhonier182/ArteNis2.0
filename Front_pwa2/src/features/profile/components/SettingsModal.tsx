@@ -8,7 +8,9 @@ import {
   Globe,
   ChevronRight,
   Palette,
-  RefreshCw
+  RefreshCw,
+  FileText,
+  ShieldCheck
 } from 'lucide-react'
 import { AxiosError } from 'axios'
 import { useState } from 'react'
@@ -202,6 +204,44 @@ export default function SettingsModal({
                     ) : (
                       <User className="w-5 h-5 text-purple-400" />
                     )}
+                  </button>
+                </div>
+
+                <div className="border-t border-neutral-800 my-2"></div>
+
+                <div className="px-4 py-2 space-y-2">
+                  <button
+                    onClick={() => {
+                      onClose()
+                      router.push('/terms')
+                    }}
+                    className="w-full flex items-center gap-4 p-4 hover:bg-neutral-800 rounded-xl transition-colors group"
+                  >
+                    <div className="p-3 rounded-xl bg-neutral-800 text-blue-400">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-white">Términos y Condiciones</p>
+                      <p className="text-sm text-gray-400">Lee nuestros términos de uso</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-gray-400 transition-colors" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onClose()
+                      router.push('/privacy')
+                    }}
+                    className="w-full flex items-center gap-4 p-4 hover:bg-neutral-800 rounded-xl transition-colors group"
+                  >
+                    <div className="p-3 rounded-xl bg-neutral-800 text-green-400">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-white">Política de Privacidad</p>
+                      <p className="text-sm text-gray-400">Cómo protegemos tus datos</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-gray-400 transition-colors" />
                   </button>
                 </div>
 
