@@ -223,9 +223,9 @@ export default function PostDetailPage() {
       {/* Media */}
       {(post.imageUrl || post.mediaUrl) && (
         <div
-          className="mb-4 relative overflow-hidden bg-gray-900 rounded-xl"
+          className="mb-4 relative overflow-hidden bg-black rounded-xl"
           style={{
-            width: 'calc(100vw - 32px)', // 16px margin each side for espacio
+            width: 'calc(100vw - 32px)', // 16px margin each side para espacio
             maxWidth: 'calc(100vw - 32px)',
             aspectRatio: '9/16',
             maxHeight: '70vh',
@@ -285,20 +285,33 @@ export default function PostDetailPage() {
               )}
             </>
           ) : (
-            <Image
-              src={post.imageUrl || post.mediaUrl || ''}
-              alt={post.title || 'Post'}
-              fill
-              className="object-contain rounded-xl"
-              priority
-              quality={90}
+            <div
+              className="w-full h-full rounded-xl"
               style={{
+                backgroundColor: '#000', // Fondo negro para imágenes
                 width: '100%',
                 height: '100%',
                 maxWidth: '100vw',
-                maxHeight: '70vh'
+                maxHeight: '70vh',
+                position: 'relative'
               }}
-            />
+            >
+              <Image
+                src={post.imageUrl || post.mediaUrl || ''}
+                alt={post.title || 'Post'}
+                fill
+                className="object-contain rounded-xl"
+                priority
+                quality={90}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  maxWidth: '100vw',
+                  maxHeight: '70vh',
+                  backgroundColor: 'transparent' // la imagen tiene fondo transparente sobre #000
+                }}
+              />
+            </div>
           )}
         </div>
       )}
@@ -426,41 +439,66 @@ export default function PostDetailPage() {
         </div>
       </div>
 
-      {/* Barra de envío de comentario (sticky bottom) */}
+      {/* Barra de envío de comentario (sticky bottom, fondo oscuro, pegada abajo) */}
       <form
-        // MOVEMOS UN POCO HACIA ARRIBA usando bottom-4 en vez de bottom-0
-        className="fixed bottom-4 left-0 right-0 z-50 bg-neutral-900 py-3 border-t border-neutral-800"
-        style={{boxShadow: '0 -4px 16px 0 #0f141980'}}
+        className="fixed bottom-0 left-0 right-0 z-50 bg-black/95 py-3 border-t border-neutral-900"
+        style={{ boxShadow: '0 -4px 24px 0rgba(0, 0, 0, 0.6)' }}
         onSubmit={handleCommentSend}
+        autoComplete="off"
       >
         <div className="container-mobile mx-auto max-w-md flex px-3 items-end gap-2">
           <input
             type="text"
-            className="flex-1 px-4 py-2 rounded-full bg-gray-800 text-white placeholder-gray-400 outline-none"
-            placeholder="Escribe un comentario..."
+            className={`flex-1 px-4 py-2 rounded-full bg-neutral-900 text-white placeholder-gray-400 outline-none border-none shadow-inner transition-all ring-1 focus:ring-2 ring-neutral-700 ${
+              !isAuthenticated ? 'ring-red-400 focus:ring-red-400' : 'focus:ring-blue-500'
+            }`}
+            placeholder={isAuthenticated ? "Añade un comentario y participa en la conversación..." : "Inicia sesión para comentar"}
             value={newComment}
             onChange={e => setNewComment(e.target.value)}
             disabled={!isAuthenticated || isCommenting}
             maxLength={240}
-            autoComplete="off"
+            aria-label="Escribe tu comentario"
+            style={{ backgroundColor: '#16181d' }} // refuerza fondo muy oscuro
           />
+
           <button
             type="submit"
-            className={`ml-1 px-4 py-2 text-sm rounded-full font-semibold transition-colors ${
+            className={`ml-1 px-4 h-10 py-2 text-sm rounded-full font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${
               newComment.trim().length === 0 || !isAuthenticated || isCommenting
-                ? 'bg-gray-700 text-gray-400'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+                ? 'bg-neutral-700 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
             }`}
             disabled={newComment.trim().length === 0 || !isAuthenticated || isCommenting}
+            aria-disabled={newComment.trim().length === 0 || !isAuthenticated || isCommenting}
+            tabIndex={0}
           >
-            {isCommenting ? 'Enviando...' : 'Publicar'}
+            {isCommenting ? (
+              <>
+                <span className="loader inline-block w-4 h-4 border-2 border-t-2 border-blue-200 rounded-full animate-spin mr-1"></span>
+                Enviando...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 -ml-1 mr-1" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+                Publicar
+              </>
+            )}
           </button>
         </div>
         {!isAuthenticated && (
-          <div className="container-mobile mx-auto max-w-md px-4 mt-1">
+          <div className="container-mobile mx-auto max-w-md px-4 mt-2 flex items-center gap-1">
             <span className="text-xs text-red-400">
               Debes iniciar sesión para comentar.
             </span>
+            <button
+              type="button"
+              className="text-blue-400 underline text-xs ml-2 hover:text-blue-200 transition"
+              onClick={() => router.push('/login')}
+            >
+              Iniciar sesión
+            </button>
           </div>
         )}
       </form>
