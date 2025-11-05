@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false, // Deshabilitado para evitar ejecuciones dobles en desarrollo
   swcMinify: true,
   images: {
     domains: ['res.cloudinary.com', 'localhost'],

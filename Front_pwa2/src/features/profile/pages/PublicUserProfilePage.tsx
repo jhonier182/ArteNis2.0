@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
@@ -72,6 +72,18 @@ export default function PublicUserProfilePage({
 
   const isArtist = profile.userType === 'artist'
 
+  // Memoizar posts únicos para evitar re-renders innecesarios
+  const uniquePosts = useMemo(() => {
+    const seen = new Set<string>()
+    return posts.filter((post) => {
+      if (seen.has(post.id)) {
+        return false
+      }
+      seen.add(post.id)
+      return true
+    })
+  }, [posts])
+
   return (
     <div className="min-h-screen bg-black text-white pb-20">
       <Head>
@@ -89,20 +101,17 @@ export default function PublicUserProfilePage({
         {/* Posts del usuario */}
         <div className="mt-8">
           <h3 className="text-lg font-bold mb-4">Publicaciones</h3>
-          {loadingPosts && posts.length === 0 ? (
+          {loadingPosts && uniquePosts.length === 0 ? (
             <div className="flex justify-center py-10">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
-          ) : posts.length === 0 ? (
+          ) : uniquePosts.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-gray-400">No hay publicaciones aún</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 auto-rows-[200px]">
-              {posts.filter((post, index, self) => 
-                // Filtrar duplicados por ID como medida de seguridad adicional
-                index === self.findIndex((p) => p.id === post.id)
-              ).map((post, index) => (
+              {uniquePosts.map((post, index) => (
                 <div
                   key={post.id}
                   onClick={() => router.push(`/postDetail?postId=${post.id}`)}

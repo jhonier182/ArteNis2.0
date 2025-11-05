@@ -12,143 +12,156 @@ interface UseUserPostsResult {
 
 /**
  * Hook para obtener posts de un usuario con scroll infinito
+ * Versión simplificada estilo Instagram - sin auto-load, sin timeouts
  */
 export function useUserPosts(userId: string | undefined): UseUserPostsResult {
   const [posts, setPosts] = useState<UserPost[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-  const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
-  const isLoadingRef = useRef(false) // Ref para evitar dependencias circulares
-  const timeoutRefsRef = useRef<NodeJS.Timeout[]>([]) // Refs para guardar timeouts y poder limpiarlos
+  const [currentPage, setCurrentPage] = useState(1)
 
-  const fetchPosts = useCallback(async (pageNum: number, autoLoadNext = false) => {
-    if (!userId || isLoadingRef.current) {
+  // Control de páginas cargando para evitar llamadas duplicadas
+  const loadingPages = useRef<Set<number>>(new Set())
+  const lastUserIdRef = useRef<string | undefined>(undefined)
+  const hasPostsRef = useRef<boolean>(false)
+
+  /**
+   * Función interna para cargar una página específica
+   */
+  const fetchPage = useCallback(async (pageNum: number) => {
+    if (!userId) {
       return
     }
 
+    // Verificar que el userId no cambió durante la carga
+    if (lastUserIdRef.current !== userId) {
+      return
+    }
+
+    // Verificar si esta página ya está siendo cargada
+    if (loadingPages.current.has(pageNum)) {
+      return
+    }
+
+    // Marcar página como cargando INMEDIATAMENTE
+    loadingPages.current.add(pageNum)
+
     try {
-      isLoadingRef.current = true
-      setLoading(true)
+      // Solo mostrar loading si es la primera carga o no hay posts cargados
+      const shouldShowLoading = pageNum === 1 || !hasPostsRef.current
+      if (shouldShowLoading) {
+        setLoading(true)
+      }
       setError(null)
-      
-      // Carga incremental fluida: 6 posts por página para efecto "flux"
+
       const limit = 6
       const result = await profileService.getUserPosts(userId, pageNum, limit)
-      
-      const paginationInfo = result.pagination as { totalItems?: number }
-      
-      // ACTUALIZAR hasMore basado en la respuesta real
+
+      // Verificar nuevamente que el userId no cambió
+      if (lastUserIdRef.current !== userId) {
+        return
+      }
+
       const actuallyHasMore = result.pagination.hasNext
       setHasMore(actuallyHasMore)
-      
+
       if (pageNum === 1) {
-        // Primera carga: mostrar inmediatamente
+        // Primera página: reemplazar posts de forma atómica (sin flickering)
         setPosts(result.posts)
-        // Iniciar auto-carga desde la primera página si hay más
-        if (actuallyHasMore) {
-          const timeoutId = setTimeout(() => {
-            setPage(2)
-            fetchPosts(2, true).catch(() => {})
-          }, 800)
-          timeoutRefsRef.current.push(timeoutId)
-          // No continuar con la lógica de auto-carga abajo para página 1
-          return
-        }
+        hasPostsRef.current = result.posts.length > 0
       } else {
-        // Páginas siguientes: agregar progresivamente, eliminando duplicados por ID
+        // Páginas siguientes: agregar posts sin duplicados
         setPosts(prev => {
           const existingIds = new Set(prev.map(p => p.id))
           const newPosts = result.posts.filter(p => !existingIds.has(p.id))
-          return [...prev, ...newPosts]
+          const updated = [...prev, ...newPosts]
+          hasPostsRef.current = updated.length > 0
+          return updated
         })
       }
-      
-      // AUTO-CARGA CONTINUA tipo "flux": seguir cargando mientras haya más
-      // Continuar el flujo automático para páginas siguientes
-      if (autoLoadNext && actuallyHasMore) {
-        // Usar delay progresivo: más rápido al inicio, más lento después
-        const delay = pageNum === 1 ? 600 : Math.min(800 + (pageNum - 2) * 100, 1500)
-        
-        const timeoutId = setTimeout(() => {
-          // Verificar estado actual en lugar de valores capturados
-          setHasMore(currentHasMore => {
-            if (currentHasMore && !isLoadingRef.current && userId) {
-              const nextPage = pageNum + 1
-              setPage(nextPage)
-              
-              // Continuar el flujo automáticamente
-              fetchPosts(nextPage, true).catch(() => {})
-              
-              return currentHasMore // Mantener el estado
-            } else {
-              return false
-            }
-          })
-        }, delay)
-        
-        timeoutRefsRef.current.push(timeoutId)
-      }
-      
     } catch (err) {
-      console.error('❌ Error al cargar posts:', err)
-      setError(err instanceof Error ? err : new Error('Error al cargar posts'))
-      setHasMore(false)
+      // Solo actualizar error si el userId no cambió
+      if (lastUserIdRef.current === userId) {
+        setError(err instanceof Error ? err : new Error('Error al cargar posts'))
+        setHasMore(false)
+      }
     } finally {
+      // Limpiar página del set de cargando
+      loadingPages.current.delete(pageNum)
       setLoading(false)
-      // No resetear isLoadingRef inmediatamente para permitir que el timeout verifique
-      setTimeout(() => {
-        isLoadingRef.current = false
-      }, 200)
     }
   }, [userId])
 
+  /**
+   * Cargar más posts (scroll infinito)
+   */
   const loadMore = useCallback(async () => {
-    if (loading || !hasMore) {
+    if (loading || !hasMore || !userId) {
       return
     }
-    const nextPage = page + 1
-    setPage(nextPage)
-    await fetchPosts(nextPage)
-  }, [page, loading, hasMore, fetchPosts])
 
+    const nextPage = currentPage + 1
+
+    // Verificar que la página siguiente no esté ya siendo cargada
+    if (loadingPages.current.has(nextPage)) {
+      return
+    }
+
+    setCurrentPage(nextPage)
+    await fetchPage(nextPage)
+  }, [currentPage, loading, hasMore, userId, fetchPage])
+
+  /**
+   * Resetear y recargar desde el inicio
+   */
   const reset = useCallback(() => {
-    // Limpiar todos los timeouts pendientes
-    timeoutRefsRef.current.forEach(timeoutId => clearTimeout(timeoutId))
-    timeoutRefsRef.current = []
-    isLoadingRef.current = false
-    
+    loadingPages.current.clear()
     setPosts([])
-    setPage(1)
+    hasPostsRef.current = false
+    setCurrentPage(1)
     setHasMore(true)
     setError(null)
-    if (userId) {
-      fetchPosts(1)
-    }
-  }, [userId, fetchPosts])
+    setLoading(false)
 
-  // Optimizado: usar fetchPosts directamente en lugar de reset para evitar dependencias circulares
-  useEffect(() => {
     if (userId) {
-      // Limpiar timeouts anteriores al cambiar de usuario
-      timeoutRefsRef.current.forEach(timeoutId => clearTimeout(timeoutId))
-      timeoutRefsRef.current = []
-      isLoadingRef.current = false
-      
-      setPosts([])
-      setPage(1)
+      fetchPage(1)
+    }
+  }, [userId, fetchPage])
+
+  /**
+   * Effect: Cargar página 1 cuando cambia el userId
+   */
+  useEffect(() => {
+    // Si el userId cambia, preparar para nueva carga
+    if (lastUserIdRef.current !== userId && lastUserIdRef.current !== undefined) {
+      // Limpiar control de páginas
+      loadingPages.current.clear()
+      hasPostsRef.current = false
+      setCurrentPage(1)
       setHasMore(true)
       setError(null)
-      fetchPosts(1)
     }
-    
-    // Cleanup: limpiar timeouts cuando el componente se desmonte o cambie el userId
+
+    // Cargar página 1 si tenemos userId y no está ya cargando
+    if (userId && lastUserIdRef.current !== userId && !loadingPages.current.has(1)) {
+      lastUserIdRef.current = userId
+      loadingPages.current.add(1)
+      setCurrentPage(1)
+      // Limpiar posts ANTES de iniciar la carga (pero solo si hay posts)
+      if (hasPostsRef.current) {
+        setPosts([])
+        hasPostsRef.current = false
+      }
+      fetchPage(1)
+    }
+
+    // Cleanup: limpiar cuando el componente se desmonte
     return () => {
-      timeoutRefsRef.current.forEach(timeoutId => clearTimeout(timeoutId))
-      timeoutRefsRef.current = []
-      isLoadingRef.current = false
+      loadingPages.current.clear()
     }
-  }, [userId, fetchPosts])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
 
   return {
     posts,
@@ -159,4 +172,3 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
     reset,
   }
 }
-
