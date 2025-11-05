@@ -5,6 +5,7 @@ const { deletePostImage, deletePostVideo } = require('../config/cloudinary');
 const taskQueue = require('../utils/taskQueue');
 const { NotFoundError, ForbiddenError, BadRequestError } = require('../utils/errors');
 const logger = require('../utils/logger');
+const { decodeCursor, generateCursorFromPost } = require('../utils/cursorHelper');
 
 class PostService {
   // Función helper para transformar posts al formato esperado por el frontend
@@ -151,7 +152,7 @@ class PostService {
   static async getFeed(options = {}) {
     try {
       const {
-        page = 1,
+        cursor = null,
         limit = 20,
         type = 'all',
         style,
@@ -162,7 +163,6 @@ class PostService {
         userId = null
       } = options;
 
-      const offset = (page - 1) * limit;
       const where = {
         isPublic: true,
         status: 'published'
@@ -220,70 +220,148 @@ class PostService {
         where.isFeatured = featured;
       }
 
-      // Ordenamiento
-      const orderBy = [];
-      switch (sortBy) {
-        case 'popular':
-          orderBy.push(['likesCount', 'DESC']);
-          break;
-        case 'views':
-          orderBy.push(['viewsCount', 'DESC']);
-          break;
-        case 'comments':
-          orderBy.push(['commentsCount', 'DESC']);
-          break;
-        default:
-          orderBy.push(['createdAt', 'DESC']);
+      // Si hay cursor y sortBy es 'recent', usar paginación por cursor
+      if (cursor && sortBy === 'recent') {
+        const decoded = decodeCursor(cursor);
+        if (decoded) {
+          // WHERE (created_at < cursorCreatedAt OR (created_at = cursorCreatedAt AND id < cursorId))
+          where[Op.or] = [
+            {
+              createdAt: {
+                [Op.lt]: decoded.createdAt
+              }
+            },
+            {
+              [Op.and]: [
+                {
+                  createdAt: decoded.createdAt
+                },
+                {
+                  id: {
+                    [Op.lt]: decoded.id
+                  }
+                }
+              ]
+            }
+          ];
+        }
       }
 
-      const posts = await Post.findAndCountAll({
-        where,
-        include: [
-          {
-            model: User,
-            as: 'author',
-            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
-          }
-        ],
-        order: orderBy,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
-      });
+      // Ordenamiento
+      const orderBy = [];
+      // Para cursor-based pagination, siempre usar createdAt e id
+      if (cursor && sortBy === 'recent') {
+        orderBy.push(['createdAt', 'DESC']);
+        orderBy.push(['id', 'DESC']);
+      } else {
+        switch (sortBy) {
+          case 'popular':
+            orderBy.push(['likesCount', 'DESC']);
+            break;
+          case 'views':
+            orderBy.push(['viewsCount', 'DESC']);
+            break;
+          case 'comments':
+            orderBy.push(['commentsCount', 'DESC']);
+            break;
+          default:
+            orderBy.push(['createdAt', 'DESC']);
+            orderBy.push(['id', 'DESC']);
+        }
+      }
 
-      // OPTIMIZACIÓN: Procesar datos sin consultas adicionales
-      const transformedPosts = posts.rows.map(post => {
-        const postData = post.toJSON();
+      // Si usamos cursor, no necesitamos count (más eficiente)
+      if (cursor && sortBy === 'recent') {
+        const posts = await Post.findAll({
+          where,
+          include: [
+            {
+              model: User,
+              as: 'author',
+              attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
+            }
+          ],
+          order: orderBy,
+          limit: parseInt(limit) + 1 // Obtener uno más para saber si hay más
+        });
+
+        // Determinar si hay más posts
+        const hasMore = posts.length > limit;
+        const postsToReturn = hasMore ? posts.slice(0, limit) : posts;
+
+        // OPTIMIZACIÓN: Procesar datos sin consultas adicionales
+        const transformedPosts = postsToReturn.map(post => {
+          const postData = post.toJSON();
+          
+          // Agregar campos calculados directamente
+          if (userId) {
+            postData.isLiked = userLikes.has(post.id);
+          } else {
+            postData.isLiked = false;
+          }
+          
+          // Transformar al formato del frontend
+          return this.transformPostForFrontendSync(postData, userId);
+        });
+
+        // Generar nextCursor desde el último post
+        const nextCursor = transformedPosts.length > 0 && hasMore 
+          ? generateCursorFromPost(postsToReturn[postsToReturn.length - 1])
+          : null;
+
+        return {
+          posts: transformedPosts,
+          nextCursor
+        };
+      } else {
+        // Paginación tradicional para otros tipos de ordenamiento
+        const page = options.page || 1;
+        const offset = (page - 1) * limit;
         
-        // Agregar campos calculados directamente
-        if (userId) {
-          postData.isLiked = userLikes.has(post.id);
-        } else {
-          postData.isLiked = false;
-        }
+        const posts = await Post.findAndCountAll({
+          where,
+          include: [
+            {
+              model: User,
+              as: 'author',
+              attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
+            }
+          ],
+          order: orderBy,
+          limit: parseInt(limit),
+          offset: parseInt(offset)
+        });
+
+        // OPTIMIZACIÓN: Procesar datos sin consultas adicionales
+        const transformedPosts = posts.rows.map(post => {
+          const postData = post.toJSON();
+          
+          // Agregar campos calculados directamente
+          if (userId) {
+            postData.isLiked = userLikes.has(post.id);
+          } else {
+            postData.isLiked = false;
+          }
+          
+          // Transformar al formato del frontend
+          return this.transformPostForFrontendSync(postData, userId);
+        });
         
-        // Transformar al formato del frontend
-        return this.transformPostForFrontendSync(postData, userId);
-      });
-      
-      return {
-        posts: transformedPosts,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(posts.count / limit),
-          totalItems: posts.count,
-          itemsPerPage: parseInt(limit)
-        }
-      };
+        return {
+          posts: transformedPosts,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(posts.count / limit),
+            totalItems: posts.count,
+            itemsPerPage: parseInt(limit)
+          }
+        };
+      }
     } catch (error) {
       // Error silencioso - devolver feed vacío
       return {
         posts: [],
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: 0,
-          totalItems: 0,
-          itemsPerPage: parseInt(limit)
-        }
+        nextCursor: null
       };
     }
   }
@@ -690,13 +768,12 @@ class PostService {
   static async getUserPosts(userId, options = {}) {
     try {
       const {
-        page = 1,
+        cursor = null,
         limit = 20,
         type = 'all',
         requesterId = null
       } = options;
 
-      const offset = (page - 1) * limit;
       const where = { 
         userId,
         status: 'published' // Solo mostrar publicaciones publicadas
@@ -711,35 +788,62 @@ class PostService {
         where.type = type;
       }
 
-      // OPTIMIZACIÓN: Usar Promise.all para ejecutar queries en paralelo
-      const [posts, totalCount] = await Promise.all([
-        Post.findAll({
-          where,
-          include: [
+      // Si hay cursor, agregar condición para paginación por cursor
+      if (cursor) {
+        const decoded = decodeCursor(cursor);
+        if (decoded) {
+          // WHERE (created_at < cursorCreatedAt OR (created_at = cursorCreatedAt AND id < cursorId))
+          where[Op.or] = [
             {
-              model: User,
-              as: 'author',
-              attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
+              createdAt: {
+                [Op.lt]: decoded.createdAt
+              }
+            },
+            {
+              [Op.and]: [
+                {
+                  createdAt: decoded.createdAt
+                },
+                {
+                  id: {
+                    [Op.lt]: decoded.id
+                  }
+                }
+              ]
             }
-          ],
-          order: [['createdAt', 'DESC']],
-          limit: parseInt(limit),
-          offset: parseInt(offset)
-        }),
-        Post.count({ where })
-      ]);
+          ];
+        }
+      }
+
+      // Obtener posts con paginación por cursor
+      const posts = await Post.findAll({
+        where,
+        include: [
+          {
+            model: User,
+            as: 'author',
+            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified']
+          }
+        ],
+        order: [['createdAt', 'DESC'], ['id', 'DESC']],
+        limit: parseInt(limit) + 1 // Obtener uno más para saber si hay más
+      });
+
+      // Determinar si hay más posts
+      const hasMore = posts.length > limit;
+      const postsToReturn = hasMore ? posts.slice(0, limit) : posts;
 
       // OPTIMIZACIÓN: Solo procesar likes si hay posts y usuario solicitante
       let transformedPosts = [];
       
-      if (posts.length > 0) {
+      if (postsToReturn.length > 0) {
         // OPTIMIZACIÓN: Obtener todos los likes de una vez si hay usuario solicitante
         let userLikes = new Set();
         if (requesterId) {
           const likes = await Like.findAll({
             where: { 
               userId: requesterId,
-              postId: posts.map(post => post.id)
+              postId: postsToReturn.map(post => post.id)
             },
             attributes: ['postId']
           });
@@ -747,30 +851,22 @@ class PostService {
         }
 
         // Agregar campo isLiked usando el Set optimizado
-        posts.forEach(post => {
+        postsToReturn.forEach(post => {
           post.isLiked = userLikes.has(post.id);
         });
 
         // OPTIMIZACIÓN: Transformar posts de forma más eficiente
-        transformedPosts = posts.map(post => this.transformPostForFrontendSync(post, requesterId));
+        transformedPosts = postsToReturn.map(post => this.transformPostForFrontendSync(post, requesterId));
       }
       
-      // Verificar que los posts transformados tengan isLiked
-      // Logs removidos para evitar spam
-
-      const currentPage = parseInt(page);
-      const totalPages = Math.ceil(totalCount / limit);
-      const hasNext = currentPage < totalPages;
+      // Generar nextCursor desde el último post
+      const nextCursor = transformedPosts.length > 0 && hasMore 
+        ? generateCursorFromPost(postsToReturn[postsToReturn.length - 1])
+        : null;
       
       return {
         posts: transformedPosts,
-        pagination: {
-          currentPage: currentPage,
-          totalPages: totalPages,
-          totalItems: totalCount,
-          itemsPerPage: parseInt(limit),
-          hasNext: hasNext
-        }
+        nextCursor
       };
     } catch (error) {
       throw error;
@@ -944,9 +1040,8 @@ class PostService {
 
   // Obtener posts de usuarios seguidos con paginación
   static async getFollowingPosts(userId, options = {}) {
-    const page = options.page || 1;
+    const cursor = options.cursor || null;
     const limit = options.limit || 15;
-    const offset = (page - 1) * limit;
     try {
       // Obtener IDs de usuarios seguidos
       const followingUsers = await Follow.findAll({
@@ -959,23 +1054,46 @@ class PostService {
       if (followingIds.length === 0) {
         return {
           posts: [],
-          total: 0,
-          pagination: {
-            currentPage: parseInt(page),
-            totalPages: 0,
-            totalItems: 0,
-            itemsPerPage: parseInt(limit)
-          }
+          nextCursor: null
         };
       }
 
-      // Obtener posts con una sola consulta optimizada
-      const posts = await Post.findAndCountAll({
-        where: {
-          userId: { [Op.in]: followingIds },
-          isPublic: true,
-          status: 'published'
-        },
+      const where = {
+        userId: { [Op.in]: followingIds },
+        isPublic: true,
+        status: 'published'
+      };
+
+      // Si hay cursor, agregar condición para paginación por cursor
+      if (cursor) {
+        const decoded = decodeCursor(cursor);
+        if (decoded) {
+          // WHERE (created_at < cursorCreatedAt OR (created_at = cursorCreatedAt AND id < cursorId))
+          where[Op.or] = [
+            {
+              createdAt: {
+                [Op.lt]: decoded.createdAt
+              }
+            },
+            {
+              [Op.and]: [
+                {
+                  createdAt: decoded.createdAt
+                },
+                {
+                  id: {
+                    [Op.lt]: decoded.id
+                  }
+                }
+              ]
+            }
+          ];
+        }
+      }
+
+      // Obtener posts con paginación por cursor
+      const posts = await Post.findAll({
+        where,
         include: [
           {
             model: User,
@@ -983,17 +1101,20 @@ class PostService {
             attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
           }
         ],
-        order: [['createdAt', 'DESC']],
-        limit: parseInt(limit),
-        offset: parseInt(offset),
+        order: [['createdAt', 'DESC'], ['id', 'DESC']],
+        limit: parseInt(limit) + 1, // Obtener uno más para saber si hay más
         subQuery: false,
         distinct: true
       });
 
+      // Determinar si hay más posts
+      const hasMore = posts.length > limit;
+      const postsToReturn = hasMore ? posts.slice(0, limit) : posts;
+
       // Obtener likes del usuario para todos los posts de una vez
       let userLikes = new Set();
-      if (userId && posts.rows.length > 0) {
-        const postIds = posts.rows.map(post => post.id);
+      if (userId && postsToReturn.length > 0) {
+        const postIds = postsToReturn.map(post => post.id);
         const likes = await Like.findAll({
           where: {
             userId: userId,
@@ -1005,7 +1126,7 @@ class PostService {
       }
 
       // Transformar posts para el frontend con información de likes
-      const transformedPosts = posts.rows.map(post => {
+      const transformedPosts = postsToReturn.map(post => {
         const postData = post.toJSON();
         
         // Agregar información de likes
@@ -1018,21 +1139,20 @@ class PostService {
         return this.transformPostForFrontendSync(postData, userId);
       });
 
+      // Generar nextCursor desde el último post
+      const nextCursor = transformedPosts.length > 0 && hasMore 
+        ? generateCursorFromPost(postsToReturn[postsToReturn.length - 1])
+        : null;
+
       return {
         posts: transformedPosts,
-        total: posts.count,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(posts.count / limit),
-          totalItems: posts.count,
-          itemsPerPage: parseInt(limit)
-        }
+        nextCursor
       };
 
     } catch (error) {
       logger.error('Error obteniendo posts de usuarios seguidos', {
         userId,
-        page,
+        cursor,
         error: error.message,
         stack: error.stack
       });
@@ -1329,12 +1449,24 @@ class PostService {
   }
 
   // Obtener posts guardados del usuario
-  static async getSavedPosts(userId, page = 1, limit = 20) {
+  static async getSavedPosts(userId, cursor = null, limit = 20) {
     try {
-      const offset = (page - 1) * limit;
+      const where = { userId };
 
-      const savedPosts = await SavedPost.findAndCountAll({
-        where: { userId },
+      // Si hay cursor, necesitamos obtener el post asociado para comparar
+      let cursorPostId = null;
+      let cursorPostCreatedAt = null;
+      if (cursor) {
+        const decoded = decodeCursor(cursor);
+        if (decoded) {
+          cursorPostId = decoded.id;
+          cursorPostCreatedAt = decoded.createdAt;
+        }
+      }
+
+      // Construir query base
+      const queryOptions = {
+        where,
         include: [
           {
             model: Post,
@@ -1349,15 +1481,48 @@ class PostService {
             ]
           }
         ],
-        order: [['createdAt', 'DESC']],
-        limit: parseInt(limit),
-        offset: parseInt(offset)
-      });
+        order: [[{ model: Post, as: 'post' }, 'createdAt', 'DESC'], [{ model: Post, as: 'post' }, 'id', 'DESC']],
+        limit: parseInt(limit) + 1 // Obtener uno más para saber si hay más
+      };
+
+      // Si hay cursor, agregar condición
+      if (cursor && cursorPostId && cursorPostCreatedAt) {
+        // Necesitamos filtrar por el createdAt e id del Post asociado
+        // Esto se hace en el where del include
+        queryOptions.include[0].where = {
+          ...queryOptions.include[0].where,
+          [Op.or]: [
+            {
+              createdAt: {
+                [Op.lt]: cursorPostCreatedAt
+              }
+            },
+            {
+              [Op.and]: [
+                {
+                  createdAt: cursorPostCreatedAt
+                },
+                {
+                  id: {
+                    [Op.lt]: cursorPostId
+                  }
+                }
+              ]
+            }
+          ]
+        };
+      }
+
+      const savedPosts = await SavedPost.findAll(queryOptions);
+
+      // Determinar si hay más posts
+      const hasMore = savedPosts.length > limit;
+      const savedPostsToReturn = hasMore ? savedPosts.slice(0, limit) : savedPosts;
 
       // Obtener likes del usuario para todos los posts
       let userLikes = new Set();
-      if (savedPosts.rows.length > 0) {
-        const postIds = savedPosts.rows.map(sp => sp.post?.id).filter(Boolean);
+      if (savedPostsToReturn.length > 0) {
+        const postIds = savedPostsToReturn.map(sp => sp.post?.id).filter(Boolean);
         if (postIds.length > 0) {
           const likes = await Like.findAll({
             where: {
@@ -1372,8 +1537,8 @@ class PostService {
 
       // Verificar qué posts están guardados (todos deberían estarlo, pero verificamos)
       let savedPostsSet = new Set();
-      if (savedPosts.rows.length > 0) {
-        const postIds = savedPosts.rows.map(sp => sp.post?.id).filter(Boolean);
+      if (savedPostsToReturn.length > 0) {
+        const postIds = savedPostsToReturn.map(sp => sp.post?.id).filter(Boolean);
         if (postIds.length > 0) {
           const saved = await SavedPost.findAll({
             where: {
@@ -1387,7 +1552,7 @@ class PostService {
       }
 
       // Transformar posts
-      const posts = savedPosts.rows
+      const posts = savedPostsToReturn
         .map(savedPost => savedPost.post)
         .filter(Boolean)
         .map(post => {
@@ -1397,14 +1562,15 @@ class PostService {
           return postData;
         });
 
+      // Generar nextCursor desde el último post
+      const lastPost = posts.length > 0 ? savedPostsToReturn[savedPostsToReturn.length - 1]?.post : null;
+      const nextCursor = lastPost && hasMore 
+        ? generateCursorFromPost(lastPost)
+        : null;
+
       return {
         posts,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(savedPosts.count / limit),
-          totalItems: savedPosts.count,
-          itemsPerPage: parseInt(limit)
-        }
+        nextCursor
       };
     } catch (error) {
       logger.error('Error en getSavedPosts:', error);

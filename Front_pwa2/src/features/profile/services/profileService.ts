@@ -159,36 +159,23 @@ export const profileService = {
     }
   },
 
-  async getUserPosts(userId: string, page: number = 1, limit: number = 10): Promise<{ posts: UserPost[]; pagination: { hasNext: boolean; totalItems?: number; currentPage?: number; totalPages?: number } }> {
-    const response = await apiClient.getClient().get<{ data: { posts: UserPost[]; pagination: PaginationResponse & { totalItems?: number } } }>(`/posts/user/${userId}`, {
-      params: { page, limit }
+  async getUserPosts(userId: string, cursor: string | null = null, limit: number = 10): Promise<{ posts: UserPost[]; nextCursor: string | null }> {
+    const params: any = { limit }
+    if (cursor) {
+      params.cursor = cursor
+    }
+    
+    const response = await apiClient.getClient().get<{ data: { posts: UserPost[]; nextCursor: string | null } }>(`/posts/user/${userId}`, {
+      params
     })
     
     const responseData = response.data.data || response.data
-    const posts = responseData.posts || responseData || []
-    const pagination = responseData.pagination || {}
-    
-    // Calcular hasNext si no está presente en la respuesta
-    let hasNext = false
-    if (pagination.hasNext !== undefined) {
-      hasNext = pagination.hasNext
-    } else if (pagination.currentPage !== undefined && pagination.totalPages !== undefined) {
-      // Calcular basándose en currentPage y totalPages
-      hasNext = pagination.currentPage < pagination.totalPages
-    } else {
-      // Fallback: si hay posts y la cantidad es igual al límite, probablemente hay más
-      hasNext = posts.length === limit
-    }
+    const posts = responseData.posts || []
+    const nextCursor = responseData.nextCursor || null
     
     return {
       posts,
-      pagination: { 
-        hasNext,
-        // Incluir información adicional para debugging
-        totalItems: pagination.totalItems,
-        currentPage: pagination.currentPage,
-        totalPages: pagination.totalPages
-      }
+      nextCursor
     }
   },
 

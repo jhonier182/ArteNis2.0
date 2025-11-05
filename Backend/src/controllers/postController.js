@@ -60,6 +60,10 @@ class PostController {
   static async getFeed(req, res, next) {
     try {
       const options = PostService.buildFeedOptions(req.query, req.user?.id);
+      // Agregar cursor si está presente
+      if (req.query.cursor) {
+        options.cursor = req.query.cursor;
+      }
       const result = await PostService.getFeed(options);
       
       res.status(200).json({
@@ -233,10 +237,10 @@ class PostController {
     try {
       const { userId } = req.params;
       const limit = parseInt(req.query.limit) || 15;
-      const page = parseInt(req.query.page) || 1;
+      const cursor = req.query.cursor || null;
       
       const options = {
-        page,
+        cursor,
         limit,
         requesterId: req.user?.id || null,
         type: req.query.type || 'all'
@@ -339,7 +343,7 @@ class PostController {
     try {
       const userId = req.user.id;
       const options = {
-        page: parseInt(req.query.page) || 1,
+        cursor: req.query.cursor || null,
         limit: parseInt(req.query.limit) || 15
       };
 
@@ -348,10 +352,7 @@ class PostController {
       res.status(200).json({
         success: true,
         message: 'Posts de usuarios seguidos obtenidos exitosamente',
-        data: {
-          posts: result.posts,
-          pagination: result.pagination
-        }
+        data: result
       });
     } catch (error) {
       next(error);
@@ -380,18 +381,15 @@ class PostController {
   static async getSavedPosts(req, res, next) {
     try {
       const userId = req.user.id;
-      const page = parseInt(req.query.page) || 1;
+      const cursor = req.query.cursor || null;
       const limit = parseInt(req.query.limit) || 20;
 
-      const result = await PostService.getSavedPosts(userId, page, limit);
+      const result = await PostService.getSavedPosts(userId, cursor, limit);
 
       res.status(200).json({
         success: true,
         message: 'Posts guardados obtenidos exitosamente',
-        data: {
-          posts: result.posts,
-          pagination: result.pagination
-        }
+        data: result
       });
     } catch (error) {
       next(error);

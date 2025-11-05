@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
@@ -25,6 +25,8 @@ interface PublicUserProfilePageProps {
 export default function PublicUserProfilePage({
   userId
 }: PublicUserProfilePageProps) {
+  console.log(`[PublicUserProfilePage] 🎨 RENDER - userId: ${userId}`)
+  
   const router = useRouter()
   const { user: currentUser } = useAuth()
   const { profile, loading, error } = usePublicUserProfile(userId)
@@ -36,12 +38,57 @@ export default function PublicUserProfilePage({
     error: postsError
   } = useUserPosts(userId)
 
+  console.log(`[PublicUserProfilePage] 📊 Estado: posts.length=${posts.length}, loadingPosts=${loadingPosts}, hasMore=${hasMore}`)
+
   // Si estoy viendo mi propio perfil, redirigir a /profile
   useEffect(() => {
     if (currentUser && profile && String(currentUser.id) === String(profile.id)) {
       router.replace('/profile')
     }
   }, [currentUser, profile, router])
+
+  // Memoizar posts únicos para evitar re-renders innecesarios
+  // El filtro se ejecuta solo cuando cambia posts, no en cada render
+  // IMPORTANTE: Todos los hooks deben estar antes de cualquier return condicional
+  const uniquePosts = useMemo(() => {
+    console.log(`[PublicUserProfilePage] 🔄 useMemo(uniquePosts) ejecutado - posts.length=${posts.length}`)
+    if (posts.length === 0) {
+      console.log('[PublicUserProfilePage] ⚠️ uniquePosts: Sin posts, retornando []')
+      return []
+    }
+    
+    // Filtrar duplicados por ID de forma eficiente
+    const seen = new Set<string>()
+    const filtered = posts.filter((post) => {
+      if (seen.has(post.id)) {
+        return false
+      }
+      seen.add(post.id)
+      return true
+    })
+    console.log(`[PublicUserProfilePage] ✅ uniquePosts: ${filtered.length} posts únicos de ${posts.length} totales`)
+    return filtered
+  }, [posts])
+
+  // Memoizar handler de click para evitar re-renders innecesarios
+  const handlePostClick = useCallback((postId: string) => {
+    router.push(`/postDetail?postId=${postId}`)
+  }, [router])
+
+  // Solo mostrar loading cuando es la primera carga (no hay posts aún)
+  // Usar posts directamente en lugar de uniquePosts para evitar flickering
+  // ya que uniquePosts puede cambiar cuando posts cambia
+  // Memoizar para evitar recálculos innecesarios
+  const showInitialLoading = useMemo(() => {
+    const result = loadingPosts && posts.length === 0
+    console.log(`[PublicUserProfilePage] 🔄 useMemo(showInitialLoading) - loadingPosts=${loadingPosts}, posts.length=${posts.length}, result=${result}`)
+    return result
+  }, [loadingPosts, posts.length])
+  
+  console.log(`[PublicUserProfilePage] 📊 Valores finales: uniquePosts.length=${uniquePosts.length}, showInitialLoading=${showInitialLoading}`)
+
+  // Valores derivados que se usan en los returns
+  const isArtist = profile?.userType === 'artist'
 
   if (loading) {
     return (
@@ -70,20 +117,6 @@ export default function PublicUserProfilePage({
     )
   }
 
-  const isArtist = profile.userType === 'artist'
-
-  // Memoizar posts únicos para evitar re-renders innecesarios
-  const uniquePosts = useMemo(() => {
-    const seen = new Set<string>()
-    return posts.filter((post) => {
-      if (seen.has(post.id)) {
-        return false
-      }
-      seen.add(post.id)
-      return true
-    })
-  }, [posts])
-
   return (
     <div className="min-h-screen bg-black text-white pb-20">
       <Head>
@@ -101,7 +134,7 @@ export default function PublicUserProfilePage({
         {/* Posts del usuario */}
         <div className="mt-8">
           <h3 className="text-lg font-bold mb-4">Publicaciones</h3>
-          {loadingPosts && uniquePosts.length === 0 ? (
+          {showInitialLoading ? (
             <div className="flex justify-center py-10">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
@@ -114,7 +147,7 @@ export default function PublicUserProfilePage({
               {uniquePosts.map((post, index) => (
                 <div
                   key={post.id}
-                  onClick={() => router.push(`/postDetail?postId=${post.id}`)}
+                  onClick={() => handlePostClick(post.id)}
                   className="relative overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer group"
                 >
                   {post.mediaUrl ? (
@@ -161,8 +194,9 @@ export default function PublicUserProfilePage({
             </div>
           )}
 
-          {/* Infinite Scroll Trigger */}
-          {hasMore && (
+          {/* Infinite Scroll Trigger - Solo mostrar cuando hay posts y hay más por cargar */}
+          {/* La carga silenciosa se maneja internamente, no muestra spinner si ya hay posts */}
+          {hasMore && uniquePosts.length > 0 && (
             <InfiniteScrollTrigger 
               loading={loadingPosts}
               hasMore={hasMore}
