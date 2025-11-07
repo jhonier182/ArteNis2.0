@@ -9,7 +9,6 @@ import {
   User, 
   Award,
   Star,
-  MessageCircle,
   Grid,
   Bookmark,
   ChevronLeft,
@@ -26,7 +25,6 @@ import { useUserPosts } from '../hooks/useUserPosts'
 import { useSavedPosts } from '../hooks/useSavedPosts'
 import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
 import { BottomNavigation } from '@/components/ui/buttons'
-import { LikeButton } from '@/components/ui/buttons'
 import { logger } from '@/utils/logger'
 import { CHECK_NEW_POST_DELAY_MS } from '@/utils/constants'
 import { validateImageFile } from '@/utils/fileValidators'
@@ -570,7 +568,7 @@ export default function ProfilePage() {
                         ease: "easeOut"
                       }}
                       onClick={() => router.push(`/postDetail?postId=${post.id}`)}
-                      className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
+                      className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
                     >
                       {post.mediaUrl && (
                         <>
@@ -584,7 +582,7 @@ export default function ProfilePage() {
                                 className="w-full h-full object-cover"
                               />
                               {/* Overlay con icono de play para videos */}
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                                   <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M8 5v14l11-7z"/>
@@ -605,30 +603,6 @@ export default function ProfilePage() {
                           )}
                         </>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                          <div className="flex items-center gap-3 text-white text-sm">
-                            <div 
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center"
-                            >
-                              <LikeButton
-                                postId={post.id}
-                                initialLiked={post.isLiked || false}
-                                initialLikesCount={post.likesCount || 0}
-                                showCount={true}
-                                variant="default"
-                                size="sm"
-                                className="text-white"
-                              />
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <MessageCircle className="w-4 h-4" />
-                              <span>{post.commentsCount || 0}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -669,7 +643,7 @@ export default function ProfilePage() {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.1 }}
                     onClick={() => router.push(`/postDetail?postId=${post.id}`)}
-                    className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 group cursor-pointer"
+                    className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
                   >
                     {post.mediaUrl && (
                       <>
@@ -683,7 +657,7 @@ export default function ProfilePage() {
                               className="w-full h-full object-cover"
                             />
                             {/* Overlay con icono de play para videos */}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                                 <svg className="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M8 5v14l11-7z"/>
