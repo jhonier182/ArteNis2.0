@@ -184,6 +184,7 @@ export default function PublicUserProfilePage({
                           className="w-full h-full object-cover"
                           priority={index < 4}
                           loading={index < 4 ? 'eager' : 'lazy'}
+                          unoptimized={true} // Cloudinary ya optimiza, evitar doble optimización
                         />
                       )}
                     </>

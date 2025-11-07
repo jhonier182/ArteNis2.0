@@ -12,7 +12,7 @@
  */
 
 // Importaciones de tipos (al inicio para evitar dependencias circulares)
-import { UserPost, Profile } from '@/features/profile/services/profileService'
+import { UserPost, Profile, SavedPost } from '@/features/profile/services/profileService'
 import { Post } from '@/features/posts/services/postService'
 
 interface CacheEntry<T> {
@@ -264,6 +264,14 @@ export const postCache = createCache<Post>('post', {
   keyPrefix: 'post_cache_'
 })
 
+/**
+ * Caché de posts guardados
+ */
+export const savedPostsCache = createCache<SavedPost[]>('saved_posts', {
+  duration: 5 * 60 * 1000, // 5 minutos
+  keyPrefix: 'saved_posts_cache_'
+})
+
 // ============================================
 // Funciones helper para facilitar el uso
 // ============================================
@@ -303,6 +311,28 @@ export function clearAllCache(): void {
   userPostsCache.clear()
   profileCache.clear()
   postCache.clear()
+  savedPostsCache.clear()
+}
+
+/**
+ * Guardar posts guardados en caché
+ */
+export function cacheSavedPosts(userId: string, posts: SavedPost[]): void {
+  savedPostsCache.set(userId, posts)
+}
+
+/**
+ * Obtener posts guardados del caché
+ */
+export function getCachedSavedPosts(userId: string): SavedPost[] | null {
+  return savedPostsCache.get(userId)
+}
+
+/**
+ * Limpiar caché de posts guardados de un usuario específico
+ */
+export function clearSavedPostsCache(userId: string): void {
+  savedPostsCache.delete(userId)
 }
 
 /**

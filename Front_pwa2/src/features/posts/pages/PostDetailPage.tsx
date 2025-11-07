@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { useAuth } from '@/context/AuthContext'
@@ -23,6 +23,8 @@ export default function PostDetailPage() {
   const { user, isAuthenticated } = useAuth()
   const { toast } = useToastContext()
   
+  // Usar ref para evitar re-renders cuando el post ya está cargado
+  const postRef = useRef<Post | null>(null)
   const [post, setPost] = useState<Post | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,6 +46,7 @@ export default function PostDetailPage() {
       const cachedPost = getCachedPost(postId)
       if (cachedPost) {
         // Post en caché: establecer inmediatamente sin mostrar spinner
+        postRef.current = cachedPost
         setPost(cachedPost)
         setIsLoading(false)
         loadComments(postId)
@@ -66,6 +69,7 @@ export default function PostDetailPage() {
       // Guardar en caché
       if (postData) {
         cachePost(id, postData)
+        postRef.current = postData
       }
       
       setPost(postData)
@@ -103,6 +107,21 @@ export default function PostDetailPage() {
       setIsCommenting(false)
     }, 500)
   }
+
+  // Memoizar la URL de la imagen para evitar re-renders innecesarios
+  const imageUrl = useMemo(() => {
+    return post?.imageUrl || post?.mediaUrl || ''
+  }, [post?.imageUrl, post?.mediaUrl])
+
+  // Memoizar si es video
+  const isVideo = useMemo(() => {
+    if (!post) return false
+    return post.type === 'video' ||
+      (post.mediaUrl &&
+        (post.mediaUrl.includes('.mp4') ||
+          post.mediaUrl.includes('.webm') ||
+          post.mediaUrl.includes('.mov')))
+  }, [post?.type, post?.mediaUrl])
 
   if (!postId || typeof postId !== 'string') {
     return (
@@ -161,7 +180,7 @@ export default function PostDetailPage() {
       </header>
 
       {/* Media */}
-      {(post.imageUrl || post.mediaUrl) && (
+      {imageUrl && (
         <div
           className="mb-4 relative overflow-hidden bg-black rounded-xl"
           style={{
@@ -173,13 +192,10 @@ export default function PostDetailPage() {
             transform: 'translateX(-50%)'
           }}
         >
-          {post.type === 'video' ||
-          (post.mediaUrl &&
-            (post.mediaUrl.includes('.mp4') ||
-              post.mediaUrl.includes('.webm') ||
-              post.mediaUrl.includes('.mov'))) ? (
+          {isVideo ? (
             <>
               <video
+                key={post.id} // Key estable para que React reutilice el elemento
                 src={post.mediaUrl || post.imageUrl}
                 autoPlay
                 loop
@@ -203,6 +219,7 @@ export default function PostDetailPage() {
                       width={24}
                       height={24}
                       className="w-6 h-6 rounded-full object-cover"
+                      unoptimized // Para evitar re-procesamiento de imágenes pequeñas
                     />
                   ) : (
                     <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
@@ -228,12 +245,13 @@ export default function PostDetailPage() {
               }}
             >
               <Image
-                src={post.imageUrl || post.mediaUrl || ''}
+                key={`${post.id}-${imageUrl}`} // Key estable basado en post.id
+                src={imageUrl}
                 alt={post.title || 'Post'}
                 fill
                 className="object-contain rounded-xl"
                 priority
-                quality={90}
+                unoptimized={true} // Cloudinary ya optimiza las imágenes, evitar doble optimización
                 style={{
                   width: '100%',
                   height: '100%',

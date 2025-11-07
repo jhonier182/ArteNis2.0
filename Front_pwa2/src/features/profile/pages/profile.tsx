@@ -559,6 +559,7 @@ export default function ProfilePage() {
                                 width={300}
                                 height={300}
                                 className="w-full h-full object-cover"
+                                unoptimized={true} // Cloudinary ya optimiza, evitar doble optimización
                               />
                               {/* Overlay con icono de play para videos */}
                               <div className="absolute inset-0 flex items-center justify-center bg-black/20">
@@ -578,6 +579,7 @@ export default function ProfilePage() {
                               className="w-full h-full object-cover"
                               priority={index < 4}
                               loading={index < 4 ? 'eager' : 'lazy'}
+                              unoptimized={true} // Cloudinary ya optimiza, evitar doble optimización
                             />
                           )}
                         </>

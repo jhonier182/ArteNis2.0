@@ -48,7 +48,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Estrategia de caché: Network First con fallback a cache
+// Estrategia de caché: Cache First para imágenes y recursos estáticos, Network First para el resto
 self.addEventListener('fetch', (event) => {
   // Solo cachear peticiones GET
   if (event.request.method !== 'GET') {
@@ -60,6 +60,55 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const url = new URL(event.request.url);
+  const isImageRequest = url.pathname.includes('/_next/image') ||
+                         event.request.destination === 'image' ||
+                         url.searchParams.has('url'); // Next.js image optimization
+
+  const isStaticAsset = url.pathname.startsWith('/_next/static/') ||
+                        url.pathname.startsWith('/static/') ||
+                        url.pathname.endsWith('.js') ||
+                        url.pathname.endsWith('.css') ||
+                        url.pathname.endsWith('.png') ||
+                        url.pathname.endsWith('.jpg') ||
+                        url.pathname.endsWith('.jpeg') ||
+                        url.pathname.endsWith('.svg') ||
+                        url.pathname.endsWith('.webp') ||
+                        url.pathname.endsWith('.avif');
+
+  // Para imágenes y recursos estáticos: Cache First (más agresivo)
+  if (isImageRequest || isStaticAsset) {
+    event.respondWith(
+      caches.match(event.request)
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            // Si está en caché, devolverlo inmediatamente sin ir a la red
+            return cachedResponse;
+          }
+          
+          // Si no está en caché, ir a la red y guardar
+          return fetch(event.request)
+            .then((response) => {
+              // Solo cachear respuestas exitosas
+              if (response && response.status === 200 && response.type !== 'error') {
+                const responseToCache = response.clone();
+                caches.open(CACHE_NAME)
+                  .then((cache) => {
+                    cache.put(event.request, responseToCache);
+                  });
+              }
+              return response;
+            })
+            .catch(() => {
+              // Si falla la red y no hay caché, devolver null
+              return null;
+            });
+        })
+    );
+    return;
+  }
+
+  // Para otros recursos (HTML, etc.): Network First (menos agresivo)
   event.respondWith(
     fetch(event.request)
       .then((response) => {
