@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
@@ -170,38 +170,224 @@ export default function ProfilePage() {
   // Esto causaba re-renders innecesarios al volver del detalle de post
   // El caché ahora maneja la persistencia de posts entre navegaciones
 
+  // Ref para trackear la ruta anterior y si ya restauramos el scroll
+  const previousPathRef = useRef<string | null>(null)
+  const scrollRestoredRef = useRef<boolean>(false)
+  const targetScrollRef = useRef<number | null>(null)
+  const isInitialMountRef = useRef<boolean>(true)
+  
+  // Función para verificar si es la primera carga (usando sessionStorage para persistir)
+  const getIsFirstLoad = useCallback((userId: string) => {
+    if (typeof window === 'undefined') return true
+    const key = `profile_first_load_${userId}`
+    const stored = sessionStorage.getItem(key)
+    return stored === null
+  }, [])
+  
+  // Función para marcar que ya no es la primera carga
+  const markNotFirstLoad = useCallback((userId: string) => {
+    if (typeof window === 'undefined') return
+    const key = `profile_first_load_${userId}`
+    sessionStorage.setItem(key, 'false')
+  }, [])
+
   // Guardar posición de scroll antes de navegar
   useEffect(() => {
-    const handleRouteChangeStart = () => {
-      if (user?.id && typeof window !== 'undefined') {
-        saveScrollPosition(user.id, window.scrollY)
+    const handleRouteChangeStart = (url: string) => {
+      // Guardar scroll cuando salimos del perfil (cualquier ruta que no sea /profile)
+      if (user?.id && typeof window !== 'undefined' && router.asPath === '/profile' && !url.includes('/profile')) {
+        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop
+        if (currentScroll > 0) {
+          logger.debug(`[ProfilePage] Guardando scroll: ${currentScroll}px antes de navegar a ${url}`)
+          saveScrollPosition(user.id, currentScroll)
+          // Guardar la ruta a la que vamos para detectar el retorno
+          previousPathRef.current = url
+        }
+      }
+      // Resetear flag cuando salimos
+      scrollRestoredRef.current = false
+    }
+
+    const handleRouteChangeComplete = () => {
+      // Marcar que no es el montaje inicial después de la primera navegación
+      if (isInitialMountRef.current) {
+        isInitialMountRef.current = false
       }
     }
 
     router.events?.on('routeChangeStart', handleRouteChangeStart)
+    router.events?.on('routeChangeComplete', handleRouteChangeComplete)
 
     return () => {
       router.events?.off('routeChangeStart', handleRouteChangeStart)
+      router.events?.off('routeChangeComplete', handleRouteChangeComplete)
     }
   }, [router, user?.id])
 
   // Restaurar posición de scroll al volver al perfil
-  useEffect(() => {
-    if (!user?.id || !isAuthenticated) return
-
-    // Pequeño delay para asegurar que el DOM esté listo
-    const timer = setTimeout(() => {
-      const savedScroll = getScrollPosition(user.id)
-      if (savedScroll !== null && typeof window !== 'undefined') {
-        window.scrollTo({
-          top: savedScroll,
-          behavior: 'auto' // Sin animación para que sea instantáneo
-        })
+  // Usamos useLayoutEffect para ejecutar antes del paint
+  useLayoutEffect(() => {
+    // Verificar si estamos en /profile (con o sin query params)
+    const isOnProfile = router.asPath.startsWith('/profile') && !router.asPath.includes('/profile/')
+    
+    if (!user?.id || !isAuthenticated || !isOnProfile) {
+      if (!isOnProfile) {
+        scrollRestoredRef.current = false
+        targetScrollRef.current = null
       }
-    }, 100)
+      return
+    }
 
-    return () => clearTimeout(timer)
-  }, [user?.id, isAuthenticated, router.asPath])
+    // Verificar si hay scroll guardado
+    const savedScroll = getScrollPosition(user.id)
+    
+    // Determinar si estamos volviendo de otra ruta
+    const currentPath = router.pathname || router.asPath.split('?')[0]
+    const previousPath = previousPathRef.current?.split('?')[0] || null
+    const wasOnProfile = previousPath === '/profile'
+    const isReturningToProfile = previousPath !== null && 
+                                  previousPath !== '/profile' && 
+                                  currentPath === '/profile'
+    
+    // Logs de debug
+    logger.debug(`[ProfilePage] useLayoutEffect - currentPath: ${currentPath}, previousPath: ${previousPath}, savedScroll: ${savedScroll}, isInitialMount: ${isInitialMountRef.current}, scrollRestored: ${scrollRestoredRef.current}`)
+    
+    // Verificar si es la primera carga usando sessionStorage
+    const isFirstLoad = user?.id ? getIsFirstLoad(user.id) : true
+    
+    // Marcar que ya no es el montaje inicial después de la primera carga completa
+    if (isFirstLoad && userPosts.length > 0 && user?.id) {
+      logger.debug(`[ProfilePage] Marcando que ya no es primera carga (userPosts.length: ${userPosts.length})`)
+      markNotFirstLoad(user.id)
+      isInitialMountRef.current = false
+    } else if (!isFirstLoad) {
+      isInitialMountRef.current = false
+    }
+    
+    // Restaurar si:
+    // 1. Hay scroll guardado
+    // 2. Posts ya están cargados (para evitar restaurar antes de que el contenido esté listo)
+    // 3. Aún no se ha restaurado
+    // 4. No es la primera carga (verificado con sessionStorage)
+    const hasValidPreviousPath = previousPath !== null && previousPath !== '/profile'
+    const isNotFirstLoad = !isFirstLoad || hasValidPreviousPath
+    
+    const shouldRestore = savedScroll !== null && 
+                          savedScroll > 0 && 
+                          !scrollRestoredRef.current &&
+                          userPosts.length > 0 &&
+                          isNotFirstLoad
+    
+    logger.debug(`[ProfilePage] shouldRestore: ${shouldRestore} (savedScroll: ${savedScroll}, hasValidPreviousPath: ${hasValidPreviousPath}, isNotFirstLoad: ${isNotFirstLoad}, isInitialMount: ${isInitialMountRef.current}, userPosts.length: ${userPosts.length}, previousPath: ${previousPath})`)
+    
+    if (shouldRestore && typeof window !== 'undefined') {
+      logger.debug(`[ProfilePage] Restaurando scroll a: ${savedScroll}px`)
+      targetScrollRef.current = savedScroll
+      scrollRestoredRef.current = true
+
+      // Función para verificar que el contenido esté renderizado
+      const isContentReady = () => {
+        // Verificar que haya posts en el estado
+        if (userPosts.length === 0) return false
+        
+        // Verificar que el DOM tenga contenido (al menos un post renderizado)
+        const postElements = document.querySelectorAll('[data-post-item]')
+        return postElements.length > 0 || document.body.scrollHeight > window.innerHeight
+      }
+
+      // Función para restaurar scroll de forma agresiva
+      const restoreScroll = () => {
+        if (targetScrollRef.current === null) return
+        
+        // Si el contenido no está listo, esperar un poco más
+        if (!isContentReady()) {
+          return
+        }
+        
+        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop
+        const target = targetScrollRef.current
+        
+        // Si no estamos en la posición correcta, forzar restauración
+        if (Math.abs(currentScroll - target) > 10) {
+          // Múltiples métodos para asegurar que funcione
+          window.scrollTo({ top: target, behavior: 'auto' })
+          document.documentElement.scrollTop = target
+          if (document.body) {
+            document.body.scrollTop = target
+          }
+          logger.debug(`[ProfilePage] Scroll restaurado a ${target}px (actual: ${currentScroll}px)`)
+        } else {
+          // Si ya estamos en la posición correcta, limpiar después de un momento
+          logger.debug(`[ProfilePage] Scroll ya está en la posición correcta (${currentScroll}px)`)
+          setTimeout(() => {
+            targetScrollRef.current = null
+          }, 500)
+        }
+      }
+
+      // Restaurar inmediatamente (useLayoutEffect se ejecuta antes del paint)
+      restoreScroll()
+      
+      const timeouts: NodeJS.Timeout[] = []
+      const rafIds: number[] = []
+      
+      // Intentos múltiples en diferentes momentos (más agresivo)
+      // Empezar después de un pequeño delay para dar tiempo al render
+      for (let i = 1; i <= 50; i++) {
+        timeouts.push(setTimeout(restoreScroll, i * 10)) // Cada 10ms hasta 500ms
+      }
+      
+      // También con requestAnimationFrame (múltiples frames)
+      for (let i = 0; i < 15; i++) {
+        const rafId = requestAnimationFrame(() => {
+          restoreScroll()
+          requestAnimationFrame(() => {
+            restoreScroll()
+            requestAnimationFrame(restoreScroll)
+          })
+        })
+        rafIds.push(rafId)
+      }
+
+      // Listener para prevenir que se resetee el scroll (más agresivo)
+      let lastScrollTime = Date.now()
+      const preventScrollReset = () => {
+        if (targetScrollRef.current === null) return
+        
+        const now = Date.now()
+        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop
+        const target = targetScrollRef.current
+        
+        // Si el scroll está cerca de 0 pero debería estar más abajo, restaurarlo
+        if (currentScroll < 100 && target > 100 && (now - lastScrollTime) > 50) {
+          logger.debug(`[ProfilePage] Preveniendo reset de scroll: ${currentScroll}px -> ${target}px`)
+          restoreScroll()
+          lastScrollTime = now
+        }
+      }
+
+      window.addEventListener('scroll', preventScrollReset, { passive: true })
+      
+      // Limpiar después de un tiempo más largo
+      const cleanupTimeout = setTimeout(() => {
+        targetScrollRef.current = null
+        window.removeEventListener('scroll', preventScrollReset)
+      }, 3000)
+
+      return () => {
+        timeouts.forEach(clearTimeout)
+        rafIds.forEach(cancelAnimationFrame)
+        clearTimeout(cleanupTimeout)
+        window.removeEventListener('scroll', preventScrollReset)
+      }
+    }
+
+    // Actualizar la ruta anterior solo si realmente cambió (no sobrescribir si ya está guardada)
+    // Solo actualizar si estamos en /profile y no hay un previousPath válido guardado
+    if (currentPath === '/profile' && (previousPathRef.current === null || previousPathRef.current === '/profile')) {
+      // No actualizar aquí, se actualizará cuando naveguemos a otra ruta
+    }
+  }, [user?.id, isAuthenticated, router.asPath, router.pathname, userPosts.length])
 
   // Guardar scroll periódicamente mientras el usuario está en la página
   useEffect(() => {
@@ -230,6 +416,23 @@ export default function ProfilePage() {
       if (scrollTimeout) clearTimeout(scrollTimeout)
     }
   }, [user?.id])
+
+  // Función para manejar click en post (guardar scroll antes de navegar)
+  const handlePostClick = useCallback((postId: string) => {
+    // Guardar scroll antes de navegar
+    if (user?.id && typeof window !== 'undefined') {
+      const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop
+      if (currentScroll > 0) {
+        logger.debug(`[ProfilePage] Guardando scroll antes de click en post: ${currentScroll}px`)
+        saveScrollPosition(user.id, currentScroll)
+        // Guardar la ruta a la que vamos para detectar el retorno
+        previousPathRef.current = `/postDetail?postId=${postId}`
+        logger.debug(`[ProfilePage] previousPathRef actualizado a: ${previousPathRef.current}`)
+      }
+    }
+    // Navegar al post
+    router.push(`/postDetail?postId=${postId}`)
+  }, [user?.id, router])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -346,11 +549,7 @@ export default function ProfilePage() {
 
       <div className="px-6 pt-6 max-w-md mx-auto">
         {isArtist ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
+          <div className="mb-6">
             <div className="flex items-start gap-4">
               <div className="relative group flex-shrink-0">
                 <button
@@ -423,14 +622,10 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         ) : (
           <>
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="flex justify-center mb-6"
-            >
+            <div className="flex justify-center mb-6">
               <div className="relative group">
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -457,7 +652,7 @@ export default function ProfilePage() {
                   <Camera className="w-5 h-5 text-white" />
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold mb-1">
@@ -527,10 +722,8 @@ export default function ProfilePage() {
                     <span>{userRewards.points}/{userRewards.nextReward}</span>
                   </div>
                   <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(userRewards.points / userRewards.nextReward) * 100}%` }}
-                      transition={{ duration: 1, ease: 'easeOut' }}
+                    <div
+                      style={{ width: `${(userRewards.points / userRewards.nextReward) * 100}%` }}
                       className="h-full bg-gradient-to-r from-yellow-500 to-orange-500"
                     />
                   </div>
@@ -573,11 +766,8 @@ export default function ProfilePage() {
               </div>
               <div className="flex gap-4 overflow-x-auto pb-2 -mx-6 px-6">
                 {badges.map((badge, index) => (
-                  <motion.div
+                  <div
                     key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
                     className="flex-shrink-0 text-center"
                   >
                     <div className={`w-16 h-16 ${badge.color} rounded-full flex items-center justify-center mb-2`}>
@@ -586,7 +776,7 @@ export default function ProfilePage() {
                     <p className="text-xs text-gray-400 max-w-[80px] leading-tight">
                       {badge.label}
                     </p>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -611,7 +801,8 @@ export default function ProfilePage() {
                   {userPosts.map((post, index) => (
                     <div
                       key={post.id}
-                      onClick={() => router.push(`/postDetail?postId=${post.id}`)}
+                      data-post-item
+                      onClick={() => handlePostClick(post.id)}
                       className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
                     >
                       {post.mediaUrl && (
@@ -683,7 +874,8 @@ export default function ProfilePage() {
                 {savedPosts.slice(0, 6).map((post, index) => (
                   <div
                     key={post.id}
-                    onClick={() => router.push(`/postDetail?postId=${post.id}`)}
+                    data-post-item
+                    onClick={() => handlePostClick(post.id)}
                     className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
                   >
                     {post.mediaUrl && (

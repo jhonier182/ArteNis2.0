@@ -14,6 +14,12 @@ interface BeforeInstallPromptEvent extends Event {
 
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
+    // Deshabilitar scroll restoration automático de Next.js
+    // Usaremos nuestra propia lógica de restauración
+    if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual'
+    }
+
     // Registrar Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
