@@ -29,6 +29,7 @@ import { logger } from '@/utils/logger'
 import { CHECK_NEW_POST_DELAY_MS } from '@/utils/constants'
 import { validateImageFile } from '@/utils/fileValidators'
 import { useToastContext } from '@/context/ToastContext'
+import { saveScrollPosition, getScrollPosition } from '@/utils/profilePostsCache'
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, updateUser } = useAuth()
@@ -165,20 +166,70 @@ export default function ProfilePage() {
     }
   }, [user?.id, updateUser, router.asPath])
 
-  // Refrescar posts cuando se navega al perfil (por si acaso)
-  useEffect(() => {
-    const isArtist = user?.userType === 'artist' || 
-                     (typeof user?.userType === 'string' && user?.userType.toLowerCase() === 'artist')
-    if (isArtist && user?.id) {
-      // Pequeño delay para asegurar que el componente esté completamente montado
-      const timer = setTimeout(() => {
-        resetPosts()
-      }, 200)
-      
-      return () => clearTimeout(timer)
-    }
-  }, [router.asPath, user?.id, user?.userType, resetPosts])
+  // NOTA: Eliminado useEffect que reseteaba posts al cambiar ruta
+  // Esto causaba re-renders innecesarios al volver del detalle de post
+  // El caché ahora maneja la persistencia de posts entre navegaciones
 
+  // Guardar posición de scroll antes de navegar
+  useEffect(() => {
+    const handleRouteChangeStart = () => {
+      if (user?.id && typeof window !== 'undefined') {
+        saveScrollPosition(user.id, window.scrollY)
+      }
+    }
+
+    router.events?.on('routeChangeStart', handleRouteChangeStart)
+
+    return () => {
+      router.events?.off('routeChangeStart', handleRouteChangeStart)
+    }
+  }, [router, user?.id])
+
+  // Restaurar posición de scroll al volver al perfil
+  useEffect(() => {
+    if (!user?.id || !isAuthenticated) return
+
+    // Pequeño delay para asegurar que el DOM esté listo
+    const timer = setTimeout(() => {
+      const savedScroll = getScrollPosition(user.id)
+      if (savedScroll !== null && typeof window !== 'undefined') {
+        window.scrollTo({
+          top: savedScroll,
+          behavior: 'auto' // Sin animación para que sea instantáneo
+        })
+      }
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [user?.id, isAuthenticated, router.asPath])
+
+  // Guardar scroll periódicamente mientras el usuario está en la página
+  useEffect(() => {
+    if (!user?.id) return
+
+    const handleScroll = () => {
+      if (typeof window !== 'undefined') {
+        saveScrollPosition(user.id, window.scrollY)
+      }
+    }
+
+    // Throttle para no guardar en cada pixel de scroll
+    let scrollTimeout: NodeJS.Timeout | null = null
+    const throttledScroll = () => {
+      if (scrollTimeout) return
+      scrollTimeout = setTimeout(() => {
+        handleScroll()
+        scrollTimeout = null
+      }, 500) // Guardar cada 500ms
+    }
+
+    window.addEventListener('scroll', throttledScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', throttledScroll)
+      if (scrollTimeout) clearTimeout(scrollTimeout)
+    }
+  }, [user?.id])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -558,15 +609,8 @@ export default function ProfilePage() {
               <div className="mb-6">
                 <div className="grid grid-cols-2 gap-3">
                   {userPosts.map((post, index) => (
-                    <motion.div
+                    <div
                       key={post.id}
-                      initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ 
-                        delay: Math.min(index * 0.08, 0.5), // Máximo delay de 0.5s para efecto fluido
-                        duration: 0.4,
-                        ease: "easeOut"
-                      }}
                       onClick={() => router.push(`/postDetail?postId=${post.id}`)}
                       className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
                     >
@@ -603,7 +647,7 @@ export default function ProfilePage() {
                           )}
                         </>
                       )}
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
                 
@@ -637,11 +681,8 @@ export default function ProfilePage() {
             ) : savedPosts.length > 0 ? (
               <div className="grid grid-cols-2 gap-3 mb-6">
                 {savedPosts.slice(0, 6).map((post, index) => (
-                  <motion.div
+                  <div
                     key={post.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
                     onClick={() => router.push(`/postDetail?postId=${post.id}`)}
                     className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
                   >
@@ -679,7 +720,7 @@ export default function ProfilePage() {
                     <div className="absolute top-2 right-2">
                       <Bookmark className="w-5 h-5 text-blue-500 fill-blue-500" />
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             ) : (

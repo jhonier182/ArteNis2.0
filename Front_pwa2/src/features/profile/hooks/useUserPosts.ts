@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { profileService, UserPost } from '../services/profileService'
 import { logger } from '@/utils/logger'
 import { USER_POSTS_LIMIT } from '@/utils/constants'
+import { 
+  getCachedUserPosts, 
+  cacheUserPosts, 
+  clearUserPostsCache 
+} from '@/utils/profilePostsCache'
 
 interface UseUserPostsResult {
   posts: UserPost[]
@@ -29,7 +34,7 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
   const lastUserIdRef = useRef<string | undefined>(undefined)
   const hasPostsRef = useRef<boolean>(false)
   const hasLoadedRef = useRef<boolean>(false)
-  const fetchPostsRef = useRef<((cursor: string | null) => Promise<void>) | null>(null)
+  const fetchPostsRef = useRef<((cursor: string | null, forceRefresh?: boolean) => Promise<void>) | null>(null)
   // Ref para trackear el userId de los posts actuales mostrados
   const postsUserIdRef = useRef<string | undefined>(undefined)
 
@@ -37,9 +42,9 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
    * Función interna para cargar posts con cursor
    * Almacenada en ref para evitar recreaciones innecesarias
    */
-  const fetchPosts = useCallback(async (cursor: string | null = null) => {
+  const fetchPosts = useCallback(async (cursor: string | null = null, forceRefresh: boolean = false) => {
     const currentUserId = userId
-    logger.debug(`[useUserPosts] fetchPosts llamado - cursor: ${cursor}, userId: ${currentUserId}`)
+    logger.debug(`[useUserPosts] fetchPosts llamado - cursor: ${cursor}, userId: ${currentUserId}, forceRefresh: ${forceRefresh}`)
     
     if (!currentUserId) {
       logger.debug('[useUserPosts] fetchPosts: No hay userId, abortando')
@@ -52,10 +57,37 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
       return
     }
 
-    // Verificar si ya está cargando (ya debería estar marcado desde el useEffect, pero verificamos por seguridad)
-    if (isFetchingRef.current && cursor === null) {
-      logger.debug('[useUserPosts] fetchPosts: Ya está cargando (cursor=null), ignorando')
-      return
+    // Verificar si ya está cargando (solo si NO es la primera carga desde useEffect)
+    // Permitir la carga si es la primera vez (cursor === null y forceRefresh === false)
+    if (isFetchingRef.current && cursor === null && !forceRefresh) {
+      // Verificar si realmente hay una carga en progreso o si es solo un flag residual
+      // Si no hay posts y no hay caché, permitir la carga
+      const cached = getCachedUserPosts(currentUserId)
+      if (!cached || cached.posts.length === 0) {
+        // Si no hay caché, permitir la carga incluso si isFetchingRef está en true
+        logger.debug('[useUserPosts] fetchPosts: isFetchingRef está en true pero no hay caché, permitiendo carga')
+        isFetchingRef.current = false // Resetear para permitir la carga
+      } else {
+        logger.debug('[useUserPosts] fetchPosts: Ya está cargando (cursor=null), ignorando')
+        return
+      }
+    }
+
+    // Si es la primera carga (cursor === null) y no es forzada, intentar cargar desde caché
+    if (cursor === null && !forceRefresh) {
+      const cached = getCachedUserPosts(currentUserId)
+      if (cached && cached.posts.length > 0) {
+        logger.debug(`[useUserPosts] Cargando desde caché - posts: ${cached.posts.length}, nextCursor: ${cached.nextCursor || 'null'}`)
+        setPosts(cached.posts)
+        setNextCursor(cached.nextCursor)
+        hasPostsRef.current = cached.posts.length > 0
+        hasLoadedRef.current = true
+        postsUserIdRef.current = currentUserId
+        // No marcar como cargando si usamos caché
+        setLoading(false)
+        isFetchingRef.current = false
+        return
+      }
     }
 
     // Marcar como cargando INMEDIATAMENTE (si no está ya marcado)
@@ -100,6 +132,9 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
         setPosts(result.posts)
         logger.debug(`[useUserPosts] Después: posts.length=${result.posts.length}, nextCursor=${result.nextCursor || 'null'}`)
         
+        // Guardar en caché
+        cacheUserPosts(currentUserId, result.posts, result.nextCursor)
+        
         // Actualizar refs después para no bloquear el render
         hasPostsRef.current = result.posts.length > 0
         hasLoadedRef.current = true
@@ -116,6 +151,10 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
           const updated = [...prev, ...newPosts]
           logger.debug(`[useUserPosts] Posts agregados: ${newPosts.length}, total ahora: ${updated.length}`)
           hasPostsRef.current = updated.length > 0
+          
+          // Actualizar caché con todos los posts acumulados
+          cacheUserPosts(currentUserId, updated, result.nextCursor)
+          
           return updated
         })
       }
@@ -164,8 +203,14 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
     setError(null)
     setLoading(false)
 
+    // Limpiar caché al resetear
+    if (userId) {
+      clearUserPostsCache(userId)
+    }
+
     if (userId && fetchPostsRef.current) {
-      fetchPostsRef.current(null)
+      // Forzar refresh desde servidor
+      fetchPostsRef.current(null, true)
     }
   }, [userId])
 
@@ -182,7 +227,6 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
       if (lastUserIdRef.current !== undefined) {
         logger.debug('[useUserPosts] Limpiando estado (sin userId)')
         lastUserIdRef.current = undefined
-        // Solo limpiar posts cuando realmente hay posts previos
         if (hasPostsRef.current) {
           logger.debug('[useUserPosts] setPosts([]) - limpiando posts')
           setPosts([])
@@ -195,41 +239,73 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
       return
     }
 
-    // Si el userId cambió, preparar para nueva carga
-    // IMPORTANTE: NO limpiar posts aquí para evitar flickering
-    // Los posts se limpiarán cuando lleguen los nuevos datos en fetchPosts
-    if (lastUserIdRef.current !== userId) {
-      logger.debug(`[useUserPosts] userId cambió: ${lastUserIdRef.current} -> ${userId}`)
-      // Cancelar cualquier carga en progreso
+    // Verificar caché PRIMERO para determinar si es un re-mount del mismo userId
+    const cached = getCachedUserPosts(userId)
+    const hasCachedPosts = cached && cached.posts.length > 0
+    
+    // Si hay caché, probablemente es un re-mount del mismo userId
+    // Verificar si el userId realmente cambió o es solo un re-mount
+    const userIdChanged = lastUserIdRef.current !== userId && lastUserIdRef.current !== undefined
+    
+    // Si hay caché y el userId no cambió realmente (solo es undefined por re-mount), restaurar desde caché
+    if (!userIdChanged && hasCachedPosts && (lastUserIdRef.current === undefined || lastUserIdRef.current === userId)) {
+      logger.debug(`[useUserPosts] Re-mount detectado con caché - posts: ${cached.posts.length}, restaurando desde caché`)
+      setPosts(cached.posts)
+      setNextCursor(cached.nextCursor)
+      hasPostsRef.current = true
+      hasLoadedRef.current = true
+      postsUserIdRef.current = userId
+      lastUserIdRef.current = userId
+      setLoading(false)
       isFetchingRef.current = false
-      
-      // NO limpiar posts aquí - se reemplazarán cuando lleguen los nuevos
-      // Esto evita que los posts desaparezcan y reaparezcan (flickering)
-      logger.debug('[useUserPosts] NO limpiando posts aquí (evita flickering)')
-      
+      return
+    }
+
+    // Si el userId realmente cambió (no es undefined), resetear flags
+    if (userIdChanged) {
+      logger.debug(`[useUserPosts] userId cambió: ${lastUserIdRef.current} -> ${userId}`)
+      isFetchingRef.current = false
       hasLoadedRef.current = false
       setNextCursor(null)
       setError(null)
-      // No cambiar loading aquí - se manejará en fetchPosts
-      
-      // Actualizar referencia INMEDIATAMENTE
+      lastUserIdRef.current = userId
+    } else if (lastUserIdRef.current === undefined) {
+      // Primera vez que se monta con este userId
       lastUserIdRef.current = userId
     }
 
-    // Cargar posts iniciales solo si no se han cargado aún para este userId
-    // IMPORTANTE: Marcar flags ANTES de llamar para evitar condición de carrera
-    if (userId && !hasLoadedRef.current && !isFetchingRef.current && fetchPostsRef.current) {
-      // MARCAR INMEDIATAMENTE para prevenir ejecuciones duplicadas
-      // Esto debe hacerse ANTES de llamar a fetchPosts para evitar condición de carrera
-      isFetchingRef.current = true
-      // NO marcar hasLoadedRef aquí - se marcará cuando la carga se complete exitosamente
-      
-      logger.debug('[useUserPosts] Iniciando carga inicial de posts (isFetching marcado)')
-      
-      // Llamar a fetchPosts después de marcar el flag
-      fetchPostsRef.current(null)
-    } else {
-      logger.debug(`[useUserPosts] Omitiendo carga: hasLoaded=${hasLoadedRef.current}, isFetching=${isFetchingRef.current}`)
+    // Si el userId NO cambió y ya hay posts cargados, NO hacer nada
+    // Esto evita re-cargas innecesarias al volver del detalle de post
+    if (!userIdChanged && hasLoadedRef.current && posts.length > 0 && postsUserIdRef.current === userId) {
+      logger.debug(`[useUserPosts] userId no cambió y ya hay ${posts.length} posts cargados, omitiendo recarga`)
+      return
+    }
+
+    // Si ya está cargando, no hacer nada
+    if (isFetchingRef.current) {
+      logger.debug('[useUserPosts] Ya está cargando, omitiendo')
+      return
+    }
+
+    // Intentar cargar desde caché si no se restauró antes
+    if (hasCachedPosts) {
+      logger.debug(`[useUserPosts] Caché encontrado - posts: ${cached.posts.length}, cargando directamente`)
+      setPosts(cached.posts)
+      setNextCursor(cached.nextCursor)
+      hasPostsRef.current = true
+      hasLoadedRef.current = true
+      postsUserIdRef.current = userId
+      setLoading(false)
+      isFetchingRef.current = false
+      return
+    }
+
+    // Si no hay caché y no se ha cargado, hacer fetch
+    // NO marcar isFetchingRef aquí - fetchPosts lo hará internamente
+    if (!hasLoadedRef.current && fetchPostsRef.current) {
+      logger.debug('[useUserPosts] No hay caché, iniciando fetch desde API')
+      // NO marcar isFetchingRef aquí - fetchPosts lo manejará
+      fetchPostsRef.current(null, false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
