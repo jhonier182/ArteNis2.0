@@ -38,6 +38,44 @@ export default function App({ Component, pageProps }: AppProps) {
       return
       ;(window as WindowWithDeferredPrompt).deferredPrompt = null
     })
+
+    // Bloquear zoom por gestos táctiles (pinch zoom)
+    // Si hay más de un dedo, prevenir el zoom
+    const handleTouchMove = (event: TouchEvent) => {
+      if (event.touches.length > 1) {
+        event.preventDefault()
+      }
+    }
+
+    // Bloquear zoom por gestos táctiles con scale (para navegadores que lo soporten)
+    const handleTouchMoveScale = (event: TouchEvent) => {
+      const touchEvent = event as TouchEvent & { scale?: number }
+      if (touchEvent.scale !== undefined && touchEvent.scale !== 1) {
+        event.preventDefault()
+      }
+    }
+
+    // Bloquear doble-tap zoom
+    let lastTouchEnd = 0
+    const handleTouchEnd = (event: TouchEvent) => {
+      const now = Date.now()
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault()
+      }
+      lastTouchEnd = now
+    }
+
+    // Agregar event listeners
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.addEventListener('touchmove', handleTouchMoveScale, { passive: false })
+    document.addEventListener('touchend', handleTouchEnd, { passive: false })
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchmove', handleTouchMoveScale)
+      document.removeEventListener('touchend', handleTouchEnd)
+    }
   }, [])
 
   return (
