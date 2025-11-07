@@ -62,16 +62,6 @@ export interface SavedPost extends UserPost {
   }
 }
 
-interface PaginationResponse {
-  hasNext: boolean
-  page?: number
-  limit?: number
-  total?: number
-  totalItems?: number
-  currentPage?: number
-  totalPages?: number
-}
-
 interface RawPostResponse {
   id: string
   title?: string

@@ -8,7 +8,6 @@ import { postService, Post } from '@/features/posts/services/postService'
 import { LikeButton, SaveButton, ShareButton } from '@/components/ui/buttons'
 import { ChevronLeft, MessageCircle } from 'lucide-react'
 import Image from 'next/image'
-import { logger } from '@/utils/logger'
 import { useToastContext } from '@/context/ToastContext'
 
 /**

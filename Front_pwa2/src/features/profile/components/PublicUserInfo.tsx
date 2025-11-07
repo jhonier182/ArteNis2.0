@@ -132,7 +132,7 @@ export function PublicUserInfo({
                     avatar: profile.avatar
                   }}
                   initialFollowState={profile.isFollowing ?? false}
-                  onFollowChange={(isFollowing) => {
+                  onFollowChange={(_isFollowing) => {
                    
                   }}
                   size="md"
@@ -213,7 +213,7 @@ export function PublicUserInfo({
                 avatar: profile.avatar
               }}
               initialFollowState={profile.isFollowing ?? false}
-              onFollowChange={(isFollowing) => {
+              onFollowChange={(_isFollowing) => {
                
               }}
               size="md"

@@ -8,7 +8,7 @@ import { postService } from '@/features/posts/services/postService'
 import { ImageEditor } from '@/features/posts/components/ImageEditor'
 import { logger } from '@/utils/logger'
 import { POST_CREATION_PROCESSING_DELAY_MS, POST_CREATION_NAVIGATION_DELAY_MS, ERROR_NO_FILE_SELECTED, ERROR_INVALID_FILE_TYPE } from '@/utils/constants'
-import { validatePostFile, getFileType } from '@/utils/fileValidators'
+import { validatePostFile } from '@/utils/fileValidators'
 
 export default function CreatePostPage() {
   const router = useRouter()

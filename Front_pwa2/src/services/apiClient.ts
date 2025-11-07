@@ -76,15 +76,6 @@ class ApiClient {
         // Añadir token de autenticación
         const token = this.getAuthToken()
         
-        // Endpoints que no requieren autenticación (opcional)
-        const publicEndpoints = [
-          '/posts/user/', // Ver posts de usuario (público)
-          '/posts/', // Ver feed público (opcional)
-        ]
-        
-        const fullUrl = (config.baseURL || '') + (config.url || '')
-        const isPublicEndpoint = publicEndpoints.some(endpoint => fullUrl.includes(endpoint))
-        
         if (token && config.headers) {
           // Limpiar el token de espacios y caracteres inválidos
           const cleanToken = token.trim()

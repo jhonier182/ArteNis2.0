@@ -6,7 +6,7 @@
  */
 
 import React, { createContext, useContext, ReactNode } from 'react'
-import { useToast, ToastContainer, Toast } from '@/components/ui/Toast'
+import { useToast, ToastContainer } from '@/components/ui/Toast'
 
 interface ToastContextType {
   toast: ReturnType<typeof useToast>

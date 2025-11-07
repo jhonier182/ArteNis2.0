@@ -301,7 +301,7 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside space-y-2 text-gray-300 ml-4">
               <li>Notificación en la plataforma</li>
               <li>Correo electrónico a la dirección asociada con tu cuenta</li>
-              <li>Actualización de la fecha de "Última actualización" en esta página</li>
+              <li>Actualización de la fecha de &quot;Última actualización&quot; en esta página</li>
             </ul>
             <p className="text-gray-300 leading-relaxed mt-4">
               Tu uso continuado de Inkedin después de cualquier cambio constituye tu aceptación de la política revisada.

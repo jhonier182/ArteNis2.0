@@ -18,10 +18,12 @@ export default function App({ Component, pageProps }: AppProps) {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js')
-        .then((registration) => {
-
+        .then(() => {
+          // Service Worker registrado
         })
-        .catch((error) => {return})
+        .catch(() => {
+          // Error al registrar Service Worker
+        })
     }
 
     // Detectar si la app está instalada

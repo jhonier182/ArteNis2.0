@@ -196,7 +196,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold mb-4 text-white">8. Limitación de Responsabilidad</h2>
             <p className="text-gray-300 leading-relaxed mb-4">
-              Inkedin se proporciona "tal cual" y "según disponibilidad". No garantizamos que:
+              Inkedin se proporciona &quot;tal cual&quot; y &quot;según disponibilidad&quot;. No garantizamos que:
             </p>
             <ul className="list-disc list-inside space-y-2 text-gray-300 ml-4 mb-4">
               <li>El servicio esté siempre disponible, ininterrumpido o libre de errores</li>

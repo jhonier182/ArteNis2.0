@@ -44,7 +44,6 @@ interface UseSearchResult {
 export function useSearch(options: UseSearchOptions = {}): UseSearchResult {
   const {
     debounceMs = 300,
-    defaultType = 'artists',
     onSearchComplete,
     onError
   } = options
@@ -84,7 +83,7 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchResult {
         setIsSearching(false)
       }
     },
-    [defaultType, onSearchComplete, onError]
+    [onSearchComplete, onError]
   )
 
   /**

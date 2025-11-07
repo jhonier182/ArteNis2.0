@@ -36,7 +36,7 @@ export default function SettingsModal({
   userEmail,
   userType = 'user',
   onUserTypeChange,
-  onEditProfile
+  onEditProfile: _onEditProfile
 }: SettingsModalProps) {
   const router = useRouter()
   const [isChangingType, setIsChangingType] = useState(false)

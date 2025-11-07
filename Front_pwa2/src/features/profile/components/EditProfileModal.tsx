@@ -1,11 +1,10 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { X, Camera, Upload, Trash2, Save, User, MessageSquare, Phone, MapPin, Building2, DollarSign, Briefcase, Sparkles } from 'lucide-react'
+import { X, Camera, Save, User, Phone, MapPin, Building2, DollarSign, Briefcase, Sparkles } from 'lucide-react'
 import { AxiosError } from 'axios'
 import { profileService, type Profile, type UpdateProfileData } from '../services/profileService'
 import { useAuth } from '@/context/AuthContext'
 import { SUCCESS_MESSAGE_TIMEOUT_MS } from '@/utils/constants'
-import { validateImageFile } from '@/utils/fileValidators'
 
 interface EditProfileModalProps {
   isOpen: boolean
@@ -56,7 +55,6 @@ export default function EditProfileModal({
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string>('')
   const [successMessage, setSuccessMessage] = useState<string>('')
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     bio: '',
@@ -105,28 +103,6 @@ export default function EditProfileModal({
     }))
     setError('')
     setSuccessMessage('')
-  }
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    
-    // Validar archivo usando el validador centralizado
-    const validation = validateImageFile(file)
-    if (!validation.valid || !file) {
-      setError(validation.error || 'Error al validar el archivo')
-      return
-    }
-
-    setError('')
-    setSelectedFile(file)
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setSelectedImage(event.target.result as string)
-      }
-    }
-    reader.readAsDataURL(file)
   }
 
   const handleAvatarUpload = async () => {
@@ -209,28 +185,6 @@ export default function EditProfileModal({
       setError(axiosError.response?.data?.message || 'Error al actualizar el perfil')
     } finally {
       setIsSaving(false)
-    }
-  }
-
-  const handleRemoveAvatar = async () => {
-    setIsUploading(true)
-    setError('')
-
-    try {
-      await profileService.updateProfile({ userType: 'user' as 'user' | 'artist' | 'admin' })
-      if (updateUser) {
-        updateUser({ userType: 'user' as 'user' | 'artist' })
-      }
-      setSuccessMessage('Avatar eliminado exitosamente')
-      setTimeout(() => {
-        onClose()
-        onProfileUpdated()
-      }, 1500)
-    } catch (error) {
-      const axiosError = error as AxiosError<{ message?: string }>
-      setError(axiosError.response?.data?.message || 'Error al eliminar avatar')
-    } finally {
-      setIsUploading(false)
     }
   }
 

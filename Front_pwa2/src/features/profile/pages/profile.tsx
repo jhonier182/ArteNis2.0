@@ -217,11 +217,6 @@ export default function ProfilePage() {
   }
 
 
-  const handleAvatarUpdated = (newAvatarUrl: string) => {
-    if (user) {
-      updateUser({ avatar: newAvatarUrl })
-    }
-  }
 
   const handleUserTypeChange = (newType: 'user' | 'artist') => {
     if (user) {

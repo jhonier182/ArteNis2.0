@@ -47,7 +47,6 @@ interface ToastProps {
 // ============================================
 
 const DEFAULT_DURATION = 3000 // 3 segundos
-const TOAST_POSITION = 'top-right' // Posición fija
 
 // Configuración de colores por tipo
 const TOAST_CONFIG: Record<ToastType, { bg: string; border: string; icon: React.ReactNode }> = {
