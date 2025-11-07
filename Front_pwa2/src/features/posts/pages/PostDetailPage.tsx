@@ -6,11 +6,10 @@ import Head from 'next/head'
 import { useAuth } from '@/context/AuthContext'
 import { postService, Post } from '@/features/posts/services/postService'
 import { LikeButton, SaveButton, ShareButton } from '@/components/ui/buttons'
-import { ChevronLeft, MessageCircle, Download } from 'lucide-react'
+import { ChevronLeft, MessageCircle } from 'lucide-react'
 import Image from 'next/image'
 import { logger } from '@/utils/logger'
 import { useToastContext } from '@/context/ToastContext'
-import { ERROR_DOWNLOAD_VIDEO } from '@/utils/constants'
 
 /**
  * Página de detalle de post
@@ -36,28 +35,6 @@ export default function PostDetailPage() {
   const handleCotizar = () => {
     // Aquí puedes abrir un modal, redirigir, etc.
     toast.info('¡Gracias por tu interés! Te contactaremos para cotizar.')
-  }
-
-  // Handler para descargar video
-  const handleDownload = async () => {
-    if (!post?.mediaUrl) return
-    
-    try {
-      const response = await fetch(post.mediaUrl)
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `video-${post.id}.mp4` || 'video.mp4'
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      toast.success('Video descargado exitosamente')
-    } catch (error) {
-      logger.error('Error al descargar video', error)
-      toast.error(ERROR_DOWNLOAD_VIDEO)
-    }
   }
 
   useEffect(() => {
@@ -203,15 +180,6 @@ export default function PostDetailPage() {
                   backgroundColor: '#0f1419'
                 }}
               />
-              {/* Botón de descarga */}
-              <button
-                onClick={handleDownload}
-                className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black/80 rounded-full backdrop-blur-sm transition-all z-10"
-                aria-label="Descargar video"
-                title="Descargar video"
-              >
-                <Download className="w-5 h-5 text-white" />
-              </button>
               {/* Marca de agua del autor */}
               {post.author && (
                 <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-full px-3 py-2 z-10 border border-white/20">

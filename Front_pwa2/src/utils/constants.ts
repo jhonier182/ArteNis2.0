@@ -88,9 +88,6 @@ export const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024
 /** Ruta de imagen de fondo por defecto */
 export const DEFAULT_BACKGROUND_IMAGE = '/fondo.jpeg'
 
-/** Formato de nombre de archivo de video descargado */
-export const VIDEO_DOWNLOAD_FILENAME_FORMAT = 'video-{id}.mp4'
-
 // ============================================
 // Mensajes de Error Comunes
 // ============================================
@@ -103,9 +100,6 @@ export const ERROR_FILE_TOO_LARGE = 'La imagen no puede superar 5MB'
 
 /** Mensaje de error cuando el tipo de archivo no es válido */
 export const ERROR_INVALID_FILE_TYPE = 'Solo se permiten imágenes o videos'
-
-/** Mensaje de error al descargar video */
-export const ERROR_DOWNLOAD_VIDEO = 'Error al descargar el video'
 
 // ============================================
 // Tipos de Post
