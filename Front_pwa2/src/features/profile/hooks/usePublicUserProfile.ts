@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { profileService, Profile } from '../services/profileService'
+import { cacheUserProfile, getCachedUserProfile } from '@/utils/profilePostsCache'
 
 interface UsePublicUserProfileResult {
   profile: Profile | null
@@ -50,6 +51,19 @@ export function usePublicUserProfile(
       return
     }
 
+    // Intentar cargar desde caché primero
+    const cachedProfile = getCachedUserProfile(userId)
+    if (cachedProfile) {
+      console.log('[usePublicUserProfile] Perfil encontrado en caché para userId:', userId)
+      if (mountedRef.current) {
+        setProfile(cachedProfile)
+        profileRef.current = cachedProfile
+        setLoading(false)
+        setError(null)
+      }
+      return
+    }
+
     try {
       // Marcar inmediatamente que estamos cargando para evitar llamadas concurrentes
       fetchingRef.current = true
@@ -59,6 +73,9 @@ export function usePublicUserProfile(
       
       console.log('[usePublicUserProfile] Iniciando carga del perfil para userId:', userId)
       const result = await profileService.getProfile(userId)
+      
+      // Guardar en caché
+      cacheUserProfile(userId, result)
       
       // Solo actualizar si el componente sigue montado y el userId no cambió
       if (mountedRef.current && lastUserIdRef.current === userId) {

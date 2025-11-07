@@ -5,7 +5,7 @@
  * para evitar recargas innecesarias al navegar entre páginas.
  */
 
-import { UserPost } from '@/features/profile/services/profileService'
+import { UserPost, Profile } from '@/features/profile/services/profileService'
 
 interface CachedUserPosts {
   posts: UserPost[]
@@ -19,6 +19,12 @@ interface ScrollPosition {
   timestamp: number
 }
 
+interface CachedProfile {
+  profile: Profile
+  timestamp: number
+  userId: string
+}
+
 // Caché en memoria (más rápido)
 const memoryCache = new Map<string, CachedUserPosts>()
 
@@ -28,6 +34,13 @@ const CACHE_DURATION_MS = 5 * 60 * 1000
 // Claves para sessionStorage
 const getCacheKey = (userId: string) => `profile_posts_cache_${userId}`
 const getScrollKey = (userId: string) => `profile_scroll_${userId}`
+const getProfileCacheKey = (userId: string) => `profile_data_cache_${userId}`
+
+// Caché de perfiles en memoria
+const profileMemoryCache = new Map<string, CachedProfile>()
+
+// Duración del caché de perfiles (5 minutos)
+const PROFILE_CACHE_DURATION_MS = 5 * 60 * 1000
 
 /**
  * Guardar posts en caché (memoria + sessionStorage)
@@ -91,12 +104,14 @@ export function getCachedUserPosts(userId: string): CachedUserPosts | null {
 }
 
 /**
- * Limpiar caché de un usuario específico
+ * Limpiar caché de un usuario específico (posts, perfil y scroll)
  */
 export function clearUserPostsCache(userId: string): void {
   memoryCache.delete(userId)
+  profileMemoryCache.delete(userId)
   try {
     sessionStorage.removeItem(getCacheKey(userId))
+    sessionStorage.removeItem(getProfileCacheKey(userId))
     sessionStorage.removeItem(getScrollKey(userId))
   } catch (error) {
     console.warn('[profilePostsCache] Error limpiando caché:', error)
@@ -108,12 +123,17 @@ export function clearUserPostsCache(userId: string): void {
  */
 export function clearAllCache(): void {
   memoryCache.clear()
+  profileMemoryCache.clear()
   try {
     // Limpiar todas las claves relacionadas
     const keysToRemove: string[] = []
     for (let i = 0; i < sessionStorage.length; i++) {
       const key = sessionStorage.key(i)
-      if (key && (key.startsWith('profile_posts_cache_') || key.startsWith('profile_scroll_'))) {
+      if (key && (
+        key.startsWith('profile_posts_cache_') || 
+        key.startsWith('profile_scroll_') ||
+        key.startsWith('profile_data_cache_')
+      )) {
         keysToRemove.push(key)
       }
     }
@@ -170,6 +190,78 @@ export function clearScrollPosition(userId: string): void {
     sessionStorage.removeItem(getScrollKey(userId))
   } catch (error) {
     console.warn('[profilePostsCache] Error limpiando scroll:', error)
+  }
+}
+
+/**
+ * Guardar perfil en caché (memoria + sessionStorage)
+ */
+export function cacheUserProfile(userId: string, profile: Profile): void {
+  const cacheData: CachedProfile = {
+    profile,
+    timestamp: Date.now(),
+    userId
+  }
+
+  // Guardar en memoria
+  profileMemoryCache.set(userId, cacheData)
+
+  // Guardar en sessionStorage (persiste durante la sesión)
+  try {
+    sessionStorage.setItem(getProfileCacheKey(userId), JSON.stringify(cacheData))
+  } catch (error) {
+    console.warn('[profilePostsCache] Error guardando perfil en sessionStorage:', error)
+  }
+}
+
+/**
+ * Obtener perfil del caché
+ */
+export function getCachedUserProfile(userId: string): Profile | null {
+  // Primero intentar memoria (más rápido)
+  const memoryData = profileMemoryCache.get(userId)
+  if (memoryData) {
+    const age = Date.now() - memoryData.timestamp
+    if (age < PROFILE_CACHE_DURATION_MS) {
+      return memoryData.profile
+    } else {
+      // Caché expirado, limpiar
+      profileMemoryCache.delete(userId)
+    }
+  }
+
+  // Si no está en memoria, intentar sessionStorage
+  try {
+    const cached = sessionStorage.getItem(getProfileCacheKey(userId))
+    if (cached) {
+      const cacheData: CachedProfile = JSON.parse(cached)
+      const age = Date.now() - cacheData.timestamp
+
+      if (age < PROFILE_CACHE_DURATION_MS && cacheData.userId === userId) {
+        // Restaurar en memoria también
+        profileMemoryCache.set(userId, cacheData)
+        return cacheData.profile
+      } else {
+        // Caché expirado, limpiar
+        sessionStorage.removeItem(getProfileCacheKey(userId))
+      }
+    }
+  } catch (error) {
+    console.warn('[profilePostsCache] Error leyendo perfil de sessionStorage:', error)
+  }
+
+  return null
+}
+
+/**
+ * Limpiar caché de perfil de un usuario específico
+ */
+export function clearUserProfileCache(userId: string): void {
+  profileMemoryCache.delete(userId)
+  try {
+    sessionStorage.removeItem(getProfileCacheKey(userId))
+  } catch (error) {
+    console.warn('[profilePostsCache] Error limpiando caché de perfil:', error)
   }
 }
 

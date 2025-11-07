@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
 import { usePublicUserProfile } from '../hooks/usePublicUserProfile'
 import { useUserPosts } from '../hooks/useUserPosts'
+import { useScrollRestoration } from '../hooks/useScrollRestoration'
 import { PublicUserHeader } from '../components/PublicUserHeader'
 import { PublicUserInfo } from '../components/PublicUserInfo'
 import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
@@ -48,6 +49,14 @@ export default function PublicUserProfilePage({
     }
   }, [currentUser, profile, router])
 
+  // Hook reutilizable para guardar y restaurar scroll (debe estar antes de useMemo)
+  const { handlePostClick } = useScrollRestoration({
+    routePath: '/userProfile',
+    identifier: userId,
+    posts: posts, // Usar posts directamente, no uniquePosts
+    itemSelector: 'data-post-item'
+  })
+
   // Memoizar posts únicos para evitar re-renders innecesarios
   // El filtro se ejecuta solo cuando cambia posts, no en cada render
   // IMPORTANTE: Todos los hooks deben estar antes de cualquier return condicional
@@ -70,11 +79,6 @@ export default function PublicUserProfilePage({
     logger.debug(`[PublicUserProfilePage] uniquePosts: ${filtered.length} posts únicos de ${posts.length} totales`)
     return filtered
   }, [posts])
-
-  // Memoizar handler de click para evitar re-renders innecesarios
-  const handlePostClick = useCallback((postId: string) => {
-    router.push(`/postDetail?postId=${postId}`)
-  }, [router])
 
   // Solo mostrar loading cuando es la primera carga (no hay posts aún)
   // Usar posts directamente en lugar de uniquePosts para evitar flickering
@@ -148,6 +152,7 @@ export default function PublicUserProfilePage({
               {uniquePosts.map((post, index) => (
                 <div
                   key={post.id}
+                  data-post-item
                   onClick={() => handlePostClick(post.id)}
                   className="relative overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer group"
                 >
