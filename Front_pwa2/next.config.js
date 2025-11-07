@@ -3,7 +3,18 @@ const nextConfig = {
   reactStrictMode: false, // Deshabilitado para evitar ejecuciones dobles en desarrollo
   swcMinify: true,
   images: {
-    domains: ['res.cloudinary.com', 'localhost'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '',
+        pathname: '/**',
+      },
+    ],
     formats: ['image/avif', 'image/webp'],
   },
   experimental: {
