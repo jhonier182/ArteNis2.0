@@ -18,7 +18,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
-import { saveScrollPosition, getScrollPosition } from '@/utils/profilePostsCache'
+import { saveScrollPosition, getScrollPosition } from '@/utils/cache'
 import { logger } from '@/utils/logger'
 
 interface UseScrollRestorationOptions {

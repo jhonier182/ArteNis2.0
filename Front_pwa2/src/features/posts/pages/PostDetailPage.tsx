@@ -9,6 +9,8 @@ import { LikeButton, SaveButton, ShareButton } from '@/components/ui/buttons'
 import { ChevronLeft, MessageCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useToastContext } from '@/context/ToastContext'
+import { cachePost, getCachedPost } from '@/utils/cache'
+import { FullScreenSpinner } from '@/components/ui/Spinner'
 
 /**
  * Página de detalle de post
@@ -38,6 +40,17 @@ export default function PostDetailPage() {
 
   useEffect(() => {
     if (postId && typeof postId === 'string') {
+      // Verificar caché primero, antes de establecer loading
+      const cachedPost = getCachedPost(postId)
+      if (cachedPost) {
+        // Post en caché: establecer inmediatamente sin mostrar spinner
+        setPost(cachedPost)
+        setIsLoading(false)
+        loadComments(postId)
+        return
+      }
+
+      // No hay caché: cargar desde API
       loadPost(postId)
       loadComments(postId)
     }
@@ -48,8 +61,13 @@ export default function PostDetailPage() {
       setIsLoading(true)
       setError(null)
       
-      
       const postData = await postService.getPostById(id)
+      
+      // Guardar en caché
+      if (postData) {
+        cachePost(id, postData)
+      }
+      
       setPost(postData)
     } catch (err: unknown) {
       const error = err as { message?: string; response?: { data?: { message?: string }; status?: number } }
@@ -103,11 +121,7 @@ export default function PostDetailPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    )
+    return <FullScreenSpinner />
   }
 
   if (error || !post) {

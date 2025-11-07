@@ -6,8 +6,7 @@ import { useAuth } from '@/context/AuthContext'
 import { usePublicUserProfile } from '../hooks/usePublicUserProfile'
 import { useUserPosts } from '../hooks/useUserPosts'
 import { useScrollRestoration } from '../hooks/useScrollRestoration'
-import { useLoadingSpinner } from '@/hooks/useLoadingSpinner'
-import { Spinner } from '@/components/ui/Spinner'
+import { Spinner, FullScreenSpinner } from '@/components/ui/Spinner'
 import { PublicUserHeader } from '../components/PublicUserHeader'
 import { PublicUserInfo } from '../components/PublicUserInfo'
 import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
@@ -97,20 +96,8 @@ export default function PublicUserProfilePage({
   // Valores derivados que se usan en los returns
   const isArtist = profile?.userType === 'artist'
 
-  // Hook para spinner de carga inicial
-  const { SpinnerComponent: InitialSpinner } = useLoadingSpinner(loading, {
-    size: 'xl',
-    variant: 'primary',
-    fullScreen: true,
-    text: 'Cargando perfil...'
-  })
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black">
-        {InitialSpinner}
-      </div>
-    )
+    return <FullScreenSpinner />
   }
 
   if (error || !profile) {
@@ -151,7 +138,7 @@ export default function PublicUserProfilePage({
           <h3 className="text-lg font-bold mb-4">Publicaciones</h3>
           {showInitialLoading ? (
             <div className="flex justify-center py-10">
-              <Spinner size="md" variant="primary" withText text="Cargando publicaciones..." centered />
+              <Spinner size="md" />
             </div>
           ) : uniquePosts.length === 0 ? (
             <div className="text-center py-10">

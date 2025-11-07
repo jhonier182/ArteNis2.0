@@ -6,7 +6,7 @@ import {
   getCachedUserPosts, 
   cacheUserPosts, 
   clearUserPostsCache 
-} from '@/utils/profilePostsCache'
+} from '@/utils/cache'
 
 interface UseUserPostsResult {
   posts: UserPost[]

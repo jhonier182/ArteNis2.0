@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { profileService, Profile } from '../services/profileService'
-import { cacheUserProfile, getCachedUserProfile } from '@/utils/profilePostsCache'
+import { cacheUserProfile, getCachedUserProfile } from '@/utils/cache'
 
 interface UsePublicUserProfileResult {
   profile: Profile | null
