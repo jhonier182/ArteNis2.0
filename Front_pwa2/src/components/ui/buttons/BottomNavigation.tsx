@@ -4,11 +4,11 @@ import { useRouter } from 'next/router'
 import { Home, Search, MessageCircle, User, Plus } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
-interface BottomNavigationProps {
+export interface BottomNavigationProps {
   currentPath?: string
 }
 
-export default function BottomNavigation({ currentPath }: BottomNavigationProps) {
+export function BottomNavigation({ currentPath }: BottomNavigationProps) {
   const router = useRouter()
   const { user } = useAuth()
 

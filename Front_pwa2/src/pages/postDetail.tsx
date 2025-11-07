@@ -5,8 +5,8 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { useAuth } from '@/context/AuthContext'
 import { postService, Post } from '@/features/posts/services/postService'
-import { LikeButton } from '@/features/likes/components/LikeButton'
-import { ChevronLeft, MessageCircle, Bookmark, Share2, Download } from 'lucide-react'
+import { LikeButton, SaveButton, ShareButton } from '@/components/ui/buttons'
+import { ChevronLeft, MessageCircle, Download } from 'lucide-react'
 import Image from 'next/image'
 
 /**
@@ -28,60 +28,6 @@ export default function PostDetailPage() {
   const [newComment, setNewComment] = useState('')
   const [isCommenting, setIsCommenting] = useState(false)
 
-  // Estado para post guardado
-  const [isSaved, setIsSaved] = useState<boolean>(false)
-  const [isTogglingSave, setIsTogglingSave] = useState(false)
-
-  // Estado para compartir
-  const [isSharing, setIsSharing] = useState(false)
-
-  // Para simular guardado/quitado
-  useEffect(() => {
-    if (isAuthenticated && postId) {
-      // Aquí puedes hacer un fetch real. Por ahora suponemos no guardado.
-      setIsSaved(false)
-    }
-  }, [postId, isAuthenticated])
-
-  const handleToggleSave = async () => {
-    if (!isAuthenticated) return
-    setIsTogglingSave(true)
-    setTimeout(() => {
-      setIsSaved(prev => !prev)
-      setIsTogglingSave(false)
-    }, 350)
-    // TODO: Integrar con API real
-  }
-
-  // Handler para compartir
-  const handleShare = async () => {
-    if (!post) return
-    setIsSharing(true)
-    const shareUrl = typeof window !== "undefined" ? window.location.href : ''
-    if (navigator.share) {
-      // Web Share API
-      try {
-        await navigator.share({
-          title: post.title || 'Post en InkEndin',
-          text: post.description || '',
-          url: shareUrl,
-        })
-      } catch (e) {
-        // usuario pudo cancelar
-      }
-    } else {
-      // fallback: copiar enlace
-      if (typeof window !== 'undefined' && navigator.clipboard) {
-        try {
-          await navigator.clipboard.writeText(shareUrl)
-          alert('Enlace copiado al portapapeles')
-        } catch (e) {
-          alert('No se pudo copiar el enlace')
-        }
-      }
-    }
-    setIsSharing(false)
-  }
 
   // Handler para "Cotizar"
   const handleCotizar = () => {
@@ -346,37 +292,21 @@ export default function PostDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               {/* Guardar */}
-              <button
-                className={`flex items-center gap-1 p-1 rounded-full transition border focus:outline-none ${
-                  isSaved
-                    ? 'bg-blue-900 text-blue-400 border-blue-700'
-                    : 'bg-transparent text-gray-400 border-transparent hover:bg-gray-800'
-                }`}
-                onClick={handleToggleSave}
-                aria-label={isSaved ? "Quitar de guardados" : "Guardar publicación"}
-                disabled={isTogglingSave || !isAuthenticated}
-                title={isSaved ? "Quitar de guardados" : "Guardar publicación"}
-                type="button"
-              >
-                <Bookmark
-                  className={`w-6 h-6 ${
-                    isSaved ? 'fill-blue-400' : 'fill-none'
-                  }`}
-                  strokeWidth={isSaved ? 2 : 1.8}
-                />
-              </button>
+              <SaveButton
+                postId={post.id}
+                initialSaved={post.isSaved || false}
+                size="lg"
+                variant="default"
+              />
 
-               {/* Compartir */}
-               <button
-                className="flex items-center gap-1 p-1 rounded-full transition border focus:outline-none bg-transparent text-gray-400 border-transparent hover:bg-gray-800"
-                onClick={handleShare}
-                aria-label="Compartir publicación"
-                title="Compartir publicación"
-                type="button"
-                disabled={isSharing}
-              >
-                <Share2 className="w-6 h-6" />
-              </button>
+              {/* Compartir */}
+              <ShareButton
+                url={typeof window !== 'undefined' ? window.location.href : ''}
+                title={post.title || 'Post en InkEndin'}
+                text={post.description || ''}
+                size="lg"
+                variant="default"
+              />
 
 
               {/* Botón Cotizar */}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { Bell } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import BottomNavigation from '@/components/BottomNavigation'
+import { BottomNavigation } from '@/components/ui/buttons'
 
 export default function HomePage() {
   const router = useRouter()

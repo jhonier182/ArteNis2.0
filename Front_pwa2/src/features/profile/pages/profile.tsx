@@ -25,8 +25,8 @@ import SettingsModal from '../components/SettingsModal'
 import { useUserPosts } from '../hooks/useUserPosts'
 import { useSavedPosts } from '../hooks/useSavedPosts'
 import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
-import BottomNavigation from '@/components/BottomNavigation'
-import { LikeButton } from '@/features/likes/components/LikeButton'
+import { BottomNavigation } from '@/components/ui/buttons'
+import { LikeButton } from '@/components/ui/buttons'
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, updateUser } = useAuth()

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ArrowRight, Mail } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { PasswordInput } from '@/components/ui/PasswordInput'
-import { SocialLoginButtons } from '@/components/ui/SocialLoginButtons'
+import { SocialLoginButtons } from '@/components/ui/buttons'
 
 interface LoginFormProps {
   onForgotPassword?: () => void

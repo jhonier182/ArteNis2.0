@@ -4,7 +4,7 @@ import { Loader2, UserPlus, UserCheck, AlertCircle } from 'lucide-react'
 import { apiClient } from '@/services/apiClient'
 import { useFollowingContext } from '@/context/FollowingContext'
 
-interface FollowButtonProps {
+export interface FollowButtonProps {
   /** ID del usuario objetivo a seguir/dejar de seguir */
   targetUserId: string
   /** Datos opcionales del usuario (para actualización optimista) */

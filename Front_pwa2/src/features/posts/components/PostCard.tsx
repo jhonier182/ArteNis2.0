@@ -2,14 +2,13 @@ import React from 'react'
 import { Post } from '../services/postService'
 import { Card } from '@/components/ui/Card'
 import { formatRelativeTime } from '@/utils/formatters'
-import { LikeButton } from '@/features/likes'
+import { LikeButton, SaveButton } from '@/components/ui/buttons'
 
 interface PostCardProps {
   post: Post
-  onSave?: (postId: string) => void
 }
 
-export function PostCard({ post, onSave }: PostCardProps) {
+export function PostCard({ post }: PostCardProps) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative w-full aspect-square bg-gray-200 dark:bg-neutral-800">
@@ -34,9 +33,12 @@ export function PostCard({ post, onSave }: PostCardProps) {
               initialLikesCount={post.likesCount}
               size="sm"
             />
-            <button onClick={() => onSave?.(post.id)} className="hover:text-primary-600">
-              {post.isSaved ? '💾' : '🔖'}
-            </button>
+            <SaveButton
+              postId={post.id}
+              initialSaved={post.isSaved || false}
+              size="sm"
+              variant="minimal"
+            />
           </div>
         </div>
       </div>

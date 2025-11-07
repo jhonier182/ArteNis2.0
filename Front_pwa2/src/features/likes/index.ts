@@ -11,9 +11,10 @@ export { likeService } from './services/likeService'
 // Hooks
 export { useLikePost } from './hooks/useLikePost'
 
-// Componentes
-export { LikeButton } from './components/LikeButton'
-export type { LikeButtonProps } from './components/LikeButton'
+// Componentes (movido a @/components/ui/buttons para reutilización)
+// Re-exportar desde la nueva ubicación para mantener compatibilidad
+export { LikeButton } from '@/components/ui/buttons'
+export type { LikeButtonProps } from '@/components/ui/buttons'
 
 // Tipos
 export type { LikeInfo, ToggleLikeResponse } from './types'

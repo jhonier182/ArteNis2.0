@@ -4,7 +4,7 @@ import { Star, Share2, Calendar } from 'lucide-react'
 import { Profile } from '../services/profileService'
 import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/router'
-import { FollowButton } from './FollowButton'
+import { FollowButton } from '@/components/ui/buttons'
 
 interface PublicUserInfoProps {
   /** Perfil del usuario */

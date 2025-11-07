@@ -1,6 +1,6 @@
 import React from 'react'
 
-interface SocialLoginButtonsProps {
+export interface SocialLoginButtonsProps {
   onGoogleClick?: () => void
   onAppleClick?: () => void
   onFacebookClick?: () => void
