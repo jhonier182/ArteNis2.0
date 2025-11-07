@@ -46,14 +46,14 @@ export interface ValidationResult {
  * Verifica si un archivo es una imagen basándose en su tipo MIME
  */
 function isImageFile(file: File): boolean {
-  return file.type.startsWith('image/') || IMAGE_MIME_TYPES.includes(file.type as any)
+  return file.type.startsWith('image/') || (IMAGE_MIME_TYPES as readonly string[]).includes(file.type)
 }
 
 /**
  * Verifica si un archivo es un video basándose en su tipo MIME
  */
 function isVideoFile(file: File): boolean {
-  return file.type.startsWith('video/') || VIDEO_MIME_TYPES.includes(file.type as any)
+  return file.type.startsWith('video/') || (VIDEO_MIME_TYPES as readonly string[]).includes(file.type)
 }
 
 /**
