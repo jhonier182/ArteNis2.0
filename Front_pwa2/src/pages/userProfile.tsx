@@ -13,7 +13,7 @@ export default function UserProfile() {
   const router = useRouter()
   const { userId } = router.query
 
-  // Si no hay userId, mostrar error o redirigir
+  // Validar que userId existe y es string
   if (!userId || typeof userId !== 'string') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
@@ -32,4 +32,3 @@ export default function UserProfile() {
 
   return <PublicUserProfilePage userId={userId} />
 }
-
