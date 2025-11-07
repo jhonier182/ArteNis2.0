@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useState, useRef, useMemo, useCallback } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
 import { 
   User, 
   Award,
@@ -617,7 +616,7 @@ export default function ProfilePage() {
               </div>
             ) : savedPosts.length > 0 ? (
               <div className="grid grid-cols-2 gap-3 mb-6">
-                {savedPosts.slice(0, 6).map((post, index) => (
+                {savedPosts.slice(0, 6).map((post) => (
                   <div
                     key={post.id}
                     data-post-item

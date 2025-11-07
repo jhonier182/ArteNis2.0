@@ -143,12 +143,7 @@ export function useScrollRestoration({
     const savedScroll = getScrollPosition(identifier)
     
     // Determinar si estamos volviendo de otra ruta
-    const currentPath = router.pathname || router.asPath.split('?')[0]
     const previousPath = previousPathRef.current?.split('?')[0] || null
-    const wasOnRoute = previousPath === routePath
-    const isReturningToRoute = previousPath !== null && 
-                                previousPath !== routePath && 
-                                currentPath === routePath
     
     // Verificar si es la primera carga usando sessionStorage
     const isFirstLoad = getIsFirstLoad(identifier)
