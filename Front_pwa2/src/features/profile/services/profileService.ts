@@ -1,6 +1,12 @@
 import { apiClient } from '@/services/apiClient'
 import { AxiosResponse } from 'axios'
 
+const DEFAULT_POST_LIMIT = 10
+const SAVED_POSTS_LIMIT = 100
+const SAVED_POSTS_PAGE = 1
+
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.avi']
+
 export interface Profile {
   id: string
   username: string
@@ -124,7 +130,8 @@ function detectPostType(post: RawPostResponse): 'image' | 'video' {
     return post.type
   }
   const url = post.mediaUrl || post.imageUrl || ''
-  return url.includes('.mp4') ? 'video' : 'image'
+  const isVideo = VIDEO_EXTENSIONS.some((ext) => url.toLowerCase().includes(ext))
+  return isVideo ? 'video' : 'image'
 }
 
 function transformRawPostToSavedPost(post: RawPostResponse): SavedPost {
@@ -143,8 +150,24 @@ function transformRawPostToSavedPost(post: RawPostResponse): SavedPost {
   }
 }
 
+function validateUserId(userId: string): void {
+  if (!userId || userId.trim() === '') {
+    throw new Error('userId es requerido y no puede estar vacío')
+  }
+}
+
+function validateFile(file: File): void {
+  if (!file) {
+    throw new Error('El archivo es requerido')
+  }
+  if (file.size === 0) {
+    throw new Error('El archivo no puede estar vacío')
+  }
+}
+
 export const profileService = {
   async getProfile(userId: string): Promise<Profile> {
+    validateUserId(userId)
     const response = await apiClient
       .getClient()
       .get<ProfileResponse>(`/profile/${userId}`)
@@ -159,6 +182,9 @@ export const profileService = {
   },
 
   async updateProfile(data: UpdateProfileData): Promise<Profile> {
+    if (!data || typeof data !== 'object') {
+      throw new Error('Los datos de actualización son requeridos')
+    }
     const response = await apiClient
       .getClient()
       .put<ProfileResponse>('/profile/me', data)
@@ -166,6 +192,7 @@ export const profileService = {
   },
 
   async uploadAvatar(file: File): Promise<{ avatarUrl: string }> {
+    validateFile(file)
     const formData = new FormData()
     formData.append('avatar', file)
     const response = await apiClient.getClient().post<{
@@ -184,17 +211,19 @@ export const profileService = {
   async getUserPosts(
     userId: string,
     cursor: string | null = null,
-    limit: number = 10
+    limit: number = DEFAULT_POST_LIMIT
   ): Promise<{ posts: UserPost[]; nextCursor: string | null }> {
+    validateUserId(userId)
+    if (limit < 1 || limit > 100) {
+      throw new Error('El límite debe estar entre 1 y 100')
+    }
     const params: GetUserPostsParams = { limit }
     if (cursor) {
       params.cursor = cursor
     }
-
     const response = await apiClient.getClient().get<{
       data: { posts: UserPost[]; nextCursor: string | null }
     }>(`/posts/user/${userId}`, { params })
-
     const responseData = extractResponseData(response)
     return {
       posts: responseData.posts || [],
@@ -206,12 +235,10 @@ export const profileService = {
     const response = await apiClient.getClient().get<{
       data: { posts: RawPostResponse[] }
     }>('/posts/saved', {
-      params: { page: 1, limit: 100 },
+      params: { page: SAVED_POSTS_PAGE, limit: SAVED_POSTS_LIMIT },
     })
-
     const responseData = extractResponseData(response)
     const posts = responseData.posts || []
-
     return posts.map(transformRawPostToSavedPost)
   },
 }
