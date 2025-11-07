@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { Star, Share2, Calendar } from 'lucide-react'
 import { Profile } from '../services/profileService'
@@ -45,11 +44,7 @@ export function PublicUserInfo({
   if (isArtist) {
     // Layout para Tatuador: Foto pequeña a la izquierda
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
-      >
+      <div className="mb-6">
         <div className="flex gap-4 items-start">
           {/* Avatar pequeño */}
           <div className="flex-shrink-0">
@@ -140,7 +135,7 @@ export function PublicUserInfo({
                 />
                 <button
                   onClick={() => router.push('/appointments/book')}
-                  className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-2.5 rounded-xl text-sm font-bold hover:shadow-xl hover:shadow-emerald-500/40 transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
+                  className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
                 >
                   <Calendar className="w-4 h-4" />
                   Cotización
@@ -154,18 +149,14 @@ export function PublicUserInfo({
         {profile.bio && (
           <p className="text-gray-300 text-sm mt-4 leading-relaxed">{profile.bio}</p>
         )}
-      </motion.div>
+      </div>
     )
   }
 
   // Layout para Usuario Normal: Foto grande centrada
   return (
     <>
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="flex justify-center mb-6"
-      >
+      <div className="flex justify-center mb-6">
         <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 p-1">
           <div className="w-full h-full rounded-full bg-black p-1">
             {profile.avatar ? (
@@ -186,7 +177,7 @@ export function PublicUserInfo({
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Name and Title */}
       <div className="text-center mb-6">

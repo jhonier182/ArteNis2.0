@@ -154,7 +154,7 @@ export default function PublicUserProfilePage({
                   key={post.id}
                   data-post-item
                   onClick={() => handlePostClick(post.id)}
-                  className="relative overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer group"
+                  className="relative overflow-hidden rounded-lg cursor-pointer"
                 >
                   {post.mediaUrl ? (
                     <>
@@ -170,7 +170,7 @@ export default function PublicUserProfilePage({
                             loading={index < 4 ? 'eager' : 'lazy'}
                           />
                           {/* Overlay con icono de play para videos */}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                               <svg className="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z"/>
