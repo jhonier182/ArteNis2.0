@@ -24,8 +24,6 @@ export function LoginForm({ onForgotPassword }: LoginFormProps) {
     setLoading(true)
 
     try {
-      // El backend debería aceptar tanto email como username
-      // Por ahora enviaremos el valor tal cual
       await login(emailOrUsername, password)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión')

@@ -1,4 +1,5 @@
 import { apiClient } from '@/services/apiClient'
+import { AxiosResponse } from 'axios'
 
 export interface Profile {
   id: string
@@ -87,120 +88,130 @@ interface RawPostResponse {
   }
 }
 
-/**
- * Servicio para manejo de perfiles
- */
+interface ProfileResponse {
+  success: boolean
+  message?: string
+  data: { user: Profile } | Profile
+}
+
+interface GetUserPostsParams {
+  limit: number
+  cursor?: string
+}
+
+function extractProfileFromResponse(
+  response: AxiosResponse<ProfileResponse>
+): Profile {
+  const responseData = response.data.data
+  if (
+    responseData &&
+    typeof responseData === 'object' &&
+    'user' in responseData
+  ) {
+    return (responseData as { user: Profile }).user
+  }
+  return (responseData as Profile) || response.data
+}
+
+function extractResponseData<T>(
+  response: AxiosResponse<{ data: T } | T>
+): T {
+  return (response.data as { data: T }).data || (response.data as T)
+}
+
+function detectPostType(post: RawPostResponse): 'image' | 'video' {
+  if (post.type) {
+    return post.type
+  }
+  const url = post.mediaUrl || post.imageUrl || ''
+  return url.includes('.mp4') ? 'video' : 'image'
+}
+
+function transformRawPostToSavedPost(post: RawPostResponse): SavedPost {
+  return {
+    id: post.id,
+    title: post.title,
+    description: post.description,
+    mediaUrl: post.mediaUrl || post.imageUrl || '',
+    thumbnailUrl: post.thumbnailUrl,
+    type: detectPostType(post),
+    likesCount: post.likesCount || 0,
+    commentsCount: post.commentsCount || 0,
+    isLiked: post.isLiked || false,
+    createdAt: post.createdAt,
+    Board: post.Board,
+  }
+}
+
 export const profileService = {
   async getProfile(userId: string): Promise<Profile> {
-    const response = await apiClient.getClient().get<{ 
-      success: boolean
-      message?: string
-      data: { user: Profile } | Profile 
-    }>(`/profile/${userId}`)
-    
-    // El backend puede devolver { data: { user: Profile } } o { data: Profile }
-    const responseData = response.data.data
-    if (responseData && 'user' in responseData) {
-      // Si viene dentro de un objeto 'user', extraerlo
-      return responseData.user as Profile
-    }
-    return responseData as Profile || response.data
+    const response = await apiClient
+      .getClient()
+      .get<ProfileResponse>(`/profile/${userId}`)
+    return extractProfileFromResponse(response)
   },
 
   async getCurrentProfile(): Promise<Profile> {
-    const response = await apiClient.getClient().get<{ 
-      success: boolean
-      message?: string
-      data: { user: Profile } | Profile 
-    }>('/profile/me')
-    
-    // El backend puede devolver { data: { user: Profile } } o { data: Profile }
-    const responseData = response.data.data
-    if (responseData && 'user' in responseData) {
-      // Si viene dentro de un objeto 'user', extraerlo
-      return responseData.user as Profile
-    }
-    return responseData as Profile || response.data
+    const response = await apiClient
+      .getClient()
+      .get<ProfileResponse>('/profile/me')
+    return extractProfileFromResponse(response)
   },
 
   async updateProfile(data: UpdateProfileData): Promise<Profile> {
-    const response = await apiClient.getClient().put<{ 
-      success: boolean
-      message?: string
-      data: { user: Profile } | Profile 
-    }>('/profile/me', data)
-    
-    // El backend devuelve: { success: true, message: string, data: { user: Profile, message: string } }
-    const responseData = response.data.data
-    
-    // El backend devuelve data como { user: Profile, message: string }
-    if (responseData && typeof responseData === 'object' && 'user' in responseData) {
-      // Si viene dentro de un objeto 'user', extraerlo
-      const userProfile = (responseData as { user: Profile }).user
-      return userProfile
-    }
-    
-    // Fallback: si responseData es directamente Profile
-    const profile = responseData as Profile
-    return profile
+    const response = await apiClient
+      .getClient()
+      .put<ProfileResponse>('/profile/me', data)
+    return extractProfileFromResponse(response)
   },
 
   async uploadAvatar(file: File): Promise<{ avatarUrl: string }> {
     const formData = new FormData()
     formData.append('avatar', file)
-    const response = await apiClient.getClient().post<{ data: { avatarUrl?: string; user?: Profile } }>('/profile/me/avatar', formData, {
+    const response = await apiClient.getClient().post<{
+      data: { avatarUrl?: string; user?: Profile }
+    }>('/profile/me/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     })
-    const responseData = response.data.data
-    return { 
-      avatarUrl: responseData?.avatarUrl || responseData?.user?.avatar || '' 
+    const responseData = extractResponseData(response)
+    return {
+      avatarUrl: responseData?.avatarUrl || responseData?.user?.avatar || '',
     }
   },
 
-  async getUserPosts(userId: string, cursor: string | null = null, limit: number = 10): Promise<{ posts: UserPost[]; nextCursor: string | null }> {
-    const params: any = { limit }
+  async getUserPosts(
+    userId: string,
+    cursor: string | null = null,
+    limit: number = 10
+  ): Promise<{ posts: UserPost[]; nextCursor: string | null }> {
+    const params: GetUserPostsParams = { limit }
     if (cursor) {
       params.cursor = cursor
     }
-    
-    const response = await apiClient.getClient().get<{ data: { posts: UserPost[]; nextCursor: string | null } }>(`/posts/user/${userId}`, {
-      params
-    })
-    
-    const responseData = response.data.data || response.data
-    const posts = responseData.posts || []
-    const nextCursor = responseData.nextCursor || null
-    
+
+    const response = await apiClient.getClient().get<{
+      data: { posts: UserPost[]; nextCursor: string | null }
+    }>(`/posts/user/${userId}`, { params })
+
+    const responseData = extractResponseData(response)
     return {
-      posts,
-      nextCursor
+      posts: responseData.posts || [],
+      nextCursor: responseData.nextCursor || null,
     }
   },
 
   async getSavedPosts(): Promise<SavedPost[]> {
-    // Usar el endpoint específico de posts guardados que devuelve posts completos
-    const response = await apiClient.getClient().get<{ data: { posts: RawPostResponse[] } }>('/posts/saved', {
-      params: { page: 1, limit: 100 } // Obtener todos los posts guardados
+    const response = await apiClient.getClient().get<{
+      data: { posts: RawPostResponse[] }
+    }>('/posts/saved', {
+      params: { page: 1, limit: 100 },
     })
-    const responseData = response.data.data || response.data
-    const posts = responseData.posts || []
-    
-    // Transformar los posts al formato SavedPost esperado
-    return posts.map((post: RawPostResponse) => ({
-      id: post.id,
-      title: post.title,
-      description: post.description,
-      mediaUrl: post.mediaUrl || post.imageUrl || '', // El backend puede devolver imageUrl como alias
-      thumbnailUrl: post.thumbnailUrl,
-      type: (post.type || (post.mediaUrl?.includes('.mp4') || post.imageUrl?.includes('.mp4') ? 'video' : 'image')) as 'image' | 'video',
-      likesCount: post.likesCount || 0,
-      commentsCount: post.commentsCount || 0,
-      isLiked: post.isLiked || false,
-      createdAt: post.createdAt,
-      Board: post.Board, // Si viene información del board
-    }))
-  }
-}
 
+    const responseData = extractResponseData(response)
+    const posts = responseData.posts || []
+
+    return posts.map(transformRawPostToSavedPost)
+  },
+}
