@@ -7,6 +7,7 @@ import { ArrowLeft, Save, User, Phone, MapPin, Building2, DollarSign, Briefcase,
 import { AxiosError } from 'axios'
 import { profileService, type Profile, type UpdateProfileData } from '../services/profileService'
 import { useAuth } from '@/context/AuthContext'
+import { logger } from '@/utils/logger'
 
 const SPECIALTIES_OPTIONS = [
   'Realista',
@@ -87,7 +88,7 @@ export default function EditProfilePage() {
           specialties: Array.isArray(profile.specialties) ? profile.specialties : []
         })
       } catch (error) {
-        console.error('Error al cargar perfil:', error)
+        logger.error('Error al cargar perfil', error)
         setError('Error al cargar el perfil')
       } finally {
         setIsLoading(false)

@@ -27,10 +27,15 @@ import { useSavedPosts } from '../hooks/useSavedPosts'
 import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
 import { BottomNavigation } from '@/components/ui/buttons'
 import { LikeButton } from '@/components/ui/buttons'
+import { logger } from '@/utils/logger'
+import { CHECK_NEW_POST_DELAY_MS } from '@/utils/constants'
+import { validateImageFile } from '@/utils/fileValidators'
+import { useToastContext } from '@/context/ToastContext'
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, updateUser } = useAuth()
   const router = useRouter()
+  const { toast } = useToastContext()
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -97,7 +102,7 @@ export default function ProfilePage() {
       }
       
       // Verificar después de un pequeño delay para asegurar que el componente esté montado
-      const checkTimer = setTimeout(checkForNewPost, 300)
+      const checkTimer = setTimeout(checkForNewPost, CHECK_NEW_POST_DELAY_MS)
 
       return () => {
         window.removeEventListener('newPostCreated', handleNewPost)
@@ -131,7 +136,7 @@ export default function ProfilePage() {
           })
         }
       } catch (error) {
-        console.error('Error al recargar perfil:', error)
+        logger.error('Error al recargar perfil', error)
       }
     }
 
@@ -179,19 +184,15 @@ export default function ProfilePage() {
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.type.startsWith('image/')) {
-      alert('Solo se permiten imágenes')
+    
+    // Validar archivo usando el validador centralizado
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      toast.error(validation.error || 'Error al validar el archivo')
       return
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('La imagen no puede superar 5MB')
-      return
-    }
-
-    await handleAvatarUpload(file)
+    await handleAvatarUpload(file!)
   }
 
   const handleAvatarUpload = async (file: File) => {

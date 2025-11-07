@@ -8,6 +8,9 @@ import { postService, Post } from '@/features/posts/services/postService'
 import { LikeButton, SaveButton, ShareButton } from '@/components/ui/buttons'
 import { ChevronLeft, MessageCircle, Download } from 'lucide-react'
 import Image from 'next/image'
+import { logger } from '@/utils/logger'
+import { useToastContext } from '@/context/ToastContext'
+import { ERROR_DOWNLOAD_VIDEO } from '@/utils/constants'
 
 /**
  * Página de detalle de post
@@ -18,6 +21,7 @@ export default function PostDetailPage() {
   const router = useRouter()
   const { postId } = router.query
   const { user, isAuthenticated } = useAuth()
+  const { toast } = useToastContext()
   
   const [post, setPost] = useState<Post | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -31,7 +35,7 @@ export default function PostDetailPage() {
   // Handler para "Cotizar"
   const handleCotizar = () => {
     // Aquí puedes abrir un modal, redirigir, etc.
-    alert('¡Gracias por tu interés! Te contactaremos para cotizar.');
+    toast.info('¡Gracias por tu interés! Te contactaremos para cotizar.')
   }
 
   // Handler para descargar video
@@ -49,9 +53,10 @@ export default function PostDetailPage() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+      toast.success('Video descargado exitosamente')
     } catch (error) {
-      console.error('Error al descargar video:', error)
-      alert('Error al descargar el video')
+      logger.error('Error al descargar video', error)
+      toast.error(ERROR_DOWNLOAD_VIDEO)
     }
   }
 

@@ -4,6 +4,8 @@ import { X, Camera, Upload, Trash2, Save, User, MessageSquare, Phone, MapPin, Bu
 import { AxiosError } from 'axios'
 import { profileService, type Profile, type UpdateProfileData } from '../services/profileService'
 import { useAuth } from '@/context/AuthContext'
+import { SUCCESS_MESSAGE_TIMEOUT_MS } from '@/utils/constants'
+import { validateImageFile } from '@/utils/fileValidators'
 
 interface EditProfileModalProps {
   isOpen: boolean
@@ -107,15 +109,11 @@ export default function EditProfileModal({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.type.startsWith('image/')) {
-      setError('Solo se permiten imágenes')
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError('La imagen no puede superar 5MB')
+    
+    // Validar archivo usando el validador centralizado
+    const validation = validateImageFile(file)
+    if (!validation.valid || !file) {
+      setError(validation.error || 'Error al validar el archivo')
       return
     }
 
@@ -145,7 +143,7 @@ export default function EditProfileModal({
       setSelectedImage(null)
       setSelectedFile(null)
       setSuccessMessage('Avatar actualizado exitosamente')
-      setTimeout(() => setSuccessMessage(''), 3000)
+      setTimeout(() => setSuccessMessage(''), SUCCESS_MESSAGE_TIMEOUT_MS)
       onProfileUpdated()
     } catch (error) {
       const axiosError = error as AxiosError<{ message?: string }>

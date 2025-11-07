@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { profileService, UserPost } from '../services/profileService'
+import { logger } from '@/utils/logger'
+import { USER_POSTS_LIMIT } from '@/utils/constants'
 
 interface UseUserPostsResult {
   posts: UserPost[]
@@ -37,52 +39,52 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
    */
   const fetchPosts = useCallback(async (cursor: string | null = null) => {
     const currentUserId = userId
-    console.log(`[useUserPosts] 🔵 fetchPosts llamado - cursor: ${cursor}, userId: ${currentUserId}`)
+    logger.debug(`[useUserPosts] fetchPosts llamado - cursor: ${cursor}, userId: ${currentUserId}`)
     
     if (!currentUserId) {
-      console.log('[useUserPosts] ⚠️ fetchPosts: No hay userId, abortando')
+      logger.debug('[useUserPosts] fetchPosts: No hay userId, abortando')
       return
     }
 
     // Verificar que el userId no cambió durante la carga
     if (lastUserIdRef.current !== currentUserId) {
-      console.log(`[useUserPosts] ⚠️ fetchPosts: userId cambió (${lastUserIdRef.current} -> ${currentUserId}), abortando`)
+      logger.debug(`[useUserPosts] fetchPosts: userId cambió (${lastUserIdRef.current} -> ${currentUserId}), abortando`)
       return
     }
 
     // Verificar si ya está cargando (ya debería estar marcado desde el useEffect, pero verificamos por seguridad)
     if (isFetchingRef.current && cursor === null) {
-      console.log('[useUserPosts] ⚠️ fetchPosts: Ya está cargando (cursor=null), ignorando')
+      logger.debug('[useUserPosts] fetchPosts: Ya está cargando (cursor=null), ignorando')
       return
     }
 
     // Marcar como cargando INMEDIATAMENTE (si no está ya marcado)
     if (!isFetchingRef.current) {
       isFetchingRef.current = true
-      console.log(`[useUserPosts] ✅ fetchPosts: Marcado como cargando - cursor: ${cursor}, posts actuales: ${hasPostsRef.current ? 'SÍ' : 'NO'}`)
+      logger.debug(`[useUserPosts] fetchPosts: Marcado como cargando - cursor: ${cursor}, posts actuales: ${hasPostsRef.current ? 'SÍ' : 'NO'}`)
     } else {
-      console.log(`[useUserPosts] ✅ fetchPosts: Ya estaba marcado como cargando - cursor: ${cursor}`)
+      logger.debug(`[useUserPosts] fetchPosts: Ya estaba marcado como cargando - cursor: ${cursor}`)
     }
 
     try {
       // Solo mostrar loading si es la primera carga o no hay posts cargados
       const shouldShowLoading = cursor === null || !hasPostsRef.current
       if (shouldShowLoading) {
-        console.log('[useUserPosts] 🔄 setLoading(true) - mostrando spinner')
+        logger.debug('[useUserPosts] setLoading(true) - mostrando spinner')
       setLoading(true)
       } else {
-        console.log('[useUserPosts] ⏭️ Omitiendo setLoading(true) - carga silenciosa')
+        logger.debug('[useUserPosts] Omitiendo setLoading(true) - carga silenciosa')
       }
       setError(null)
       
-      const limit = 6
-      console.log(`[useUserPosts] 📡 Llamando API - userId: ${currentUserId}, cursor: ${cursor}, limit: ${limit}`)
+      const limit = USER_POSTS_LIMIT
+      logger.debug(`[useUserPosts] Llamando API - userId: ${currentUserId}, cursor: ${cursor}, limit: ${limit}`)
       const result = await profileService.getUserPosts(currentUserId, cursor, limit)
-      console.log(`[useUserPosts] 📥 API respondió - posts recibidos: ${result.posts.length}, nextCursor: ${result.nextCursor || 'null'}`)
+      logger.debug(`[useUserPosts] API respondió - posts recibidos: ${result.posts.length}, nextCursor: ${result.nextCursor || 'null'}`)
 
       // Verificar nuevamente que el userId no cambió
       if (lastUserIdRef.current !== currentUserId) {
-        console.log(`[useUserPosts] ⚠️ fetchPosts: userId cambió durante la carga, descartando resultado`)
+        logger.debug(`[useUserPosts] fetchPosts: userId cambió durante la carga, descartando resultado`)
         return
       }
 
@@ -92,11 +94,11 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
       if (cursor === null) {
         // Primera carga: reemplazar posts y cursor de forma atómica (sin flickering)
         // Actualizar ambos estados en el mismo tick para evitar parpadeo doble
-        console.log(`[useUserPosts] 🔄 PRIMERA CARGA - Actualizando setNextCursor y setPosts`)
-        console.log(`[useUserPosts] 📊 Antes: hasPostsRef=${hasPostsRef.current}`)
+        logger.debug(`[useUserPosts] PRIMERA CARGA - Actualizando setNextCursor y setPosts`)
+        logger.debug(`[useUserPosts] Antes: hasPostsRef=${hasPostsRef.current}`)
         setNextCursor(result.nextCursor)
         setPosts(result.posts)
-        console.log(`[useUserPosts] 📊 Después: posts.length=${result.posts.length}, nextCursor=${result.nextCursor || 'null'}`)
+        logger.debug(`[useUserPosts] Después: posts.length=${result.posts.length}, nextCursor=${result.nextCursor || 'null'}`)
         
         // Actualizar refs después para no bloquear el render
         hasPostsRef.current = result.posts.length > 0
@@ -106,19 +108,19 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
       } else {
         // Cargas siguientes: agregar posts sin duplicados y actualizar cursor atómicamente
         // Primero actualizar cursor, luego posts en el mismo batch
-        console.log(`[useUserPosts] 🔄 CARGA SIGUIENTE - Actualizando setNextCursor y setPosts`)
+        logger.debug(`[useUserPosts] CARGA SIGUIENTE - Actualizando setNextCursor y setPosts`)
         setNextCursor(result.nextCursor)
         setPosts(prev => {
           const existingIds = new Set(prev.map(p => p.id))
           const newPosts = result.posts.filter(p => !existingIds.has(p.id))
           const updated = [...prev, ...newPosts]
-          console.log(`[useUserPosts] 📊 Posts agregados: ${newPosts.length}, total ahora: ${updated.length}`)
+          logger.debug(`[useUserPosts] Posts agregados: ${newPosts.length}, total ahora: ${updated.length}`)
           hasPostsRef.current = updated.length > 0
           return updated
         })
       }
     } catch (err) {
-      console.error('[useUserPosts] ❌ Error en fetchPosts:', err)
+      logger.error('[useUserPosts] Error en fetchPosts', err)
       // Solo actualizar error si el userId no cambió
       if (lastUserIdRef.current === currentUserId) {
       setError(err instanceof Error ? err : new Error('Error al cargar posts'))
@@ -128,7 +130,7 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
       isFetchingRef.current = false
       // Actualizar loading después de las actualizaciones de posts
       // React 18 agrupa automáticamente estas actualizaciones si están en el mismo tick
-      console.log('[useUserPosts] ✅ fetchPosts completado - setLoading(false)')
+      logger.debug('[useUserPosts] fetchPosts completado - setLoading(false)')
       setLoading(false)
     }
   }, [userId])
@@ -172,17 +174,17 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
    * Optimizado para ejecutarse solo una vez por userId
    */
   useEffect(() => {
-    console.log(`[useUserPosts] 🔄 useEffect ejecutado - userId: ${userId}, lastUserId: ${lastUserIdRef.current}`)
-    console.log(`[useUserPosts] 📊 Estado actual: hasLoaded=${hasLoadedRef.current}, isFetching=${isFetchingRef.current}, posts.length=${posts.length}`)
+    logger.debug(`[useUserPosts] useEffect ejecutado - userId: ${userId}, lastUserId: ${lastUserIdRef.current}`)
+    logger.debug(`[useUserPosts] Estado actual: hasLoaded=${hasLoadedRef.current}, isFetching=${isFetchingRef.current}, posts.length=${posts.length}`)
     
     // Si no hay userId, limpiar estado
     if (!userId) {
       if (lastUserIdRef.current !== undefined) {
-        console.log('[useUserPosts] 🧹 Limpiando estado (sin userId)')
+        logger.debug('[useUserPosts] Limpiando estado (sin userId)')
         lastUserIdRef.current = undefined
         // Solo limpiar posts cuando realmente hay posts previos
         if (hasPostsRef.current) {
-          console.log('[useUserPosts] 🗑️ setPosts([]) - limpiando posts')
+          logger.debug('[useUserPosts] setPosts([]) - limpiando posts')
           setPosts([])
           hasPostsRef.current = false
         }
@@ -197,13 +199,13 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
     // IMPORTANTE: NO limpiar posts aquí para evitar flickering
     // Los posts se limpiarán cuando lleguen los nuevos datos en fetchPosts
     if (lastUserIdRef.current !== userId) {
-      console.log(`[useUserPosts] 🔀 userId cambió: ${lastUserIdRef.current} -> ${userId}`)
+      logger.debug(`[useUserPosts] userId cambió: ${lastUserIdRef.current} -> ${userId}`)
       // Cancelar cualquier carga en progreso
       isFetchingRef.current = false
       
       // NO limpiar posts aquí - se reemplazarán cuando lleguen los nuevos
       // Esto evita que los posts desaparezcan y reaparezcan (flickering)
-      console.log('[useUserPosts] ⚠️ NO limpiando posts aquí (evita flickering)')
+      logger.debug('[useUserPosts] NO limpiando posts aquí (evita flickering)')
       
       hasLoadedRef.current = false
       setNextCursor(null)
@@ -222,12 +224,12 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
       isFetchingRef.current = true
       // NO marcar hasLoadedRef aquí - se marcará cuando la carga se complete exitosamente
       
-      console.log('[useUserPosts] 🚀 Iniciando carga inicial de posts (isFetching marcado)')
+      logger.debug('[useUserPosts] Iniciando carga inicial de posts (isFetching marcado)')
       
       // Llamar a fetchPosts después de marcar el flag
       fetchPostsRef.current(null)
     } else {
-      console.log(`[useUserPosts] ⏭️ Omitiendo carga: hasLoaded=${hasLoadedRef.current}, isFetching=${isFetchingRef.current}`)
+      logger.debug(`[useUserPosts] Omitiendo carga: hasLoaded=${hasLoadedRef.current}, isFetching=${isFetchingRef.current}`)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])

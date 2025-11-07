@@ -1,6 +1,17 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 
 /**
+ * Tipos para datos de Next.js __NEXT_DATA__
+ */
+interface NextDataEnv {
+  NEXT_PUBLIC_API_URL?: string
+}
+
+interface NextData {
+  env?: NextDataEnv
+}
+
+/**
  * Cliente HTTP centralizado con interceptores para manejo de autenticación y errores
  */
 class ApiClient {
@@ -10,8 +21,8 @@ class ApiClient {
     let baseURL = 'http://localhost:3000'
     
     if (typeof window !== 'undefined') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nextData = (window as any).__NEXT_DATA__ as { env?: { NEXT_PUBLIC_API_URL?: string } } | undefined
+      // Tipar correctamente el objeto __NEXT_DATA__ como NextData
+      const nextData = (window as { __NEXT_DATA__?: NextData }).__NEXT_DATA__
       const envUrl = nextData?.env?.NEXT_PUBLIC_API_URL
       baseURL = envUrl || baseURL
       

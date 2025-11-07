@@ -1,11 +1,7 @@
 import { apiClient } from '@/services/apiClient'
 import { AxiosResponse } from 'axios'
-
-const DEFAULT_POST_LIMIT = 10
-const SAVED_POSTS_LIMIT = 100
-const SAVED_POSTS_PAGE = 1
-
-const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.avi']
+import { validateFileNotEmpty } from '@/utils/fileValidators'
+import { DEFAULT_POST_LIMIT, SAVED_POSTS_LIMIT, SAVED_POSTS_PAGE, VIDEO_EXTENSIONS } from '@/utils/constants'
 
 export interface Profile {
   id: string
@@ -157,11 +153,9 @@ function validateUserId(userId: string): void {
 }
 
 function validateFile(file: File): void {
-  if (!file) {
-    throw new Error('El archivo es requerido')
-  }
-  if (file.size === 0) {
-    throw new Error('El archivo no puede estar vacío')
+  const validation = validateFileNotEmpty(file)
+  if (!validation.valid) {
+    throw new Error(validation.error || 'El archivo no es válido')
   }
 }
 

@@ -8,6 +8,7 @@ import { useUserPosts } from '../hooks/useUserPosts'
 import { PublicUserHeader } from '../components/PublicUserHeader'
 import { PublicUserInfo } from '../components/PublicUserInfo'
 import { InfiniteScrollTrigger } from '../components/LoadingIndicator'
+import { logger } from '@/utils/logger'
 
 interface PublicUserProfilePageProps {
   /** ID del usuario a mostrar */
@@ -25,7 +26,7 @@ interface PublicUserProfilePageProps {
 export default function PublicUserProfilePage({
   userId
 }: PublicUserProfilePageProps) {
-  console.log(`[PublicUserProfilePage] 🎨 RENDER - userId: ${userId}`)
+  logger.debug(`[PublicUserProfilePage] RENDER - userId: ${userId}`)
   
   const router = useRouter()
   const { user: currentUser } = useAuth()
@@ -38,7 +39,7 @@ export default function PublicUserProfilePage({
     error: postsError
   } = useUserPosts(userId)
 
-  console.log(`[PublicUserProfilePage] 📊 Estado: posts.length=${posts.length}, loadingPosts=${loadingPosts}, hasMore=${hasMore}`)
+  logger.debug(`[PublicUserProfilePage] Estado: posts.length=${posts.length}, loadingPosts=${loadingPosts}, hasMore=${hasMore}`)
 
   // Si estoy viendo mi propio perfil, redirigir a /profile
   useEffect(() => {
@@ -51,9 +52,9 @@ export default function PublicUserProfilePage({
   // El filtro se ejecuta solo cuando cambia posts, no en cada render
   // IMPORTANTE: Todos los hooks deben estar antes de cualquier return condicional
   const uniquePosts = useMemo(() => {
-    console.log(`[PublicUserProfilePage] 🔄 useMemo(uniquePosts) ejecutado - posts.length=${posts.length}`)
+    logger.debug(`[PublicUserProfilePage] useMemo(uniquePosts) ejecutado - posts.length=${posts.length}`)
     if (posts.length === 0) {
-      console.log('[PublicUserProfilePage] ⚠️ uniquePosts: Sin posts, retornando []')
+      logger.debug('[PublicUserProfilePage] uniquePosts: Sin posts, retornando []')
       return []
     }
     
@@ -66,7 +67,7 @@ export default function PublicUserProfilePage({
       seen.add(post.id)
       return true
     })
-    console.log(`[PublicUserProfilePage] ✅ uniquePosts: ${filtered.length} posts únicos de ${posts.length} totales`)
+    logger.debug(`[PublicUserProfilePage] uniquePosts: ${filtered.length} posts únicos de ${posts.length} totales`)
     return filtered
   }, [posts])
 
@@ -81,11 +82,11 @@ export default function PublicUserProfilePage({
   // Memoizar para evitar recálculos innecesarios
   const showInitialLoading = useMemo(() => {
     const result = loadingPosts && posts.length === 0
-    console.log(`[PublicUserProfilePage] 🔄 useMemo(showInitialLoading) - loadingPosts=${loadingPosts}, posts.length=${posts.length}, result=${result}`)
+    logger.debug(`[PublicUserProfilePage] useMemo(showInitialLoading) - loadingPosts=${loadingPosts}, posts.length=${posts.length}, result=${result}`)
     return result
   }, [loadingPosts, posts.length])
   
-  console.log(`[PublicUserProfilePage] 📊 Valores finales: uniquePosts.length=${uniquePosts.length}, showInitialLoading=${showInitialLoading}`)
+  logger.debug(`[PublicUserProfilePage] Valores finales: uniquePosts.length=${uniquePosts.length}, showInitialLoading=${showInitialLoading}`)
 
   // Valores derivados que se usan en los returns
   const isArtist = profile?.userType === 'artist'

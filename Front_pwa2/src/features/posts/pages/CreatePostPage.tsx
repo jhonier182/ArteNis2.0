@@ -6,6 +6,9 @@ import Head from 'next/head'
 import { useAuth } from '@/context/AuthContext'
 import { postService } from '@/features/posts/services/postService'
 import { ImageEditor } from '@/features/posts/components/ImageEditor'
+import { logger } from '@/utils/logger'
+import { POST_CREATION_PROCESSING_DELAY_MS, POST_CREATION_NAVIGATION_DELAY_MS, ERROR_NO_FILE_SELECTED, ERROR_INVALID_FILE_TYPE } from '@/utils/constants'
+import { validatePostFile, getFileType } from '@/utils/fileValidators'
 
 export default function CreatePostPage() {
   const router = useRouter()
@@ -47,17 +50,10 @@ export default function CreatePostPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validar tipo de archivo
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      setError('Solo se permiten imágenes o videos')
-      return
-    }
-
-    // Validar tamaño (máx 10MB para imágenes, 50MB para videos)
-    const maxSize = file.type.startsWith('video/') ? 50 * 1024 * 1024 : 10 * 1024 * 1024
-    if (file.size > maxSize) {
-      const maxSizeMB = maxSize / (1024 * 1024)
-      setError(`El archivo no puede superar ${maxSizeMB}MB`)
+    // Validar archivo usando el validador centralizado
+    const validation = validatePostFile(file)
+    if (!validation.valid) {
+      setError(validation.error || ERROR_INVALID_FILE_TYPE)
       return
     }
 
@@ -67,7 +63,7 @@ export default function CreatePostPage() {
     setPreviewUrl(url)
     
     // Si es video, no permitir edición - solo permitir imágenes para editar
-    if (file.type.startsWith('video/')) {
+    if (validation.isVideo) {
       setEditedImageBlob(null)
     }
   }
@@ -146,7 +142,7 @@ export default function CreatePostPage() {
   const handlePublish = async () => {
     // Validación
     if (!selectedFile) {
-      setError('Por favor selecciona una imagen o video')
+      setError(ERROR_NO_FILE_SELECTED)
       return
     }
 
@@ -165,7 +161,7 @@ export default function CreatePostPage() {
       await postService.createPost(postData)
 
       // 4. Notificar éxito con un pequeño delay para asegurar que el backend procese el post
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await new Promise(resolve => setTimeout(resolve, POST_CREATION_PROCESSING_DELAY_MS))
       notifyPostCreated()
 
       // 5. Limpiar recursos
@@ -174,11 +170,11 @@ export default function CreatePostPage() {
       // 6. Navegar con un delay adicional
       setTimeout(() => {
         navigateToProfile()
-      }, 500)
+      }, POST_CREATION_NAVIGATION_DELAY_MS)
 
     } catch (err: unknown) {
       const error = err as { message?: string; response?: { data?: { message?: string } } }
-      console.error('Error al publicar:', err)
+      logger.error('Error al publicar', err)
       setError(error.response?.data?.message || error.message || 'No se pudo crear la publicación')
     } finally {
       setIsPublishing(false)
