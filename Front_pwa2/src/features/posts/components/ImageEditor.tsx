@@ -465,6 +465,7 @@ export function ImageEditor({
               transition: 'transform 0.3s ease'
             }}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}
               alt="Preview"
@@ -840,12 +841,15 @@ export function ImageEditor({
                         }`}
                       >
                         {imageUrl && (
-                          <img
-                            src={imageUrl}
-                            alt={filter.label}
-                            className="w-full h-full object-cover"
-                            style={{ filter: filter.preview }}
-                          />
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={imageUrl}
+                              alt={filter.label}
+                              className="w-full h-full object-cover"
+                              style={{ filter: filter.preview }}
+                            />
+                          </>
                         )}
                         {selectedFilter === filter.name && (
                           <div className="absolute inset-0 bg-gradient-to-t from-blue-600/40 to-transparent flex items-center justify-center">

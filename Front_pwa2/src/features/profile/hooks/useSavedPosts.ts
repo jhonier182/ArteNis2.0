@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { profileService, SavedPost } from '../services/profileService'
 import { useAuth } from '@/context/AuthContext'
 import { cacheSavedPosts, getCachedSavedPosts } from '@/utils/cache'
@@ -20,7 +20,7 @@ export function useSavedPosts(): UseSavedPostsResult {
   const [error, setError] = useState<Error | null>(null)
   const fetchingRef = useRef(false) // Prevenir llamadas duplicadas
 
-  const fetchSavedPosts = async (forceRefresh: boolean = false) => {
+  const fetchSavedPosts = useCallback(async (forceRefresh: boolean = false) => {
     // Evitar llamadas duplicadas simultáneas (útil en StrictMode)
     if (fetchingRef.current) {
       return
@@ -59,7 +59,7 @@ export function useSavedPosts(): UseSavedPostsResult {
       setLoading(false)
       fetchingRef.current = false
     }
-  }
+  }, [user?.id])
 
   useEffect(() => {
     if (user?.id) {
@@ -78,7 +78,7 @@ export function useSavedPosts(): UseSavedPostsResult {
     } else {
       setLoading(false)
     }
-  }, [user?.id])
+  }, [user?.id, fetchSavedPosts])
 
   return {
     posts,

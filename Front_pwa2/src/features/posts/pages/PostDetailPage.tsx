@@ -121,7 +121,7 @@ export default function PostDetailPage() {
         (post.mediaUrl.includes('.mp4') ||
           post.mediaUrl.includes('.webm') ||
           post.mediaUrl.includes('.mov')))
-  }, [post?.type, post?.mediaUrl])
+  }, [post])
 
   if (!postId || typeof postId !== 'string') {
     return (
