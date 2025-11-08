@@ -90,6 +90,13 @@ const corsOptions = {
 			if (origin.startsWith('https://')) {
 				return callback(null, true);
 			}
+			// Permitir localhost en producción para pruebas locales
+			const isLocalhost = origin.startsWith('http://localhost') || 
+			                   origin.startsWith('http://127.0.0.1') ||
+			                   allowedOriginsDev.includes(origin);
+			if (isLocalhost) {
+				return callback(null, true);
+			}
 			return callback(new Error(`Not allowed by CORS: ${origin}`));
 		}
 

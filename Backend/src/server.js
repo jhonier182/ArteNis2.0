@@ -63,19 +63,62 @@ const startServer = async () => {
     // Configurar Socket.io
     const io = new Server(httpServer, {
       cors: {
-        origin: process.env.NODE_ENV === 'production' 
-          ? process.env.CORS_ORIGINS?.split(',') || ['https://artenis.app']
-          : [
-              'http://localhost:3000',
-              'http://localhost:3001',
-              'http://localhost:3002',
-              'http://localhost:8081',
-              'http://127.0.0.1:3000',
-              'http://127.0.0.1:3001',
-              'http://192.168.1.2:3000',
-              'http://192.168.1.2:3001',
-              'http://192.168.1.2:3002',
-            ],
+        origin: (origin, callback) => {
+          // Requests sin origen (Postman, apps nativas, PWA instalada) -> permitir
+          if (!origin) return callback(null, true);
+
+          if (process.env.NODE_ENV === 'production') {
+            // Orígenes permitidos en producción desde variables de entorno
+            const corsOrigins = process.env.CORS_ORIGINS?.split(',').map(o => o.trim()) || [];
+            const allowedOriginsProd = [
+              'https://artenis.app', 
+              'https://www.artenis.app',
+              ...corsOrigins
+            ];
+
+            // Permitir orígenes específicos de producción
+            if (allowedOriginsProd.includes(origin)) {
+              return callback(null, true);
+            }
+            
+            // Permitir cualquier origen HTTPS en producción (para PWA)
+            if (origin.startsWith('https://')) {
+              return callback(null, true);
+            }
+            
+            // Permitir localhost en producción para pruebas locales
+            const isLocalhost = origin.startsWith('http://localhost') || 
+                               origin.startsWith('http://127.0.0.1') ||
+                               /^http:\/\/192\.168\./.test(origin);
+            if (isLocalhost) {
+              return callback(null, true);
+            }
+            
+            return callback(new Error(`Not allowed by CORS: ${origin}`));
+          }
+
+          // Desarrollo: permitir localhost y redes LAN
+          const allowedOriginsDev = [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://localhost:3002',
+            'http://localhost:8081',
+            'http://127.0.0.1:3000',
+            'http://127.0.0.1:3001',
+            'http://192.168.1.2:3000',
+            'http://192.168.1.2:3001',
+            'http://192.168.1.2:3002',
+          ];
+          
+          if (allowedOriginsDev.includes(origin) || 
+              origin.startsWith('http://localhost') || 
+              origin.startsWith('http://127.0.0.1') ||
+              /^http:\/\/192\.168\./.test(origin)) {
+            return callback(null, true);
+          }
+          
+          return callback(null, true);
+        },
         methods: ['GET', 'POST'],
         credentials: true
       },

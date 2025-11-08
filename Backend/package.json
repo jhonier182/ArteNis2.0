@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "prod": "cross-env NODE_ENV=production node src/server.js",
     "setup": "npm install"
   },
   "keywords": [
@@ -38,6 +39,7 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "nodemon": "^3.0.2"
   },
   "engines": {
