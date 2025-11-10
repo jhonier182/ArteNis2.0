@@ -187,6 +187,14 @@ const connectDB = async () => {
     
   } catch (error) {
     logger.error('Error conectando a la base de datos', { error: error.message, stack: error.stack });
+    // También mostrar en consola para Railway
+    console.error('❌ Error conectando a la base de datos:', error.message);
+    console.error('DB_HOST:', process.env.DB_HOST);
+    console.error('DB_NAME:', process.env.DB_NAME);
+    console.error('DB_USER:', process.env.DB_USER);
+    console.error('DB_PORT:', process.env.DB_PORT);
+    console.error('DB_SSL:', process.env.DB_SSL);
+    console.error('Stack:', error.stack);
     process.exit(1);
   }
 };

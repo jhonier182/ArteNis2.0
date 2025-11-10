@@ -2,7 +2,7 @@ const winston = require('winston');
 
 // Configuración del logger optimizada para rendimiento
 const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'production' ? 'warn' : 'info', // Reducir verbosidad en producción
+  level: process.env.NODE_ENV === 'production' ? 'error' : 'info', // Mostrar errores en producción para Railway
   format: winston.format.combine(
     winston.format.timestamp({
       format: 'YYYY-MM-DD HH:mm:ss'
@@ -45,12 +45,15 @@ const logger = winston.createLogger({
   silent: process.env.NODE_ENV === 'test' // Silenciar en tests
 });
 
-// Si no estamos en producción, log también a la consola
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.simple()
-  }));
-}
+// Log también a la consola (necesario para Railway y debugging)
+// En producción también mostramos errores en consola para debugging
+logger.add(new winston.transports.Console({
+  level: process.env.NODE_ENV === 'production' ? 'error' : 'info', // Solo errores en producción
+  format: winston.format.combine(
+    winston.format.colorize(),
+    winston.format.simple()
+  )
+}));
 
 // Buffer para logs asíncronos
 const logBuffer = [];

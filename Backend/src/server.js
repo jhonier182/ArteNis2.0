@@ -158,6 +158,9 @@ const startServer = async () => {
     );
   } catch (error) {
     logger.error('❌ Error iniciando el servidor:', error);
+    // También mostrar en consola para Railway
+    console.error('❌ Error iniciando el servidor:', error.message);
+    console.error('Stack:', error.stack);
     process.exit(1);
   }
 };
