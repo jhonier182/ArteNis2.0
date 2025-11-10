@@ -1,17 +1,6 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 
 /**
- * Tipos para datos de Next.js __NEXT_DATA__
- */
-interface NextDataEnv {
-  NEXT_PUBLIC_API_URL?: string
-}
-
-interface NextData {
-  env?: NextDataEnv
-}
-
-/**
  * Cliente HTTP centralizado con interceptores para manejo de autenticación y errores
  */
 class ApiClient {
