@@ -29,8 +29,8 @@ import { CHECK_NEW_POST_DELAY_MS } from '@/utils/constants'
 import { validateImageFile } from '@/utils/fileValidators'
 import { useToastContext } from '@/context/ToastContext'
 import { useScrollRestoration } from '../hooks/useScrollRestoration'
-import ProfilePostItem from '../components/ProfilePostItem'
 import ProfileSavedPostItem from '../components/ProfileSavedPostItem'
+import ProfilePostGrid from '../components/ProfilePostGrid'
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, updateUser } = useAuth()
@@ -542,17 +542,11 @@ export default function ProfilePage() {
               </div>
             ) : userPosts.length > 0 ? (
               <div className="mb-6">
-                <div className="grid grid-cols-2 gap-3">
-                  {userPosts.map((post, index) => (
-                    <ProfilePostItem
-                      key={post.id}
-                      post={post}
-                      index={index}
-                      onClick={handlePostClick}
-                      aspectRatio="3/4"
-                    />
-                  ))}
-                </div>
+                <ProfilePostGrid
+                  posts={userPosts}
+                  onPostClick={handlePostClick}
+                  aspectRatio="3/4"
+                />
                 
                 <InfiniteScrollTrigger
                   loading={loadingPosts}

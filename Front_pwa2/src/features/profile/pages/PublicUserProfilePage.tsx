@@ -1,12 +1,11 @@
 import { useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
 import { usePublicUserProfile } from '../hooks/usePublicUserProfile'
 import { useUserPosts } from '../hooks/useUserPosts'
 import { useScrollRestoration } from '../hooks/useScrollRestoration'
-import ProfilePostItem from '../components/ProfilePostItem'
+import ProfilePostGrid from '../components/ProfilePostGrid'
 import { Spinner, FullScreenSpinner } from '@/components/ui/Spinner'
 import { PublicUserHeader } from '../components/PublicUserHeader'
 import { PublicUserInfo } from '../components/PublicUserInfo'
@@ -146,16 +145,11 @@ export default function PublicUserProfilePage({
               <p className="text-gray-400">No hay publicaciones aún</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 auto-rows-[200px]">
-              {uniquePosts.map((post, index) => (
-                <ProfilePostItem
-                  key={post.id}
-                  post={post}
-                  index={index}
-                  onClick={handlePostClick}
-                />
-              ))}
-            </div>
+            <ProfilePostGrid
+              posts={uniquePosts}
+              onPostClick={handlePostClick}
+              aspectRatio="auto"
+            />
           )}
 
           {/* Infinite Scroll Trigger - Solo mostrar cuando hay posts y hay más por cargar */}
