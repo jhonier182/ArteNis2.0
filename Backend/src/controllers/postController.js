@@ -60,11 +60,15 @@ class PostController {
   static async getFeed(req, res, next) {
     try {
       const options = PostService.buildFeedOptions(req.query, req.user?.id);
-      const result = await PostService.getFeedWithCache(options);
+      // Agregar cursor si está presente
+      if (req.query.cursor) {
+        options.cursor = req.query.cursor;
+      }
+      const result = await PostService.getFeed(options);
       
       res.status(200).json({
         success: true,
-        message: result.fromCache ? 'Feed obtenido exitosamente (desde caché)' : 'Feed obtenido exitosamente',
+        message: 'Feed obtenido exitosamente',
         data: result
       });
     } catch (error) {
@@ -99,8 +103,45 @@ class PostController {
     try {
       const { id } = req.params;
       const { type = 'like' } = req.body;
+      const userId = req.user.id;
       
-      const result = await PostService.toggleLike(req.user.id, id, type);
+      // Obtener el post para conocer al autor antes de hacer el toggle
+      const Post = require('../models/Post');
+      const post = await Post.findByPk(id, { attributes: ['userId'] });
+      
+      if (!post) {
+        return res.status(404).json({
+          success: false,
+          message: 'Publicación no encontrada'
+        });
+      }
+      
+      const postAuthorId = post.userId;
+      const result = await PostService.toggleLike(userId, id, type);
+      
+      // Emitir evento Socket.io para sincronización en tiempo real
+      // Emitir tanto al usuario que hace like como al autor del post
+      if (global.io) {
+        const eventData = {
+          postId: id,
+          isLiked: result.liked,
+          likesCount: result.likesCount,
+          action: result.liked ? 'like' : 'unlike',
+          timestamp: new Date().toISOString()
+        };
+        
+        const logger = require('../utils/logger');
+        
+        // Emitir al usuario que hizo el like (para actualizar su estado)
+        global.io.to(userId).emit('LIKE_UPDATED', eventData);
+        logger.info(`📡 Evento LIKE_UPDATED emitido a usuario que hizo like - Usuario: ${userId}, Post: ${id}, Acción: ${result.liked ? 'like' : 'unlike'}`);
+        
+        // Emitir al autor del post (para actualizar el contador en tiempo real)
+        if (postAuthorId !== userId) {
+          global.io.to(postAuthorId).emit('LIKE_UPDATED', eventData);
+          logger.info(`📡 Evento LIKE_UPDATED emitido al autor del post - Autor: ${postAuthorId}, Post: ${id}, Acción: ${result.liked ? 'like' : 'unlike'}`);
+        }
+      }
       
       res.status(200).json({
         success: true,
@@ -195,10 +236,14 @@ class PostController {
   static async getUserPosts(req, res, next) {
     try {
       const { userId } = req.params;
+      const limit = parseInt(req.query.limit) || 15;
+      const cursor = req.query.cursor || null;
+      
       const options = {
-        ...req.query,
+        cursor,
+        limit,
         requesterId: req.user?.id || null,
-        limit: parseInt(req.query.limit) || 15
+        type: req.query.type || 'all'
       };
       
       const result = await PostService.getUserPosts(userId, options);
@@ -298,7 +343,7 @@ class PostController {
     try {
       const userId = req.user.id;
       const options = {
-        page: parseInt(req.query.page) || 1,
+        cursor: req.query.cursor || null,
         limit: parseInt(req.query.limit) || 15
       };
 
@@ -307,10 +352,7 @@ class PostController {
       res.status(200).json({
         success: true,
         message: 'Posts de usuarios seguidos obtenidos exitosamente',
-        data: {
-          posts: result.posts,
-          pagination: result.pagination
-        }
+        data: result
       });
     } catch (error) {
       next(error);
@@ -339,18 +381,15 @@ class PostController {
   static async getSavedPosts(req, res, next) {
     try {
       const userId = req.user.id;
-      const page = parseInt(req.query.page) || 1;
+      const cursor = req.query.cursor || null;
       const limit = parseInt(req.query.limit) || 20;
 
-      const result = await PostService.getSavedPosts(userId, page, limit);
+      const result = await PostService.getSavedPosts(userId, cursor, limit);
 
       res.status(200).json({
         success: true,
         message: 'Posts guardados obtenidos exitosamente',
-        data: {
-          posts: result.posts,
-          pagination: result.pagination
-        }
+        data: result
       });
     } catch (error) {
       next(error);

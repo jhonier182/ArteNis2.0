@@ -4,18 +4,7 @@ const { verifyToken } = require('../middlewares/auth');
 
 const router = express.Router();
 
-// POST /api/follow - Seguir usuario
-router.post('/',
-  verifyToken,
-  FollowController.followUser
-);
-
-// DELETE /api/follow/:userId - Dejar de seguir usuario
-router.delete('/:userId',
-  verifyToken,
-  FollowController.unfollowUser
-);
-
+// IMPORTANTE: Las rutas específicas deben ir ANTES de las rutas con parámetros
 // GET /api/follow/following - Obtener usuarios que sigues
 router.get('/following',
   verifyToken,
@@ -26,6 +15,18 @@ router.get('/following',
 router.get('/status/:userId',
   verifyToken,
   FollowController.checkFollowingStatus
+);
+
+// POST /api/follow - Seguir usuario
+router.post('/',
+  verifyToken,
+  FollowController.followUser
+);
+
+// DELETE /api/follow/:userId - Dejar de seguir usuario (DEBE ir después de rutas específicas)
+router.delete('/:userId',
+  verifyToken,
+  FollowController.unfollowUser
 );
 
 module.exports = router;

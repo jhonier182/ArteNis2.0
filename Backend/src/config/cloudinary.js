@@ -1,4 +1,5 @@
 const { v2: cloudinary } = require('cloudinary');
+const logger = require('../utils/logger');
 
 // Configuración de Cloudinary
 cloudinary.config({
@@ -52,7 +53,7 @@ const uploadAvatar = async (imageBuffer, userId) => {
       publicId: result.public_id
     };
   } catch (error) {
-    console.error('Error uploading to Cloudinary:', error);
+    logger.error('Error uploading to Cloudinary', { error: error.message, stack: error.stack });
     throw new Error('Error al subir la imagen');
   }
 };
@@ -100,7 +101,7 @@ const uploadPostImage = async (imageBuffer, userId, postId) => {
       publicId: result.public_id
     };
   } catch (error) {
-    console.error('Error uploading post image to Cloudinary:', error);
+    logger.error('Error uploading post image to Cloudinary', { error: error.message, stack: error.stack });
     throw new Error('Error al subir la imagen del post');
   }
 };
@@ -136,7 +137,7 @@ const uploadPostVideo = async (videoBuffer, userId, postId, mimeType) => {
       thumbnailUrl: result.eager?.[0]?.secure_url || null
     };
   } catch (error) {
-    console.error('Error uploading post video to Cloudinary:', error);
+    logger.error('Error uploading post video to Cloudinary', { error: error.message, stack: error.stack });
     throw new Error('Error al subir el video del post');
   }
 };

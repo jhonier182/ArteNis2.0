@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
+const logger = require('../utils/logger');
 
 const Post = sequelize.define('Post', {
   id: {
@@ -180,7 +181,7 @@ Post.prototype.incrementLikes = async function() {
   try {
     await this.increment('likesCount');
   } catch (error) {
-    console.error(`❌ Error incrementando likes para post ${this.id}:`, error);
+    logger.error(`Error incrementando likes para post ${this.id}`, { postId: this.id, error: error.message, stack: error.stack });
     throw error;
   }
 };
@@ -189,7 +190,7 @@ Post.prototype.decrementLikes = async function() {
   try {
     await this.decrement('likesCount');
   } catch (error) {
-    console.error(`❌ Error decrementando likes para post ${this.id}:`, error);
+    logger.error(`Error decrementando likes para post ${this.id}`, { postId: this.id, error: error.message, stack: error.stack });
     throw error;
   }
 };

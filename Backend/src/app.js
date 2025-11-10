@@ -7,7 +7,6 @@ const path = require('path');
 // Middlewares locales
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { devRateLimit, strictRateLimit } = require('./middlewares/devRateLimit');
-const { smartCacheMiddleware, cacheStatsMiddleware } = require('./middlewares/httpCache');
 const logger = require('./utils/logger');
 const { sequelize } = require('./config/db');
 
@@ -21,7 +20,7 @@ const responseTimeLogger = (req, res, next) => {
     const speed = responseTime < 100 ? '⚡' : responseTime < 500 ? '✅' : responseTime < 1000 ? '⚠️' : '🐌';
     
     if (process.env.NODE_ENV === 'development') {
-      console.log(`${status} ${speed} ${req.method} ${req.path} - ${responseTime}ms`);
+      logger.info(`${status} ${speed} ${req.method} ${req.path} - ${responseTime}ms`);
     }
   });
   
@@ -69,6 +68,7 @@ const allowedOriginsDev = [
 	'http://127.0.0.1:8081',
 	'http://192.168.1.2:3000',
 	'http://192.168.1.2:3001',
+  'http://192.168.1.2:3002',
 	'http://192.168.1.2:8081',
 	'http://192.168.1.3:3000',
 	'http://192.168.1.3:3001',
@@ -88,6 +88,13 @@ const corsOptions = {
 			}
 			// También permitir cualquier origen HTTPS en producción (para PWA)
 			if (origin.startsWith('https://')) {
+				return callback(null, true);
+			}
+			// Permitir localhost en producción para pruebas locales
+			const isLocalhost = origin.startsWith('http://localhost') || 
+			                   origin.startsWith('http://127.0.0.1') ||
+			                   allowedOriginsDev.includes(origin);
+			if (isLocalhost) {
 				return callback(null, true);
 			}
 			return callback(new Error(`Not allowed by CORS: ${origin}`));
@@ -161,13 +168,6 @@ app.use(compression({
 // Middleware de logging simple para tiempo de respuesta
 app.use(responseTimeLogger);
 
-// Middleware de caché HTTP inteligente
-app.use(smartCacheMiddleware);
-
-// Middleware de estadísticas de caché
-app.use(cacheStatsMiddleware);
-
-
 // Parseo de JSON y URL encoded
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -179,12 +179,12 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 setupAssociations();
 
 // Health check
-app.get('/health', async (req, res) => {
+app.get('/api/health', async (req, res) => {
   try {
     await sequelize.authenticate();
     res.status(200).json({
       success: true,
-      message: 'ArteNis API funcionando correctamente',
+      message: 'Inkedin API funcionando correctamente',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
       uptime: process.uptime()
@@ -198,20 +198,11 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Rutas de la API
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/profile', require('./routes/profileRoutes'));
-app.use('/api/search', require('./routes/searchRoutes'));
-app.use('/api/follow', require('./routes/followRoutes'));
-app.use('/api/posts', postRoutes);
-app.use('/api/boards', boardRoutes);
-
-
-// Ruta raíz
-app.get('/', (req, res) => {
+// Ruta raíz de la API
+app.get('/api', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Bienvenido a ArteNis API',
+    message: 'Bienvenido a Inkedin API',
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',
@@ -220,10 +211,18 @@ app.get('/', (req, res) => {
       follow: '/api/follow',
       posts: '/api/posts',
       boards: '/api/boards',
-      health: '/health'
+      health: '/api/health'
     }
   });
 });
+
+// Rutas de la API
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/profile', require('./routes/profileRoutes'));
+app.use('/api/search', require('./routes/searchRoutes'));
+app.use('/api/follow', require('./routes/followRoutes'));
+app.use('/api/posts', postRoutes);
+app.use('/api/boards', boardRoutes);
 
 // Middleware para rutas no encontradas
 app.use(notFound);

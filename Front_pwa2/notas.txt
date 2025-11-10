@@ -1,0 +1,1 @@
+estamos creando esta app con los principios de codigo limpio. y patrones dry , asegurate primero si existe lo que necesitas para la solucion antes de crear algo. 

@@ -4,7 +4,29 @@ class ProfileController {
   // Obtener perfil del usuario autenticado
   static async getProfile(req, res, next) {
     try {
+      // VALIDACIÓN: Asegurar que req.user.id existe y es válido
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado'
+        });
+      }
+      
+      const logger = require('../utils/logger');
+      logger.info(`📋 Obteniendo perfil - Usuario ID: ${req.user.id}`);
+      
       const user = await ProfileService.getProfile(req.user.id);
+      
+      // VALIDACIÓN: Asegurar que el usuario devuelto tiene el mismo ID
+      if (user.id !== req.user.id) {
+        logger.error(`❌ INCONSISTENCIA - req.user.id (${req.user.id}) != user.id (${user.id})`);
+        return res.status(500).json({
+          success: false,
+          message: 'Error interno - inconsistencia detectada'
+        });
+      }
+      
+      logger.info(`✅ Perfil obtenido - Usuario: ${user.username} (${user.id})`);
       
       res.status(200).json({
         success: true,
