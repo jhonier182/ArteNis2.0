@@ -9,6 +9,17 @@ class FollowController {
       
       const result = await FollowService.followUser(followerId, userId);
       
+      // Emitir evento Socket.io para sincronización en tiempo real
+      // Solo emitir si la operación fue exitosa (no se lanzó error)
+      if (global.io) {
+        global.io.to(followerId).emit('FOLLOW_UPDATED', {
+          targetUserId: userId,
+          isFollowing: true,
+          action: 'follow',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
       res.status(200).json({
         success: true,
         message: 'Usuario seguido exitosamente',
@@ -26,6 +37,17 @@ class FollowController {
       const followerId = req.user.id;
       
       const result = await FollowService.unfollowUser(followerId, userId);
+      
+      // Emitir evento Socket.io para sincronización en tiempo real
+      // Solo emitir si la operación fue exitosa (no se lanzó error)
+      if (global.io) {
+        global.io.to(followerId).emit('FOLLOW_UPDATED', {
+          targetUserId: userId,
+          isFollowing: false,
+          action: 'unfollow',
+          timestamp: new Date().toISOString()
+        });
+      }
       
       res.status(200).json({
         success: true,

@@ -134,6 +134,9 @@ class ProfileService {
 
       // Actualizar usuario
       await user.update(updateData);
+      
+      // Recargar el usuario desde la base de datos para obtener los valores actualizados
+      await user.reload();
 
       return {
         user: user.toJSON(),

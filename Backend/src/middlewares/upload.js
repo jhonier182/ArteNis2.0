@@ -54,11 +54,7 @@ const debugMulter = (req, res, next) => {
   next();
 };
 
-// Log de configuración de multer (comentado para producción)
-// console.log('🔧 Configuración de Multer:');
-// console.log('Storage:', storage);
-// console.log('FileFilter:', fileFilter);
-// console.log('Limits:', { fileSize: '50MB' });
+
 
 // Middleware para manejar errores de multer
 const handleMulterError = (error, req, res, next) => {

@@ -1,4 +1,6 @@
 require('dotenv').config();
+const http = require('http');
+const { Server } = require('socket.io');
 const app = require('./app');
 const { connectDB, closeDB } = require('./config/db');
 const logger = require('./utils/logger');
@@ -35,10 +37,7 @@ const gracefulShutdown = (server, signal) => {
 
 // Manejo global de errores no capturados
 process.on('unhandledRejection', (err, promise) => {
-  logger.error('🚨 Unhandled Promise Rejection:', err);
-  if (process.env.NODE_ENV === 'development') {
-    console.error('Promise:', promise);
-  }
+  logger.error('🚨 Unhandled Promise Rejection', { error: err.message, stack: err.stack, promise: promise?.toString() });
 });
 process.on('uncaughtException', (err) => {
   logger.error('🚨 Uncaught Exception:', err);
@@ -50,29 +49,112 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    // Importar y lanzar optimizaciones de base de datos en paralelo solo si existen
+    // Importar y crear índices optimizados adicionales si existen
     try {
       const dbOpt = require('./config/dbOptimization');
-      const perfOpt = require('./config/performanceOptimization');
-      
-      await Promise.allSettled([
-        dbOpt.createOptimizedIndexes?.(),
-        dbOpt.analyzeSlowQueries?.(),
-        dbOpt.optimizeMySQLConfig?.(),
-        dbOpt.createMaterializedViews?.(),
-        perfOpt.optimizeDatabaseConnections?.()
-      ]);
+      await dbOpt.createOptimizedIndexes?.();
     } catch (optErr) {
       // Optimizaciones fallidas - continuar sin ellas
     }
 
-    const server = app.listen(PORT, HOST, () => {
-      // Servidor iniciado silenciosamente
+    // Crear servidor HTTP para Express y Socket.io
+    const httpServer = http.createServer(app);
+    
+    // Configurar Socket.io
+    const io = new Server(httpServer, {
+      cors: {
+        origin: (origin, callback) => {
+          // Requests sin origen (Postman, apps nativas, PWA instalada) -> permitir
+          if (!origin) return callback(null, true);
+
+          if (process.env.NODE_ENV === 'production') {
+            // Orígenes permitidos en producción desde variables de entorno
+            const corsOrigins = process.env.CORS_ORIGINS?.split(',').map(o => o.trim()) || [];
+            const allowedOriginsProd = [
+              'https://artenis.app', 
+              'https://www.artenis.app',
+              ...corsOrigins
+            ];
+
+            // Permitir orígenes específicos de producción
+            if (allowedOriginsProd.includes(origin)) {
+              return callback(null, true);
+            }
+            
+            // Permitir cualquier origen HTTPS en producción (para PWA)
+            if (origin.startsWith('https://')) {
+              return callback(null, true);
+            }
+            
+            // Permitir localhost en producción para pruebas locales
+            const isLocalhost = origin.startsWith('http://localhost') || 
+                               origin.startsWith('http://127.0.0.1') ||
+                               /^http:\/\/192\.168\./.test(origin);
+            if (isLocalhost) {
+              return callback(null, true);
+            }
+            
+            return callback(new Error(`Not allowed by CORS: ${origin}`));
+          }
+
+          // Desarrollo: permitir localhost y redes LAN
+          const allowedOriginsDev = [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://localhost:3002',
+            'http://localhost:8081',
+            'http://127.0.0.1:3000',
+            'http://127.0.0.1:3001',
+            'http://192.168.1.2:3000',
+            'http://192.168.1.2:3001',
+            'http://192.168.1.2:3002',
+          ];
+          
+          if (allowedOriginsDev.includes(origin) || 
+              origin.startsWith('http://localhost') || 
+              origin.startsWith('http://127.0.0.1') ||
+              /^http:\/\/192\.168\./.test(origin)) {
+            return callback(null, true);
+          }
+          
+          return callback(null, true);
+        },
+        methods: ['GET', 'POST'],
+        credentials: true
+      },
+      transports: ['websocket', 'polling']
+    });
+
+    // Manejar conexiones Socket.io
+    io.on('connection', (socket) => {
+      const userId = socket.handshake.auth?.userId;
+      
+      if (userId) {
+        // Unir al socket a la sala del usuario (para recibir sus eventos)
+        socket.join(userId);
+        logger.info(`Socket conectado - Usuario: ${userId}`);
+        
+        socket.on('disconnect', () => {
+          logger.info(`Socket desconectado - Usuario: ${userId}`);
+        });
+      } else {
+        logger.warn(' Socket conectado sin userId, desconectando...');
+        socket.disconnect();
+      }
+    });
+
+    // Exportar io para usar en otros módulos
+    global.io = io;
+
+    // Iniciar servidor HTTP (que incluye Express y Socket.io)
+    httpServer.listen(PORT, HOST, () => {
+      logger.info(`Servidor iniciado en ${HOST}:${PORT}`);
+      logger.info(`Socket.io configurado y escuchando`);
     });
 
     // Registrar graceful shutdown solo una vez por proceso (evita fugas)
     ['SIGTERM', 'SIGINT'].forEach(signal =>
-      process.once(signal, () => gracefulShutdown(server, signal))
+      process.once(signal, () => gracefulShutdown(httpServer, signal))
     );
   } catch (error) {
     logger.error('❌ Error iniciando el servidor:', error);

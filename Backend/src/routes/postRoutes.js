@@ -9,51 +9,6 @@ const {
   handleValidationErrors 
 } = require('../middlewares/validation');
 
-// Middleware de cache simple (sin dependencias externas)
-const simpleCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-
-const cacheMiddleware = (key, ttl = CACHE_TTL) => {
-  return (req, res, next) => {
-    // OPTIMIZACIÓN: Crear clave de cache más eficiente sin JSON.stringify
-    const queryString = Object.keys(req.query)
-      .sort()
-      .map(k => `${k}=${req.query[k]}`)
-      .join('&');
-    const cacheKey = `${key}:${queryString}`;
-    const cached = simpleCache.get(cacheKey);
-    
-    if (cached && Date.now() - cached.timestamp < ttl) {
-
-      return res.status(200).json(cached.data);
-    }
-    
-    const originalSend = res.json;
-    res.json = function(data) {
-      if (res.statusCode === 200 && data.success) {
-
-        simpleCache.set(cacheKey, {
-          data,
-          timestamp: Date.now()
-        });
-        
-        // Limpiar cache antiguo cada 100 entradas
-        if (simpleCache.size > 100) {
-          const now = Date.now();
-          for (const [k, v] of simpleCache.entries()) {
-            if (now - v.timestamp > ttl) {
-              simpleCache.delete(k);
-            }
-          }
-        }
-      }
-      return originalSend.call(this, data);
-    };
-    
-    next();
-  };
-};
-
 const router = express.Router();
 
 // Rutas públicas o con autenticación opcional
@@ -61,7 +16,6 @@ const router = express.Router();
 // GET /api/posts - Obtener feed de publicaciones
 router.get('/',
   verifyToken,
-  cacheMiddleware('feed', 2 * 60 * 1000), // Cache de 2 minutos para feed
   PostController.getFeed
 );
 
@@ -122,18 +76,6 @@ router.post('/',
   verifyToken,
   validateCreatePost,
   handleValidationErrors,
-  (req, res, next) => {
-    // Invalidar cache después de crear post
-    const originalSend = res.json;
-    res.json = function(data) {
-      if (res.statusCode === 201) {
-        simpleCache.clear();
-
-      }
-      return originalSend.call(this, data);
-    };
-    next();
-  },
   PostController.createPost
 );
 
@@ -181,27 +123,9 @@ router.put('/:id',
   PostController.updatePost
 );
 
-// DELETE /api/posts/:id - Eliminar publicación (OPTIMIZADO)
+// DELETE /api/posts/:id - Eliminar publicación
 router.delete('/:id',
   verifyToken,
-  (req, res, next) => {
-    // OPTIMIZACIÓN: Invalidar cache de forma asíncrona
-    const originalSend = res.json;
-    res.json = function(data) {
-      if (res.statusCode === 200) {
-        // Invalidar cache en background para no bloquear respuesta
-        setImmediate(() => {
-          try {
-            simpleCache.clear();
-          } catch (error) {
-
-          }
-        });
-      }
-      return originalSend.call(this, data);
-    };
-    next();
-  },
   PostController.deletePost
 );
 
