@@ -1,8 +1,19 @@
 const { AppError, DeadlockError } = require('../utils/errors');
 const logger = require('../utils/logger');
 
+// Rutas comunes que los navegadores solicitan automáticamente (no son errores reales)
+const ignoredRoutes = ['/favicon.ico', '/robots.txt', '/sitemap.xml', '/apple-touch-icon.png'];
+
 // Middleware para manejar errores 404
 const notFound = (req, res, next) => {
+  // Ignorar silenciosamente rutas comunes solicitadas por navegadores
+  if (ignoredRoutes.includes(req.originalUrl)) {
+    return res.status(404).json({
+      success: false,
+      message: 'Recurso no encontrado'
+    });
+  }
+  
   const error = new Error(`Ruta no encontrada - ${req.originalUrl}`);
   res.status(404);
   next(error);
@@ -113,15 +124,17 @@ const errorHandler = (err, req, res, next) => {
     errorCode = 'TOKEN_EXPIRED';
   }
 
-  // Log del error
-  logger.error('Error no manejado', {
-    message: err.message,
-    stack: err.stack,
-    url: req.url,
-    method: req.method,
-    user: req.user?.id || 'No autenticado',
-    statusCode
-  });
+  // Log del error (solo si no es una ruta ignorada)
+  if (!ignoredRoutes.includes(req.originalUrl)) {
+    logger.error('Error no manejado', {
+      message: err.message,
+      stack: err.stack,
+      url: req.url,
+      method: req.method,
+      user: req.user?.id || 'No autenticado',
+      statusCode
+    });
+  }
 
   // Respuesta de error
   const errorResponse = {
