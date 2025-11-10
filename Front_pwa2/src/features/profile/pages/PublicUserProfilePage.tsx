@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext'
 import { usePublicUserProfile } from '../hooks/usePublicUserProfile'
 import { useUserPosts } from '../hooks/useUserPosts'
 import { useScrollRestoration } from '../hooks/useScrollRestoration'
+import ProfilePostItem from '../components/ProfilePostItem'
 import { Spinner, FullScreenSpinner } from '@/components/ui/Spinner'
 import { PublicUserHeader } from '../components/PublicUserHeader'
 import { PublicUserInfo } from '../components/PublicUserInfo'
@@ -147,54 +148,12 @@ export default function PublicUserProfilePage({
           ) : (
             <div className="grid grid-cols-2 gap-2 auto-rows-[200px]">
               {uniquePosts.map((post, index) => (
-                <div
+                <ProfilePostItem
                   key={post.id}
-                  data-post-item
-                  data-post-id={post.id}
-                  onClick={() => handlePostClick(post.id)}
-                  className="relative overflow-hidden rounded-lg cursor-pointer"
-                >
-                  {post.mediaUrl ? (
-                    <>
-                      {post.type === 'video' ? (
-                        <div className="relative w-full h-full">
-                          <Image
-                            src={post.thumbnailUrl || post.mediaUrl}
-                            alt={post.title || 'Post'}
-                            width={400}
-                            height={300}
-                            className="w-full h-full object-cover"
-                            priority={index < 4}
-                            loading={index < 4 ? 'eager' : 'lazy'}
-                          />
-                          {/* Overlay con icono de play para videos */}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                              <svg className="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z"/>
-                              </svg>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <Image
-                          src={post.mediaUrl}
-                          alt={post.title || 'Post'}
-                          width={400}
-                          height={300}
-                          className="w-full h-full object-cover"
-                          priority={index < 4}
-                          loading={index < 4 ? 'eager' : 'lazy'}
-                          unoptimized={true} // Cloudinary ya optimiza, evitar doble optimización
-                        />
-                      )}
-                    </>
-                  ) : (
-                    <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                      <span className="text-gray-400">Sin imagen</span>
-                    </div>
-                  )}
-                </div>
+                  post={post}
+                  index={index}
+                  onClick={handlePostClick}
+                />
               ))}
             </div>
           )}

@@ -29,6 +29,8 @@ import { CHECK_NEW_POST_DELAY_MS } from '@/utils/constants'
 import { validateImageFile } from '@/utils/fileValidators'
 import { useToastContext } from '@/context/ToastContext'
 import { useScrollRestoration } from '../hooks/useScrollRestoration'
+import ProfilePostItem from '../components/ProfilePostItem'
+import ProfileSavedPostItem from '../components/ProfileSavedPostItem'
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, updateUser } = useAuth()
@@ -542,49 +544,13 @@ export default function ProfilePage() {
               <div className="mb-6">
                 <div className="grid grid-cols-2 gap-3">
                   {userPosts.map((post, index) => (
-                    <div
+                    <ProfilePostItem
                       key={post.id}
-                      data-post-item
-                      data-post-id={post.id}
-                      onClick={() => handlePostClick(post.id)}
-                      className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
-                    >
-                      {post.mediaUrl && (
-                        <>
-                          {post.type === 'video' ? (
-                            <div className="relative w-full h-full">
-                              <Image
-                                src={post.thumbnailUrl || post.mediaUrl}
-                                alt={post.description || 'Post'}
-                                width={300}
-                                height={300}
-                                className="w-full h-full object-cover"
-                                unoptimized={true} // Cloudinary ya optimiza, evitar doble optimización
-                              />
-                              {/* Overlay con icono de play para videos */}
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                                  <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M8 5v14l11-7z"/>
-                                  </svg>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <Image
-                              src={post.mediaUrl}
-                              alt={post.description || 'Post'}
-                              width={300}
-                              height={300}
-                              className="w-full h-full object-cover"
-                              priority={index < 4}
-                              loading={index < 4 ? 'eager' : 'lazy'}
-                              unoptimized={true} // Cloudinary ya optimiza, evitar doble optimización
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
+                      post={post}
+                      index={index}
+                      onClick={handlePostClick}
+                      aspectRatio="3/4"
+                    />
                   ))}
                 </div>
                 
@@ -618,48 +584,11 @@ export default function ProfilePage() {
             ) : savedPosts.length > 0 ? (
               <div className="grid grid-cols-2 gap-3 mb-6">
                 {savedPosts.slice(0, 6).map((post) => (
-                  <div
+                  <ProfileSavedPostItem
                     key={post.id}
-                    data-post-item
-                    data-post-id={post.id}
-                    onClick={() => handlePostClick(post.id)}
-                    className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
-                  >
-                    {post.mediaUrl && (
-                      <>
-                        {post.type === 'video' ? (
-                          <div className="relative w-full h-full">
-                            <Image
-                              src={post.thumbnailUrl || post.mediaUrl}
-                              alt={post.description || 'Post'}
-                              width={300}
-                              height={300}
-                              className="w-full h-full object-cover"
-                            />
-                            {/* Overlay con icono de play para videos */}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                                <svg className="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8 5v14l11-7z"/>
-                                </svg>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <Image
-                            src={post.mediaUrl}
-                            alt={post.description || 'Post'}
-                            width={300}
-                            height={300}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </>
-                    )}
-                    <div className="absolute top-2 right-2">
-                      <Bookmark className="w-5 h-5 text-blue-500 fill-blue-500" />
-                    </div>
-                  </div>
+                    post={post}
+                    onClick={handlePostClick}
+                  />
                 ))}
               </div>
             ) : (

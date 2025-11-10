@@ -276,8 +276,23 @@ export function useUserPosts(userId: string | undefined): UseUserPostsResult {
 
     // Si el userId NO cambió y ya hay posts cargados, NO hacer nada
     // Esto evita re-cargas innecesarias al volver del detalle de post
+    // IMPORTANTE: Si hay caché, restaurar desde caché en lugar de hacer fetch
     if (!userIdChanged && hasLoadedRef.current && posts.length > 0 && postsUserIdRef.current === userId) {
       logger.debug(`[useUserPosts] userId no cambió y ya hay ${posts.length} posts cargados, omitiendo recarga`)
+      return
+    }
+
+    // Si hay caché y no hay posts en estado (remount), restaurar desde caché sin fetch
+    if (hasCachedPosts && posts.length === 0 && !userIdChanged) {
+      logger.debug(`[useUserPosts] Remount detectado con caché - restaurando ${cached.posts.length} posts sin fetch`)
+      setPosts(cached.posts)
+      setNextCursor(cached.nextCursor)
+      hasPostsRef.current = true
+      hasLoadedRef.current = true
+      postsUserIdRef.current = userId
+      setLoading(false)
+      isFetchingRef.current = false
+      lastUserIdRef.current = userId
       return
     }
 
