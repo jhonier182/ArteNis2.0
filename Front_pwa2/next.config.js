@@ -14,6 +14,16 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'back-end-production-b33a.up.railway.app',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.up.railway.app',
+        pathname: '/**',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
   },
