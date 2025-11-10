@@ -150,6 +150,7 @@ export default function PublicUserProfilePage({
                 <div
                   key={post.id}
                   data-post-item
+                  data-post-id={post.id}
                   onClick={() => handlePostClick(post.id)}
                   className="relative overflow-hidden rounded-lg cursor-pointer"
                 >

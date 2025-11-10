@@ -545,6 +545,7 @@ export default function ProfilePage() {
                     <div
                       key={post.id}
                       data-post-item
+                      data-post-id={post.id}
                       onClick={() => handlePostClick(post.id)}
                       className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
                     >
@@ -620,6 +621,7 @@ export default function ProfilePage() {
                   <div
                     key={post.id}
                     data-post-item
+                    data-post-id={post.id}
                     onClick={() => handlePostClick(post.id)}
                     className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
                   >

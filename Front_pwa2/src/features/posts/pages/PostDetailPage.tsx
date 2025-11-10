@@ -56,7 +56,7 @@ export default function PostDetailPage() {
 
   // Manejar el botón atrás del navegador con animación suave
   useEffect(() => {
-    const handleBeforePopState = (state: any) => {
+    const handleBeforePopState = (_state: { url: string; as: string; options: { shallow?: boolean } }) => {
       if (!isExiting && !isNavigatingRef.current) {
         isNavigatingRef.current = true
         setIsExiting(true)
@@ -79,6 +79,15 @@ export default function PostDetailPage() {
 
   useEffect(() => {
     if (postId && typeof postId === 'string') {
+      // Marcar última visita para ayudar a la restauración
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('lastVisitedPostId', postId)
+        } catch (e) {
+          // Silenciar errores de storage
+        }
+      }
+      
       // Verificar caché primero, antes de establecer loading
       const cachedPost = getCachedPost(postId)
       if (cachedPost) {
