@@ -61,21 +61,24 @@ export function useLikeSocket() {
     const getBackendUrl = () => {
       if (typeof window === 'undefined') return 'http://localhost:3000'
       
-      // Intentar obtener desde variables de entorno o configuración
+      // Intentar obtener desde variables de entorno
       const envUrl = process.env.NEXT_PUBLIC_API_URL
       if (envUrl) {
         // Remover /api del final si existe
         return envUrl.replace(/\/api$/, '')
       }
 
-      // Detectar hostname actual para usar en desarrollo móvil
+      // Fallback: detectar automáticamente
       const hostname = window.location.hostname
-      if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1'
+      
+      if (isLocalhost) {
+        return 'http://localhost:3000'
+      } else {
+        // En producción, usar el backend de Railway
         const protocol = window.location.protocol
-        return `${protocol}//${hostname}:3000`
+        return `${protocol}//back-end-production-b33a.up.railway.app`
       }
-
-      return 'http://localhost:3000'
     }
 
     const backendUrl = getBackendUrl()
