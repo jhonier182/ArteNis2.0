@@ -4,8 +4,8 @@ import Head from 'next/head'
 import { useAuth } from '@/context/AuthContext'
 import { usePublicUserProfile } from '../hooks/usePublicUserProfile'
 import { useUserPosts } from '../hooks/useUserPosts'
-import { useScrollRestoration } from '../hooks/useScrollRestoration'
 import ProfilePostGrid from '../components/ProfilePostGrid'
+import { usePersistentScroll } from '@/hooks/usePersistentScroll'
 import { Spinner, FullScreenSpinner } from '@/components/ui/Spinner'
 import { PublicUserHeader } from '../components/PublicUserHeader'
 import { PublicUserInfo } from '../components/PublicUserInfo'
@@ -50,13 +50,16 @@ export default function PublicUserProfilePage({
     }
   }, [currentUser, profile, router])
 
-  // Hook reutilizable para guardar y restaurar scroll (debe estar antes de useMemo)
-  const { handlePostClick } = useScrollRestoration({
-    routePath: '/userProfile',
-    identifier: userId,
-    posts: posts, // Usar posts directamente, no uniquePosts
-    itemSelector: 'data-post-item'
+  // Mantener scroll persistente usando el hook reutilizable
+  usePersistentScroll({
+    pageId: `user-profile-${userId}`,
+    enabled: !!userId
   })
+
+  // Handler para click en post - navegar al detalle
+  const handlePostClick = (postId: string) => {
+    router.push(`/postDetail?postId=${postId}`)
+  }
 
   // Memoizar posts únicos para evitar re-renders innecesarios
   // El filtro se ejecuta solo cuando cambia posts, no en cada render

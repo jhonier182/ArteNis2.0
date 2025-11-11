@@ -28,9 +28,9 @@ import { logger } from '@/utils/logger'
 import { CHECK_NEW_POST_DELAY_MS } from '@/utils/constants'
 import { validateImageFile } from '@/utils/fileValidators'
 import { useToastContext } from '@/context/ToastContext'
-import { useScrollRestoration } from '../hooks/useScrollRestoration'
 import ProfileSavedPostItem from '../components/ProfileSavedPostItem'
 import ProfilePostGrid from '../components/ProfilePostGrid'
+import { usePersistentScroll } from '@/hooks/usePersistentScroll'
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, updateUser } = useAuth()
@@ -171,13 +171,16 @@ export default function ProfilePage() {
   // Esto causaba re-renders innecesarios al volver del detalle de post
   // El caché ahora maneja la persistencia de posts entre navegaciones
 
-  // Hook reutilizable para guardar y restaurar scroll
-  const { handlePostClick } = useScrollRestoration({
-    routePath: '/profile',
-    identifier: user?.id || null,
-    posts: userPosts,
-    itemSelector: 'data-post-item'
+  // Mantener scroll persistente usando el hook reutilizable
+  usePersistentScroll({
+    pageId: `profile-${user?.id || 'default'}`,
+    enabled: !!user?.id
   })
+
+  // Handler para click en post - navegar al detalle
+  const handlePostClick = (postId: string) => {
+    router.push(`/postDetail?postId=${postId}`)
+  }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
