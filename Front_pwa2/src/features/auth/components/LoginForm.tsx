@@ -5,31 +5,93 @@ import Link from 'next/link'
 import { ArrowRight, Mail } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { PasswordInput } from '@/components/ui/PasswordInput'
+import { TextInput } from '@/components/ui/TextInput'
 import { SocialLoginButtons } from '@/components/ui/buttons'
+import {
+  validateLoginIdentifier,
+  validateLoginPassword
+} from '@/utils/validators'
+import { extractValidationErrors, extractErrorMessage } from '@/utils/errorHelpers'
 
 interface LoginFormProps {
   onForgotPassword?: () => void
 }
 
+interface FieldErrors {
+  identifier?: string
+  password?: string
+}
+
 export function LoginForm({ onForgotPassword }: LoginFormProps) {
   const [emailOrUsername, setEmailOrUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
 
+  const validateFields = (): boolean => {
+    const errors: FieldErrors = {}
+    
+    const identifierError = validateLoginIdentifier(emailOrUsername)
+    if (identifierError) errors.identifier = identifierError
+
+    const passwordError = validateLoginPassword(password)
+    if (passwordError) errors.password = passwordError
+
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
+
+    if (!validateFields()) {
+      return
+    }
+
     setLoading(true)
 
     try {
       await login(emailOrUsername, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
+      const backendErrors = extractValidationErrors<FieldErrors>(err)
+      if (Object.keys(backendErrors).length > 0) {
+        setFieldErrors(prev => ({ ...prev, ...backendErrors }))
+      }
+      const errorMessage = extractErrorMessage(err)
+      if (errorMessage && Object.keys(backendErrors).length === 0) {
+        setError(errorMessage)
+      } else if (Object.keys(backendErrors).length > 0) {
+        setError('')
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setEmailOrUsername(value)
+    const error = validateLoginIdentifier(value)
+    setFieldErrors(prev => ({
+      ...prev,
+      identifier: error || undefined
+    }))
+  }
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setPassword(value)
+    const error = validateLoginPassword(value)
+    setFieldErrors(prev => ({
+      ...prev,
+      password: error || undefined
+    }))
   }
 
   return (
@@ -40,31 +102,24 @@ export function LoginForm({ onForgotPassword }: LoginFormProps) {
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium mb-1 text-white">
-          Email o Usuario
-        </label>
-        <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <Mail size={18} />
-          </div>
-          <input
-            type="text"
-            value={emailOrUsername}
-            onChange={(e) => setEmailOrUsername(e.target.value)}
-            placeholder="tu@email.com"
-            className="w-full pl-10 pr-4 py-3 bg-black/50 border border-neutral-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            required
-          />
-        </div>
-      </div>
+      <TextInput
+        label="Email o Usuario"
+        type="text"
+        value={emailOrUsername}
+        onChange={handleIdentifierChange}
+        placeholder="tu@email.com"
+        icon={<Mail size={18} />}
+        error={fieldErrors.identifier}
+        required
+      />
 
       <div>
         <PasswordInput
           label="Contraseña"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={handlePasswordChange}
           placeholder="........"
+          error={fieldErrors.password}
           required
         />
         <div className="flex justify-end mt-1">
