@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { ArrowLeft, Save, User, Phone, MapPin, Building2, DollarSign, Briefcase, Sparkles } from 'lucide-react'
+import { Save, User, Phone, MapPin, Building2, DollarSign, Briefcase, Sparkles } from 'lucide-react'
 import { AxiosError } from 'axios'
 import { profileService, type Profile, type UpdateProfileData } from '../services/profileService'
 import { useAuth } from '@/context/AuthContext'
@@ -207,13 +207,7 @@ export default function EditProfilePage() {
 
       {/* Header */}
       <header className="flex-shrink-0 bg-black border-b border-neutral-800">
-        <div className="flex items-center gap-4 px-4 py-4 max-w-2xl mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="p-2 hover:bg-neutral-800 rounded-full transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
+        <div className="flex items-center px-4 py-4 max-w-2xl mx-auto">
           <h1 className="text-xl font-bold">Editar Perfil</h1>
         </div>
       </header>
@@ -454,7 +448,14 @@ export default function EditProfilePage() {
           <div className="flex gap-3 px-4 py-4 pt-3 border-t border-neutral-800 flex-shrink-0 bg-black">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => {
+                // Los usuarios pueden usar gestos de deslizamiento para cancelar
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  router.back()
+                } else {
+                  router.push('/profile')
+                }
+              }}
               className="flex-1 px-4 py-3 bg-neutral-800 text-white rounded-xl font-semibold hover:bg-neutral-700 transition-colors"
             >
               Cancelar

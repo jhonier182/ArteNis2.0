@@ -192,8 +192,13 @@ export default function CreatePostPage() {
       URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
     }
-    // Volver a la página anterior
-    router.back()
+    // Los usuarios pueden usar gestos de deslizamiento para cancelar
+    // Si no hay historial, redirigir al perfil
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/profile')
+    }
   }
 
 

@@ -111,12 +111,6 @@ export default function PublicUserProfilePage({
           <p className="text-gray-400 mb-4">
             {error?.message || 'No se pudo cargar el perfil del usuario'}
           </p>
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700"
-          >
-            Volver
-          </button>
         </div>
       </div>
     )

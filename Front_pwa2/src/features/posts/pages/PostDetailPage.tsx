@@ -6,13 +6,12 @@ import Head from 'next/head'
 import { useAuth } from '@/context/AuthContext'
 import { postService, Post } from '@/features/posts/services/postService'
 import { LikeButton, SaveButton, ShareButton } from '@/components/ui/buttons'
-import { ChevronLeft, MessageCircle } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useToastContext } from '@/context/ToastContext'
 import { cachePost, getCachedPost } from '@/utils/cache'
 import { FullScreenSpinner } from '@/components/ui/Spinner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSmartBack } from '@/hooks/useSmartBack'
 
 /**
  * Página de detalle de post
@@ -42,8 +41,6 @@ export default function PostDetailPage() {
     toast.info('¡Gracias por tu interés! Te contactaremos para cotizar.')
   }
 
-  // Navegación inteligente de retorno
-  const goBack = useSmartBack({ fallbackRoute: '/' })
 
   useEffect(() => {
     if (postId && typeof postId === 'string') {
@@ -166,12 +163,6 @@ export default function PostDetailPage() {
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">Post no encontrado</h2>
-          <button
-            onClick={goBack}
-            className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 mt-4"
-          >
-            Volver
-          </button>
         </div>
       </div>
     )
@@ -187,12 +178,6 @@ export default function PostDetailPage() {
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">Error al cargar el post</h2>
           <p className="text-gray-400 mb-4">{error || 'No se pudo cargar el post'}</p>
-          <button
-            onClick={goBack}
-            className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700"
-          >
-            Volver
-          </button>
         </div>
       </div>
     )
@@ -211,20 +196,6 @@ export default function PostDetailPage() {
       <Head>
         <title>{post.title || 'Post'} - InkEndin</title>
       </Head>
-
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-[100] bg-transparent pointer-events-none">
-        <div className="container-mobile px-4 pt-4 max-w-md mx-auto">
-          <motion.button
-            onClick={goBack}
-            whileTap={{ scale: 0.9 }}
-            className="w-10 h-10 flex items-center justify-center bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors pointer-events-auto shadow-lg"
-            aria-label="Volver"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </motion.button>
-        </div>
-      </header>
 
       {/* Media */}
       {imageUrl && (

@@ -10,7 +10,6 @@ import {
   Star,
   Grid,
   Bookmark,
-  ChevronLeft,
   MoreVertical,
   Camera,
   Share2,
@@ -275,15 +274,8 @@ export default function ProfilePage() {
 
       <header className="sticky top-0 z-50 bg-transparent pointer-events-none">
         <div className="px-4 pt-4 max-w-md mx-auto">
-          <div className="flex items-center justify-between">
-            <button 
-              onClick={() => router.back()}
-              className="w-10 h-10 flex items-center justify-center bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors pointer-events-auto shadow-lg"
-              aria-label="Volver"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-lg font-bold pointer-events-none opacity-0">Perfil</h1>
+          <div className="flex items-center justify-end">
+            <h1 className="text-lg font-bold pointer-events-none opacity-0 flex-1">Perfil</h1>
             <button 
               onClick={() => setIsSettingsModalOpen(true)}
               className="w-10 h-10 flex items-center justify-center bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors pointer-events-auto shadow-lg"
