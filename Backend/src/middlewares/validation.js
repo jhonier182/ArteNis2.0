@@ -67,7 +67,6 @@ const sanitizeQuery = (req, res, next) => {
 
 // Validaciones para registro de usuario
 const validateRegister = [
-  // Username es opcional - se genera automáticamente si no se proporciona
   body('username')
     .optional()
     .isLength({ min: 3, max: 50 })
@@ -76,18 +75,38 @@ const validateRegister = [
     .withMessage('El nombre de usuario solo puede contener letras y números'),
 
   body('email')
+    .notEmpty()
+    .withMessage('Requerido')
     .isEmail()
-    .withMessage('Debe ser un email válido')
+    .withMessage('Email inválido')
     .normalizeEmail(),
 
   body('password')
-    .isLength({ min: 6 })
-    .withMessage('La contraseña debe tener al menos 6 caracteres'),
+    .notEmpty()
+    .withMessage('Requerida')
+    .isLength({ min: 8 })
+    .withMessage('Mínimo 8 caracteres'),
 
   body('fullName')
-    .isLength({ min: 2, max: 255 })
-    .withMessage('El nombre completo debe tener entre 2 y 255 caracteres')
-    .trim(),
+    .notEmpty()
+    .withMessage('Requerido')
+    .trim()
+    .custom((value) => {
+      const trimmed = value.trim();
+      if (trimmed.length < 2) {
+        throw new Error('Mínimo 2 caracteres');
+      }
+      if (trimmed.length > 255) {
+        throw new Error('Máximo 255 caracteres');
+      }
+      if (trimmed.split(' ').filter(word => word.length > 0).length < 2) {
+        throw new Error('Mínimo 2 palabras');
+      }
+      if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) {
+        throw new Error('Solo letras, sin espacios, guiones y tildes');
+      }
+      return true;
+    }),
 
   body('userType')
     .optional()
@@ -155,8 +174,10 @@ const validateChangePassword = [
     .withMessage('La contraseña actual es requerida'),
 
   body('newPassword')
-    .isLength({ min: 6 })
-    .withMessage('La nueva contraseña debe tener al menos 6 caracteres')
+    .notEmpty()
+    .withMessage('La contraseña es requerida')
+    .isLength({ min: 8 })
+    .withMessage('La nueva contraseña debe tener al menos 8 caracteres')
 ];
 
 // Validaciones para solicitar reset de contraseña
@@ -174,8 +195,10 @@ const validateResetPassword = [
     .withMessage('El token de reseteo es requerido'),
 
   body('newPassword')
-    .isLength({ min: 6 })
-    .withMessage('La nueva contraseña debe tener al menos 6 caracteres')
+    .notEmpty()
+    .withMessage('La contraseña es requerida')
+    .isLength({ min: 8 })
+    .withMessage('La nueva contraseña debe tener al menos 8 caracteres')
 ];
 
 // Validaciones para verificar email

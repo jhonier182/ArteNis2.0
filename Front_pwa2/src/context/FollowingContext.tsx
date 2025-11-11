@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
 import { apiClient } from '@/services/apiClient'
+import { useAuth } from '@/context/AuthContext'
 
 interface FollowingUser {
   id: string
@@ -49,11 +50,13 @@ const FollowingContext = createContext<FollowingContextType | undefined>(undefin
  * ```
  */
 export function FollowingProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated, user } = useAuth()
+  
   // Estado de usuarios seguidos (Set para búsqueda O(1))
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set())
   // Lista completa con datos de usuarios
   const [followingUsers, setFollowingUsers] = useState<FollowingUser[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
   // Refs para evitar llamadas duplicadas
@@ -69,7 +72,13 @@ export function FollowingProvider({ children }: { children: ReactNode }) {
    * Cargar usuarios seguidos desde el servidor
    */
   const loadFollowingUsers = useCallback(async (forceRefresh = false) => {
-    // Evitar múltiples llamadas simultáneas
+    if (!isAuthenticated || !user) {
+      setFollowingIds(new Set())
+      setFollowingUsers([])
+      setIsLoading(false)
+      return
+    }
+
     if (isLoadingRef.current && !forceRefresh) {
       return
     }
@@ -132,17 +141,22 @@ export function FollowingProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (err: unknown) {
-      console.error('Error cargando usuarios seguidos:', err)
-      
       if (mountedRef.current) {
-        const errorMessage = err instanceof Error ? err.message : 'Error al cargar usuarios seguidos'
-        setError(errorMessage)
+        const axiosError = err as { response?: { status?: number } }
+        if (axiosError.response?.status === 401) {
+          setFollowingIds(new Set())
+          setFollowingUsers([])
+          setError(null)
+        } else {
+          const errorMessage = err instanceof Error ? err.message : 'Error al cargar usuarios seguidos'
+          setError(errorMessage)
+        }
         setIsLoading(false)
       }
     } finally {
       isLoadingRef.current = false
     }
-  }, [])
+  }, [isAuthenticated, user])
 
   /**
    * Agregar usuario a la lista de seguidos (actualización optimista)
@@ -204,15 +218,23 @@ export function FollowingProvider({ children }: { children: ReactNode }) {
     await loadFollowingUsers(true)
   }, [loadFollowingUsers])
 
-  // Cargar datos al montar
+  // Cargar datos cuando el usuario se autentica
   useEffect(() => {
     mountedRef.current = true
-    loadFollowingUsers()
+    
+    if (isAuthenticated && user) {
+      loadFollowingUsers()
+    } else {
+      setFollowingIds(new Set())
+      setFollowingUsers([])
+      setIsLoading(false)
+      setError(null)
+    }
 
     return () => {
       mountedRef.current = false
     }
-  }, [loadFollowingUsers])
+  }, [isAuthenticated, user, loadFollowingUsers])
 
   const value: FollowingContextType = {
     followingIds,

@@ -6,45 +6,64 @@ import { Mail, User, UserPlus } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { PasswordStrengthBar } from '@/components/ui/PasswordStrengthBar'
-import { isValidEmail } from '@/utils/validators'
+import { TextInput } from '@/components/ui/TextInput'
+import {
+  validateFirstName,
+  validateLastName,
+  validateEmail,
+  validatePassword,
+  validateConfirmPassword
+} from '@/utils/validators'
+import { extractValidationErrors, extractErrorMessage } from '@/utils/errorHelpers'
+
+interface FieldErrors extends Record<string, string | undefined> {
+  firstName?: string
+  lastName?: string
+  email?: string
+  password?: string
+  confirmPassword?: string
+}
 
 export function RegisterForm() {
-  const [fullName, setFullName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [acceptTerms, setAcceptTerms] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { register } = useAuth()
 
+  const validateFields = (): boolean => {
+    const errors: FieldErrors = {}
+    
+    const firstNameError = validateFirstName(firstName)
+    if (firstNameError) errors.firstName = firstNameError
+
+    const lastNameError = validateLastName(lastName)
+    if (lastNameError) errors.lastName = lastNameError
+
+    const emailError = validateEmail(email)
+    if (emailError) errors.email = emailError
+
+    const passwordError = validatePassword(password)
+    if (passwordError) errors.password = passwordError
+
+    const confirmPasswordError = validateConfirmPassword(password, confirmPassword)
+    if (confirmPasswordError) errors.confirmPassword = confirmPasswordError
+
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
 
-    // Validaciones
-    if (!fullName.trim()) {
-      setError('El nombre completo es requerido')
-      return
-    }
-
-    if (fullName.trim().split(' ').length < 2) {
-      setError('Por favor ingresa tu nombre completo (mínimo 2 palabras)')
-      return
-    }
-
-    if (!isValidEmail(email)) {
-      setError('Por favor ingresa un email válido')
-      return
-    }
-
-    if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres')
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden')
+    if (!validateFields()) {
       return
     }
 
@@ -56,14 +75,82 @@ export function RegisterForm() {
     setLoading(true)
 
     try {
-      // Extraer username del nombre completo (primera palabra)
-      const username = fullName.trim().split(' ')[0].toLowerCase()
-      await register(username, email, password)
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim()
+      const username = firstName.trim().toLowerCase()
+      await register(username, email, password, acceptTerms, false, fullName)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al registrarse')
+      const backendErrors = extractValidationErrors<FieldErrors>(err)
+      if (Object.keys(backendErrors).length > 0) {
+        setFieldErrors(prev => ({ ...prev, ...backendErrors }))
+      }
+      const errorMessage = extractErrorMessage(err)
+      if (errorMessage && Object.keys(backendErrors).length === 0) {
+        setError(errorMessage)
+      } else if (Object.keys(backendErrors).length > 0) {
+        setError('')
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setFirstName(value)
+    const error = validateFirstName(value, true)
+    setFieldErrors(prev => ({
+      ...prev,
+      firstName: error || undefined
+    }))
+  }
+
+  const handleLastNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setLastName(value)
+    const error = validateLastName(value, true)
+    setFieldErrors(prev => ({
+      ...prev,
+      lastName: error || undefined
+    }))
+  }
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setEmail(value)
+    const error = validateEmail(value, true)
+    setFieldErrors(prev => ({
+      ...prev,
+      email: error || undefined
+    }))
+  }
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setPassword(value)
+    const error = validatePassword(value, true)
+    setFieldErrors(prev => ({
+      ...prev,
+      password: error || undefined
+    }))
+    if (confirmPassword) {
+      const confirmError = validateConfirmPassword(value, confirmPassword, true)
+      setFieldErrors(prev => ({
+        ...prev,
+        confirmPassword: confirmError || undefined
+      }))
+    }
+  }
+
+  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setConfirmPassword(value)
+    const error = validateConfirmPassword(password, value, true)
+    setFieldErrors(prev => ({
+      ...prev,
+      confirmPassword: error || undefined
+    }))
   }
 
   return (
@@ -74,63 +161,64 @@ export function RegisterForm() {
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium mb-1 text-white">Nombre Completo</label>
-        <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <User size={18} />
-          </div>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Juan Pérez"
-            className="w-full pl-10 pr-4 py-3 bg-black/50 border border-neutral-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            required
-          />
-        </div>
+      <div className="grid grid-cols-2 gap-4">
+        <TextInput
+          label="Nombre"
+          value={firstName}
+          onChange={handleFirstNameChange}
+          placeholder="Juan"
+          icon={<User size={18} />}
+          error={fieldErrors.firstName}
+          autoComplete="given-name"
+          required
+        />
+
+        <TextInput
+          label="Apellido"
+          value={lastName}
+          onChange={handleLastNameChange}
+          placeholder="Pérez"
+          icon={<User size={18} />}
+          error={fieldErrors.lastName}
+          autoComplete="family-name"
+          required
+        />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1 text-white">Email</label>
-        <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <Mail size={18} />
-          </div>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="tu@email.com"
-            className="w-full pl-10 pr-4 py-3 bg-black/50 border border-neutral-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            required
-          />
-        </div>
-      </div>
+      <TextInput
+        label="Email"
+        type="email"
+        value={email}
+        onChange={handleEmailChange}
+        placeholder="tu@email.com"
+        icon={<Mail size={18} />}
+        error={fieldErrors.email}
+        autoComplete="email"
+        required
+      />
 
       <div>
         <PasswordInput
           label="Contraseña"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={handlePasswordChange}
           placeholder="********"
+          error={fieldErrors.password}
+          autoComplete="new-password"
           required
         />
         <PasswordStrengthBar password={password} />
       </div>
 
-      <div>
-        <PasswordInput
-          label="Confirmar Contraseña"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="********"
-          required
-        />
-        {confirmPassword && password !== confirmPassword && (
-          <p className="mt-1 text-sm text-red-400">Las contraseñas no coinciden</p>
-        )}
-      </div>
+      <PasswordInput
+        label="Confirmar Contraseña"
+        value={confirmPassword}
+        onChange={handleConfirmPasswordChange}
+        placeholder="********"
+        error={fieldErrors.confirmPassword}
+        autoComplete="new-password"
+        required
+      />
 
       <div className="flex items-start gap-2">
         <input
