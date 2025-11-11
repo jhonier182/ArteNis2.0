@@ -18,6 +18,22 @@ import {
   X as XIcon
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import {
+  validateFirstName,
+  validateLastName,
+  validateEmail,
+  validatePassword,
+  validateConfirmPassword
+} from '@/utils/validators'
+import { extractValidationErrors, extractErrorMessage } from '@/utils/errorHelpers'
+
+interface FieldErrors extends Record<string, string | undefined> {
+  firstName?: string
+  lastName?: string
+  email?: string
+  password?: string
+  confirmPassword?: string
+}
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -26,12 +42,14 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
-    fullName: '',
+    firstName: '',
+    lastName: '',
     password: '',
     confirmPassword: '',
     acceptTerms: false,
     acceptPrivacy: false,
   })
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [passwordStrength, setPasswordStrength] = useState(0)
@@ -52,36 +70,74 @@ export default function RegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
+    const newValue = type === 'checkbox' ? checked : value
+    
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: newValue,
     })
     setError('')
+
+    if (type !== 'checkbox') {
+      let error: string | null = null
+      
+      if (name === 'firstName') {
+        error = validateFirstName(value, true)
+      } else if (name === 'lastName') {
+        error = validateLastName(value, true)
+      } else if (name === 'email') {
+        error = validateEmail(value, true)
+      } else if (name === 'password') {
+        error = validatePassword(value, true)
+        if (formData.confirmPassword) {
+          const confirmError = validateConfirmPassword(value, formData.confirmPassword, true)
+          setFieldErrors(prev => ({
+            ...prev,
+            confirmPassword: confirmError || undefined
+          }))
+        }
+      } else if (name === 'confirmPassword') {
+        error = validateConfirmPassword(formData.password, value, true)
+      }
+
+      setFieldErrors(prev => ({
+        ...prev,
+        [name]: error || undefined
+      }))
+    }
   }
 
-  const validateForm = () => {
-    if (formData.fullName.length < 2 || formData.fullName.length > 255) {
-      setError('El nombre completo debe tener entre 2 y 255 caracteres')
-      return false
-    }
+  const validateForm = (): boolean => {
+    const errors: FieldErrors = {}
+    
+    const firstNameError = validateFirstName(formData.firstName)
+    if (firstNameError) errors.firstName = firstNameError
 
-    if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
-      return false
-    }
+    const lastNameError = validateLastName(formData.lastName)
+    if (lastNameError) errors.lastName = lastNameError
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden')
+    const emailError = validateEmail(formData.email)
+    if (emailError) errors.email = emailError
+
+    const passwordError = validatePassword(formData.password)
+    if (passwordError) errors.password = passwordError
+
+    const confirmPasswordError = validateConfirmPassword(formData.password, formData.confirmPassword)
+    if (confirmPasswordError) errors.confirmPassword = confirmPasswordError
+
+    setFieldErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
       return false
     }
 
     if (!formData.acceptTerms) {
-      setError('Debes aceptar los términos y condiciones para registrarte')
+      setError('Debes aceptar los términos y condiciones')
       return false
     }
 
     if (!formData.acceptPrivacy) {
-      setError('Debes aceptar la política de privacidad para registrarte')
+      setError('Debes aceptar la política de privacidad')
       return false
     }
 
@@ -90,20 +146,31 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
+    setFieldErrors({})
     
     if (!validateForm()) return
 
     setIsLoading(true)
-    setError('')
 
     try {
-      // Extraer username del nombre completo (primera palabra)
-      const username = formData.fullName.trim().split(' ')[0].toLowerCase()
-      await register(username, formData.email, formData.password, formData.acceptTerms, formData.acceptPrivacy)
+      const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim()
+      const username = formData.firstName.trim().toLowerCase()
+      await register(username, formData.email, formData.password, formData.acceptTerms, formData.acceptPrivacy, fullName)
       router.push('/login?registered=true')
     } catch (err) {
-      const axiosError = err as AxiosError<{ message?: string }>
-      setError(axiosError.response?.data?.message || 'Error al registrar usuario')
+      const backendErrors = extractValidationErrors<FieldErrors>(err)
+      if (Object.keys(backendErrors).length > 0) {
+        setFieldErrors(prev => ({ ...prev, ...backendErrors }))
+      }
+      const errorMessage = extractErrorMessage(err)
+      if (errorMessage && Object.keys(backendErrors).length === 0) {
+        setError(errorMessage)
+      } else if (Object.keys(backendErrors).length > 0) {
+        setError('')
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -125,7 +192,7 @@ export default function RegisterPage() {
   }
 
   const passwordRequirements = [
-    { met: formData.password.length >= 6, text: 'Mínimo 6 caracteres' },
+    { met: formData.password.length >= 8, text: 'Mínimo 8 caracteres' },
     { met: /[a-z]/.test(formData.password) && /[A-Z]/.test(formData.password), text: 'Mayúsculas y minúsculas' },
     { met: /\d/.test(formData.password), text: 'Al menos un número' },
     { met: /[^a-zA-Z0-9]/.test(formData.password), text: 'Carácter especial' },
@@ -213,23 +280,58 @@ export default function RegisterPage() {
 
           
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Full Name */}
-              <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-2">
-                  Nombre Completo
-                </label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              {/* First Name and Last Name in horizontal layout */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* First Name */}
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-300 mb-2">
+                    Nombre
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                   <input
                     type="text"
-                    id="fullName"
-                    name="fullName"
-                    value={formData.fullName}
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
                     onChange={handleChange}
-                    placeholder="Juan Pérez"
-                    className="w-full pl-12 pr-4 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    placeholder="Juan"
+                    autoComplete="given-name"
+                    className={`w-full pl-12 pr-4 py-3 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                      fieldErrors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
+                    }`}
                     required
                   />
+                  </div>
+                  {fieldErrors.firstName && (
+                    <p className="mt-1 text-sm text-red-400">{fieldErrors.firstName}</p>
+                  )}
+                </div>
+
+                {/* Last Name */}
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-300 mb-2">
+                    Apellido
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    placeholder="Pérez"
+                    autoComplete="family-name"
+                    className={`w-full pl-12 pr-4 py-3 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                      fieldErrors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
+                    }`}
+                    required
+                  />
+                  </div>
+                  {fieldErrors.lastName && (
+                    <p className="mt-1 text-sm text-red-400">{fieldErrors.lastName}</p>
+                  )}
                 </div>
               </div>
 
@@ -247,10 +349,16 @@ export default function RegisterPage() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="tu@email.com"
-                    className="w-full pl-12 pr-4 py-3.5 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    autoComplete="email"
+                    className={`w-full pl-12 pr-4 py-3.5 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                      fieldErrors.email ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
+                    }`}
                     required
                   />
                 </div>
+                {fieldErrors.email && (
+                  <p className="mt-1 text-sm text-red-400">{fieldErrors.email}</p>
+                )}
               </div>
 
               {/* Password */}
@@ -267,7 +375,10 @@ export default function RegisterPage() {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full pl-12 pr-12 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    autoComplete="new-password"
+                    className={`w-full pl-12 pr-12 py-3 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                      fieldErrors.password ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
+                    }`}
                     required
                   />
                   <button
@@ -278,6 +389,9 @@ export default function RegisterPage() {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                {fieldErrors.password && (
+                  <p className="mt-1 text-sm text-red-400">{fieldErrors.password}</p>
+                )}
 
                 {/* Password Strength */}
                 {formData.password && (
@@ -340,7 +454,10 @@ export default function RegisterPage() {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full pl-12 pr-12 py-3 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    autoComplete="new-password"
+                    className={`w-full pl-12 pr-12 py-3 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                      fieldErrors.confirmPassword ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
+                    }`}
                     required
                   />
                   <button
@@ -351,7 +468,9 @@ export default function RegisterPage() {
                     {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                {formData.confirmPassword && (
+                {fieldErrors.confirmPassword ? (
+                  <p className="mt-1 text-sm text-red-400">{fieldErrors.confirmPassword}</p>
+                ) : formData.confirmPassword && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
