@@ -289,18 +289,19 @@ export default function RegisterPage() {
                   </label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                    <input
-                      type="text"
-                      id="firstName"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleChange}
-                      placeholder="Juan"
-                      className={`w-full pl-12 pr-4 py-3 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
-                        fieldErrors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
-                      }`}
-                      required
-                    />
+                  <input
+                    type="text"
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    placeholder="Juan"
+                    autoComplete="given-name"
+                    className={`w-full pl-12 pr-4 py-3 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                      fieldErrors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
+                    }`}
+                    required
+                  />
                   </div>
                   {fieldErrors.firstName && (
                     <p className="mt-1 text-sm text-red-400">{fieldErrors.firstName}</p>
@@ -314,18 +315,19 @@ export default function RegisterPage() {
                   </label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                    <input
-                      type="text"
-                      id="lastName"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleChange}
-                      placeholder="Pérez"
-                      className={`w-full pl-12 pr-4 py-3 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
-                        fieldErrors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
-                      }`}
-                      required
-                    />
+                  <input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    placeholder="Pérez"
+                    autoComplete="family-name"
+                    className={`w-full pl-12 pr-4 py-3 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                      fieldErrors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
+                    }`}
+                    required
+                  />
                   </div>
                   {fieldErrors.lastName && (
                     <p className="mt-1 text-sm text-red-400">{fieldErrors.lastName}</p>
@@ -347,6 +349,7 @@ export default function RegisterPage() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="tu@email.com"
+                    autoComplete="email"
                     className={`w-full pl-12 pr-4 py-3.5 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
                       fieldErrors.email ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
                     }`}
@@ -372,6 +375,7 @@ export default function RegisterPage() {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••"
+                    autoComplete="new-password"
                     className={`w-full pl-12 pr-12 py-3 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
                       fieldErrors.password ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
                     }`}
@@ -450,6 +454,7 @@ export default function RegisterPage() {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
+                    autoComplete="new-password"
                     className={`w-full pl-12 pr-12 py-3 bg-neutral-900 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
                       fieldErrors.confirmPassword ? 'border-red-500 focus:ring-red-500' : 'border-neutral-800 focus:ring-purple-500'
                     }`}

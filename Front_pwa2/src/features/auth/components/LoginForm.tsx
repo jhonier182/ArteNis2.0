@@ -110,6 +110,7 @@ export function LoginForm({ onForgotPassword }: LoginFormProps) {
         placeholder="tu@email.com"
         icon={<Mail size={18} />}
         error={fieldErrors.identifier}
+        autoComplete="username"
         required
       />
 
@@ -120,6 +121,7 @@ export function LoginForm({ onForgotPassword }: LoginFormProps) {
           onChange={handlePasswordChange}
           placeholder="........"
           error={fieldErrors.password}
+          autoComplete="current-password"
           required
         />
         <div className="flex justify-end mt-1">

@@ -169,6 +169,7 @@ export function RegisterForm() {
           placeholder="Juan"
           icon={<User size={18} />}
           error={fieldErrors.firstName}
+          autoComplete="given-name"
           required
         />
 
@@ -179,6 +180,7 @@ export function RegisterForm() {
           placeholder="Pérez"
           icon={<User size={18} />}
           error={fieldErrors.lastName}
+          autoComplete="family-name"
           required
         />
       </div>
@@ -191,6 +193,7 @@ export function RegisterForm() {
         placeholder="tu@email.com"
         icon={<Mail size={18} />}
         error={fieldErrors.email}
+        autoComplete="email"
         required
       />
 
@@ -201,6 +204,7 @@ export function RegisterForm() {
           onChange={handlePasswordChange}
           placeholder="********"
           error={fieldErrors.password}
+          autoComplete="new-password"
           required
         />
         <PasswordStrengthBar password={password} />
@@ -212,6 +216,7 @@ export function RegisterForm() {
         onChange={handleConfirmPasswordChange}
         placeholder="********"
         error={fieldErrors.confirmPassword}
+        autoComplete="new-password"
         required
       />
 
