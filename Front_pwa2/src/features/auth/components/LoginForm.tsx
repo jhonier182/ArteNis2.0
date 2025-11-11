@@ -17,7 +17,7 @@ interface LoginFormProps {
   onForgotPassword?: () => void
 }
 
-interface FieldErrors {
+interface FieldErrors extends Record<string, string | undefined> {
   identifier?: string
   password?: string
 }
