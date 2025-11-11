@@ -102,8 +102,17 @@ export const postService = {
   },
 
   async updatePost(id: string, data: Partial<CreatePostData>): Promise<Post> {
-    const response = await apiClient.getClient().put<Post>(`/posts/${id}`, data)
-    return response.data
+    const response = await apiClient.getClient().put<{
+      success: boolean
+      message: string
+      data: {
+        post: Post
+      }
+    }>(`/posts/${id}`, {
+      description: data.description,
+      hashtags: data.hashtags
+    })
+    return response.data.data.post
   },
 
   async deletePost(id: string): Promise<void> {
