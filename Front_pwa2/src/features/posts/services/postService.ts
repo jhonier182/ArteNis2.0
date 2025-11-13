@@ -48,6 +48,22 @@ export interface PostFilters {
   search?: string
 }
 
+export interface FeedResponse {
+  posts: Post[]
+  nextCursor: string | null
+}
+
+export interface PublicPostsOptions {
+  cursor?: string | null
+  limit?: number
+  type?: 'all' | 'image' | 'video' | 'reel'
+  style?: string
+  bodyPart?: string
+  location?: string
+  featured?: boolean
+  sortBy?: 'recent' | 'popular' | 'views'
+}
+
 /**
  * Servicio para manejo de posts
  */
@@ -133,6 +149,51 @@ export const postService = {
 
   async unsavePost(id: string): Promise<void> {
     await apiClient.getClient().delete(`/posts/${id}/save`)
+  },
+
+  /**
+   * Obtener feed de publicaciones (posts de usuarios seguidos)
+   * @param cursor - Cursor para paginación
+   * @param limit - Número de posts a obtener
+   */
+  async getFeed(cursor?: string | null, limit: number = 20): Promise<FeedResponse> {
+    const params: Record<string, string | number> = { limit }
+    if (cursor) {
+      params.cursor = cursor
+    }
+    
+    const response = await apiClient.getClient().get<{
+      success: boolean
+      message: string
+      data: FeedResponse
+    }>('/posts/feed', { params })
+    
+    return response.data.data
+  },
+
+  /**
+   * Obtener posts públicos para la sección Explorar
+   * @param options - Opciones de filtrado y paginación
+   */
+  async getPublicPosts(options: PublicPostsOptions = {}): Promise<FeedResponse> {
+    const params: Record<string, string | number | boolean> = {}
+    
+    if (options.cursor) params.cursor = options.cursor
+    if (options.limit) params.limit = options.limit
+    if (options.type && options.type !== 'all') params.type = options.type
+    if (options.style) params.style = options.style
+    if (options.bodyPart) params.bodyPart = options.bodyPart
+    if (options.location) params.location = options.location
+    if (options.featured !== undefined) params.featured = options.featured
+    if (options.sortBy) params.sortBy = options.sortBy
+    
+    const response = await apiClient.getClient().get<{
+      success: boolean
+      message: string
+      data: FeedResponse
+    }>('/posts/public', { params })
+    
+    return response.data.data
   },
 }
 

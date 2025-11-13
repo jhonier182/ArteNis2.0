@@ -148,7 +148,7 @@ class PostService {
   }
 
 
-  // Obtener feed de publicaciones
+  // Obtener feed de publicaciones (estilo Instagram - posts de usuarios seguidos)
   static async getFeed(options = {}) {
     try {
       const {
@@ -163,39 +163,45 @@ class PostService {
         userId = null
       } = options;
 
+      // Si no hay userId, devolver posts públicos
+      if (!userId) {
+        return await this.getPublicPosts(options);
+      }
+
+      // Obtener usuarios seguidos
+      const followingUsers = await Follow.findAll({
+        where: { followerId: userId },
+        attributes: ['followingId']
+      });
+
+      const followingIds = followingUsers.map(follow => follow.followingId);
+      
+      // Obtener likes del usuario en paralelo
+      const [userLikesData] = await Promise.all([
+        Like.findAll({
+          where: { userId: userId },
+          attributes: ['postId']
+        })
+      ]);
+
+      const userLikes = new Set(userLikesData.map(like => like.postId));
+
+      // Si el usuario sigue a alguien, mostrar solo posts de seguidos
+      // Si no sigue a nadie, mostrar posts públicos de otros usuarios
       const where = {
         isPublic: true,
         status: 'published'
       };
 
-      // OPTIMIZACIÓN: Obtener usuarios seguidos y likes en una sola consulta
-      let excludeUserIds = [];
-      let userLikes = new Set();
-      
-      if (userId) {
-        // Consulta optimizada: obtener seguidos y likes en paralelo
-        const [followingUsers, userLikesData] = await Promise.all([
-          Follow.findAll({
-            where: { followerId: userId },
-            attributes: ['followingId']
-          }),
-          Like.findAll({
-            where: { userId: userId },
-            attributes: ['postId']
-          })
-        ]);
-
-        excludeUserIds = followingUsers.map(follow => follow.followingId);
-        excludeUserIds.push(userId); // Excluir propios posts
-        
-        // Crear Set para búsqueda O(1)
-        userLikes = new Set(userLikesData.map(like => like.postId));
-      }
-
-      // Aplicar filtros de exclusión
-      if (excludeUserIds.length > 0) {
+      if (followingIds.length > 0) {
+        // Mostrar posts de usuarios seguidos
         where.userId = {
-          [Op.notIn]: excludeUserIds
+          [Op.in]: followingIds
+        };
+      } else {
+        // Si no sigue a nadie, mostrar posts públicos excluyendo los propios
+        where.userId = {
+          [Op.ne]: userId
         };
       }
 
@@ -359,6 +365,157 @@ class PostService {
       }
     } catch (error) {
       // Error silencioso - devolver feed vacío
+      return {
+        posts: [],
+        nextCursor: null
+      };
+    }
+  }
+
+  // Obtener posts públicos para la sección Explorar
+  static async getPublicPosts(options = {}) {
+    try {
+      const {
+        cursor = null,
+        limit = 20,
+        type = 'all',
+        style,
+        bodyPart,
+        location,
+        featured,
+        sortBy = 'recent',
+        userId = null
+      } = options;
+
+      const where = {
+        isPublic: true,
+        status: 'published'
+      };
+
+      // Excluir posts del usuario si está autenticado
+      if (userId) {
+        where.userId = {
+          [Op.ne]: userId
+        };
+      }
+
+      // Filtros opcionales
+      if (type !== 'all') {
+        where.type = type;
+      }
+
+      if (style) {
+        where.style = { [Op.like]: `%${style}%` };
+      }
+
+      if (bodyPart) {
+        where.bodyPart = { [Op.like]: `%${bodyPart}%` };
+      }
+
+      if (location) {
+        where.location = { [Op.like]: `%${location}%` };
+      }
+
+      if (featured !== undefined) {
+        where.isFeatured = featured;
+      }
+
+      // Paginación por cursor
+      if (cursor) {
+        const decoded = decodeCursor(cursor);
+        if (decoded) {
+          where[Op.or] = [
+            {
+              createdAt: {
+                [Op.lt]: decoded.createdAt
+              }
+            },
+            {
+              [Op.and]: [
+                {
+                  createdAt: decoded.createdAt
+                },
+                {
+                  id: {
+                    [Op.lt]: decoded.id
+                  }
+                }
+              ]
+            }
+          ];
+        }
+      }
+
+      // Ordenamiento
+      const orderBy = [];
+      if (sortBy === 'popular') {
+        orderBy.push(['likesCount', 'DESC']);
+        orderBy.push(['createdAt', 'DESC']);
+      } else if (sortBy === 'views') {
+        orderBy.push(['viewsCount', 'DESC']);
+        orderBy.push(['createdAt', 'DESC']);
+      } else {
+        // Por defecto: más recientes
+        orderBy.push(['createdAt', 'DESC']);
+        orderBy.push(['id', 'DESC']);
+      }
+
+      // Obtener likes del usuario si está autenticado
+      let userLikes = new Set();
+      if (userId) {
+        const userLikesData = await Like.findAll({
+          where: { userId: userId },
+          attributes: ['postId']
+        });
+        userLikes = new Set(userLikesData.map(like => like.postId));
+      }
+
+      // Consulta de posts
+      const posts = await Post.findAll({
+        where,
+        include: [
+          {
+            model: User,
+            as: 'author',
+            attributes: ['id', 'username', 'fullName', 'avatar', 'isVerified', 'userType']
+          }
+        ],
+        order: orderBy,
+        limit: parseInt(limit) + 1 // Obtener uno más para saber si hay más
+      });
+
+      // Determinar si hay más posts
+      const hasMore = posts.length > limit;
+      const postsToReturn = hasMore ? posts.slice(0, limit) : posts;
+
+      // Transformar posts
+      const transformedPosts = postsToReturn.map(post => {
+        const postData = post.toJSON();
+        
+        // Agregar campo isLiked
+        if (userId) {
+          postData.isLiked = userLikes.has(post.id);
+        } else {
+          postData.isLiked = false;
+        }
+        
+        return this.transformPostForFrontendSync(postData, userId);
+      });
+
+      // Generar nextCursor
+      const nextCursor = transformedPosts.length > 0 && hasMore 
+        ? generateCursorFromPost(postsToReturn[postsToReturn.length - 1])
+        : null;
+
+      return {
+        posts: transformedPosts,
+        nextCursor
+      };
+    } catch (error) {
+      logger.error('Error obteniendo posts públicos', {
+        error: error.message,
+        stack: error.stack
+      });
       return {
         posts: [],
         nextCursor: null

@@ -56,7 +56,7 @@ class PostController {
     }
   }
 
-  // Obtener feed de publicaciones
+  // Obtener feed de publicaciones (posts de usuarios seguidos)
   static async getFeed(req, res, next) {
     try {
       const options = PostService.buildFeedOptions(req.query, req.user?.id);
@@ -64,11 +64,42 @@ class PostController {
       if (req.query.cursor) {
         options.cursor = req.query.cursor;
       }
+      // Agregar limit si está presente
+      if (req.query.limit) {
+        options.limit = parseInt(req.query.limit) || 20;
+      }
       const result = await PostService.getFeed(options);
       
       res.status(200).json({
         success: true,
         message: 'Feed obtenido exitosamente',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Obtener posts públicos para la sección Explorar
+  static async getPublicPosts(req, res, next) {
+    try {
+      const options = {
+        cursor: req.query.cursor || null,
+        limit: parseInt(req.query.limit) || 20,
+        type: req.query.type || 'all',
+        style: req.query.style || null,
+        bodyPart: req.query.bodyPart || null,
+        location: req.query.location || null,
+        featured: req.query.featured !== undefined ? req.query.featured === 'true' : undefined,
+        sortBy: req.query.sortBy || 'recent',
+        userId: req.user?.id || null
+      };
+      
+      const result = await PostService.getPublicPosts(options);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Posts públicos obtenidos exitosamente',
         data: result
       });
     } catch (error) {
