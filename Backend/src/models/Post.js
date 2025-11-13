@@ -159,9 +159,19 @@ const Post = sequelize.define('Post', {
     { fields: ['type'] },
     { fields: ['style'] },
     { fields: ['published_at'] },
+    // Índice compuesto para paginación por cursor (optimizado para getFeed)
+    { fields: ['created_at', 'id'] },
+    // Índice compuesto para filtros comunes en feed
     { fields: ['is_public', 'status', 'published_at'] },
+    { fields: ['is_public', 'status', 'created_at'] },
+    // Índice compuesto para posts de usuario específico
     { fields: ['user_id', 'is_public', 'status'] },
-    { fields: ['style', 'body_part'] }
+    { fields: ['user_id', 'status', 'created_at'] },
+    // Índice para búsquedas por estilo y parte del cuerpo
+    { fields: ['style', 'body_part'] },
+    // Índice para ordenamiento por popularidad
+    { fields: ['likes_count', 'created_at'] },
+    { fields: ['views_count', 'created_at'] }
   ],
   hooks: {
     beforeCreate: (post) => {

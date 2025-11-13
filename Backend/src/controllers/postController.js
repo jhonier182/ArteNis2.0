@@ -58,51 +58,208 @@ class PostController {
 
   // Obtener feed de publicaciones (posts de usuarios seguidos)
   static async getFeed(req, res, next) {
+    const startTime = Date.now();
+    const traceId = req.id || `trace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const logger = require('../utils/logger');
+    
     try {
+      const { MAX_LIMIT, DEFAULT_LIMIT } = require('../middlewares/feedValidation');
+      
+      // Feature flag ya verificado por middleware, pero verificamos por seguridad
+      const { isFeatureEnabled } = require('../middlewares/featureFlag');
+      if (!isFeatureEnabled('ENABLE_CURSOR_FEED')) {
+        logger.warn('[Feed] Feature flag deshabilitado (verificación adicional)', { traceId, userId: req.user?.id });
+        return res.status(503).json({
+          success: false,
+          message: 'El feed está temporalmente deshabilitado',
+          error: 'FEED_DISABLED',
+          traceId
+        });
+      }
+      
+      logger.info('[Feed] Iniciando carga de feed', {
+        traceId,
+        userId: req.user?.id || 'anon',
+        cursor: req.query.cursor ? 'present' : 'null',
+        limit: req.query.limit
+      });
+      
       const options = PostService.buildFeedOptions(req.query, req.user?.id);
-      // Agregar cursor si está presente
+      
+      // Validar y limitar cursor
       if (req.query.cursor) {
+        // Validar formato básico del cursor
+        if (typeof req.query.cursor !== 'string' || req.query.cursor.length > 500) {
+          logger.warn('[Feed] Cursor inválido', { traceId, cursorLength: req.query.cursor?.length });
+          return res.status(400).json({
+            success: false,
+            message: 'Cursor inválido',
+            error: 'INVALID_CURSOR',
+            traceId
+          });
+        }
         options.cursor = req.query.cursor;
       }
-      // Agregar limit si está presente
+      
+      // Validar y limitar el límite
       if (req.query.limit) {
-        options.limit = parseInt(req.query.limit) || 20;
+        const limit = parseInt(req.query.limit);
+        if (isNaN(limit) || limit < 1 || limit > MAX_LIMIT) {
+          logger.warn('[Feed] Límite inválido', { traceId, limit: req.query.limit });
+          return res.status(400).json({
+            success: false,
+            message: `El límite debe ser un número entre 1 y ${MAX_LIMIT}`,
+            error: 'INVALID_LIMIT',
+            traceId
+          });
+        }
+        options.limit = limit;
+      } else {
+        options.limit = DEFAULT_LIMIT;
       }
+      
       const result = await PostService.getFeed(options);
+      
+      const executionTimeMs = Date.now() - startTime;
+      
+      logger.info('[Feed] Feed cargado exitosamente', {
+        traceId,
+        userId: req.user?.id || 'anon',
+        postsCount: result.posts?.length || 0,
+        hasMore: !!result.nextCursor,
+        executionTimeMs
+      });
       
       res.status(200).json({
         success: true,
         message: 'Feed obtenido exitosamente',
-        data: result
+        data: {
+          ...result,
+          executionTimeMs,
+          traceId
+        }
       });
     } catch (error) {
+      const executionTimeMs = Date.now() - startTime;
+      logger.error('[Feed] Error obteniendo feed', {
+        traceId,
+        userId: req.user?.id || 'anon',
+        error: error.message,
+        stack: error.stack,
+        executionTimeMs
+      });
       next(error);
     }
   }
 
   // Obtener posts públicos para la sección Explorar
   static async getPublicPosts(req, res, next) {
+    const startTime = Date.now();
+    const traceId = req.id || `trace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const logger = require('../utils/logger');
+    
     try {
+      const { MAX_LIMIT, DEFAULT_LIMIT } = require('../middlewares/feedValidation');
+      
+      logger.info('[PublicFeed] Iniciando carga de posts públicos', {
+        traceId,
+        userId: req.user?.id || 'anon',
+        ip: req.ip,
+        filters: {
+          type: req.query.type,
+          style: req.query.style,
+          sortBy: req.query.sortBy
+        }
+      });
+      
+      // Validar cursor
+      let cursor = null;
+      if (req.query.cursor) {
+        if (typeof req.query.cursor !== 'string' || req.query.cursor.length > 500) {
+          logger.warn('[PublicFeed] Cursor inválido', { traceId, cursorLength: req.query.cursor?.length });
+          return res.status(400).json({
+            success: false,
+            message: 'Cursor inválido',
+            error: 'INVALID_CURSOR',
+            traceId
+          });
+        }
+        cursor = req.query.cursor;
+      }
+      
+      // Validar y limitar el límite
+      let limit = DEFAULT_LIMIT;
+      if (req.query.limit) {
+        const parsedLimit = parseInt(req.query.limit);
+        if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > MAX_LIMIT) {
+          logger.warn('[PublicFeed] Límite inválido', { traceId, limit: req.query.limit });
+          return res.status(400).json({
+            success: false,
+            message: `El límite debe ser un número entre 1 y ${MAX_LIMIT}`,
+            error: 'INVALID_LIMIT',
+            traceId
+          });
+        }
+        limit = parsedLimit;
+      }
+      
+      // Validar y sanitizar filtros
       const options = {
-        cursor: req.query.cursor || null,
-        limit: parseInt(req.query.limit) || 20,
-        type: req.query.type || 'all',
-        style: req.query.style || null,
-        bodyPart: req.query.bodyPart || null,
-        location: req.query.location || null,
-        featured: req.query.featured !== undefined ? req.query.featured === 'true' : undefined,
-        sortBy: req.query.sortBy || 'recent',
+        cursor,
+        limit,
+        type: req.query.type && ['all', 'image', 'video', 'reel'].includes(req.query.type) 
+          ? req.query.type 
+          : 'all',
+        style: req.query.style 
+          ? String(req.query.style).trim().substring(0, 100) 
+          : null,
+        bodyPart: req.query.bodyPart 
+          ? String(req.query.bodyPart).trim().substring(0, 100) 
+          : null,
+        location: req.query.location 
+          ? String(req.query.location).trim().substring(0, 200) 
+          : null,
+        featured: req.query.featured !== undefined 
+          ? req.query.featured === 'true' || req.query.featured === true 
+          : undefined,
+        sortBy: req.query.sortBy && ['recent', 'popular', 'views'].includes(req.query.sortBy)
+          ? req.query.sortBy
+          : 'recent',
         userId: req.user?.id || null
       };
       
       const result = await PostService.getPublicPosts(options);
       
+      const executionTimeMs = Date.now() - startTime;
+      
+      logger.info('[PublicFeed] Posts públicos cargados exitosamente', {
+        traceId,
+        userId: req.user?.id || 'anon',
+        postsCount: result.posts?.length || 0,
+        hasMore: !!result.nextCursor,
+        executionTimeMs,
+        filters: options
+      });
+      
       res.status(200).json({
         success: true,
         message: 'Posts públicos obtenidos exitosamente',
-        data: result
+        data: {
+          ...result,
+          executionTimeMs,
+          traceId
+        }
       });
     } catch (error) {
+      const executionTimeMs = Date.now() - startTime;
+      logger.error('[PublicFeed] Error obteniendo posts públicos', {
+        traceId,
+        userId: req.user?.id || 'anon',
+        ip: req.ip,
+        error: error.message,
+        stack: error.stack,
+        executionTimeMs
+      });
       next(error);
     }
   }

@@ -364,7 +364,13 @@ class PostService {
         };
       }
     } catch (error) {
-      // Error silencioso - devolver feed vacío
+      logger.error('Error obteniendo feed', {
+        userId: options?.userId || null,
+        cursor: options?.cursor || null,
+        error: error.message,
+        stack: error.stack
+      });
+      // Error silencioso - devolver feed vacío para no romper el frontend
       return {
         posts: [],
         nextCursor: null
