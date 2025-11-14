@@ -7,7 +7,7 @@ import { useInView } from 'react-intersection-observer'
 import { Post } from '../services/postService'
 import { formatRelativeTime } from '@/utils/formatters'
 import { LikeButton, SaveButton, FollowButton } from '@/components/ui/buttons'
-import { MessageCircle, Share2, MoreVertical, Volume2, VolumeX } from 'lucide-react'
+import { MessageCircle, Share2, Volume2, VolumeX } from 'lucide-react'
 import clsx from 'clsx'
 
 interface PostCardVerticalProps {

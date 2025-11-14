@@ -174,18 +174,19 @@ export const postService = {
       }
       
       return response.data.data || { posts: [], nextCursor: null }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Mejorar mensajes de error
-      if (error.response?.status === 503) {
-        throw new Error(error.response?.data?.message || 'El feed está temporalmente deshabilitado')
+      const axiosError = error as { response?: { status?: number; data?: { message?: string } } }
+      if (axiosError.response?.status === 503) {
+        throw new Error(axiosError.response?.data?.message || 'El feed está temporalmente deshabilitado')
       }
-      if (error.response?.status === 429) {
+      if (axiosError.response?.status === 429) {
         throw new Error('Demasiadas solicitudes. Por favor, espera un momento.')
       }
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message)
+      if (axiosError.response?.data?.message) {
+        throw new Error(axiosError.response.data.message)
       }
-      throw error
+      throw error instanceof Error ? error : new Error('Error desconocido al cargar el feed')
     }
   },
 

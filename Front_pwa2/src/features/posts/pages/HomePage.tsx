@@ -5,13 +5,15 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { Bell, Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { useFollowingContext } from '@/context/FollowingContext'
 import { BottomNavigation } from '@/components/ui/buttons'
 import { FeedVertical } from '../components/FeedVertical'
 import { useFeed } from '../hooks/useFeed'
 
 export default function HomePage() {
   const router = useRouter()
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth()
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const { followingUsers } = useFollowingContext()
   const { posts, loading, error, hasMore, loadMore, isLoadingMore, refresh } = useFeed({ 
     limit: 20,
     autoLoad: false // Controlaremos manualmente la carga
@@ -131,7 +133,7 @@ export default function HomePage() {
                 </div>
                 <h2 className="text-xl font-semibold text-white mb-2">No hay publicaciones</h2>
                 <p className="text-gray-400 text-sm mb-6">
-                  {user?.followingCount === 0 
+                  {followingUsers.length === 0 
                     ? 'Sigue a otros usuarios para ver sus publicaciones aquí'
                     : 'Aún no hay publicaciones en tu feed'}
                 </p>
