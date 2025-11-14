@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/router'
-import { Home, Search, MessageCircle, User, Plus } from 'lucide-react'
+import { Home, Search, Bell, User, Plus } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
 export interface BottomNavigationProps {
@@ -33,13 +33,13 @@ export function BottomNavigation({ currentPath }: BottomNavigationProps) {
         </button>
         
         <button
-          onClick={() => router.push('/search')}
+          onClick={() => router.push('/explore')}
           className={`nav-button flex flex-col items-center justify-center py-2 px-3 min-w-0 flex-1 transition-colors ${
-            isActive('/search') ? 'text-blue-500' : 'text-gray-400 hover:text-white'
+            isActive('/explore') ? 'text-blue-500' : 'text-gray-400 hover:text-white'
           }`}
         >
           <Search className="w-6 h-6 mb-1" />
-          <span className="text-xs font-medium truncate">Buscar</span>
+          <span className="text-xs font-medium truncate">Explorar</span>
         </button>
         
         {isArtist && (
@@ -54,19 +54,19 @@ export function BottomNavigation({ currentPath }: BottomNavigationProps) {
                 <Plus className="w-4 h-4 text-white" strokeWidth={3} />
               </div>
             </div>
-            <span className="text-xs font-medium truncate">Publicar</span>
+            <span className="text-xs font-medium truncate">Crear</span>
           </button>
         )}
         
         <button
-          onClick={() => router.push('/chat')}
+          onClick={() => router.push('/notifications')}
           className={`nav-button flex flex-col items-center justify-center py-2 px-3 min-w-0 flex-1 transition-colors relative ${
-            isActive('/chat') ? 'text-blue-500' : 'text-gray-400 hover:text-white'
+            isActive('/notifications') ? 'text-blue-500' : 'text-gray-400 hover:text-white'
           }`}
         >
-          <MessageCircle className="w-6 h-6 mb-1" />
-          <span className="text-xs font-medium truncate">Chat</span>
-          <span className="absolute top-1 right-2 w-2 h-2 bg-green-500 rounded-full"></span>
+          <Bell className="w-6 h-6 mb-1" />
+          <span className="text-xs font-medium truncate">Notificaciones</span>
+          {/* TODO: Agregar badge cuando haya notificaciones no leídas */}
         </button>
         
         <button

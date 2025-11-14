@@ -66,10 +66,19 @@ export function useScrollRestoration({
   const targetScrollRef = useRef<number | null>(null)
   const mutationObserverRef = useRef<MutationObserver | null>(null)
   const isInitialMountRef = useRef<boolean>(true)
+  const lastRestoreTimeRef = useRef<number>(0) // Timestamp de la última restauración
 
   // Guardar scroll con snapshot completo (incluye postIds para validación)
   const saveCurrentScroll = useCallback((postId?: string) => {
     if (!identifier || typeof window === 'undefined') return
+    
+    // No guardar scroll si acabamos de restaurar (evitar sobrescribir inmediatamente)
+    const timeSinceRestore = Date.now() - lastRestoreTimeRef.current
+    if (timeSinceRestore < 1000) { // 1 segundo de protección después de restaurar
+      logger.debug(`[useScrollRestoration] Omitiendo guardado de scroll (restaurado hace ${timeSinceRestore}ms)`)
+      return
+    }
+    
     const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop
     const snapshot = {
       scrollY,
@@ -139,6 +148,8 @@ export function useScrollRestoration({
     if (target == null || typeof window === 'undefined') return
     const current = window.scrollY || window.pageYOffset || document.documentElement.scrollTop
     if (Math.abs(current - target) > 5) {
+      // Marcar tiempo de restauración ANTES de restaurar para evitar que el evento scroll guarde inmediatamente
+      lastRestoreTimeRef.current = Date.now()
       window.scrollTo({ top: target, behavior: 'auto' })
       document.documentElement.scrollTop = target
       if (document.body) {
@@ -159,6 +170,7 @@ export function useScrollRestoration({
                       (routePath === '/userProfile' && pathWithoutQuery.startsWith('/userProfile') && !pathWithoutQuery.includes('/userProfile/'))
     
     if (!isOnRoute) {
+      // Resetear flags cuando salimos de la ruta
       scrollRestoredRef.current = false
       targetScrollRef.current = null
       return
@@ -166,8 +178,14 @@ export function useScrollRestoration({
 
     // Obtener snapshot guardado
     const snapshot = getScroll(identifier)
-    const previousPath = previousPathRef.current?.split('?')[0] || null
+    // Intentar obtener previousPath del snapshot primero (persiste entre montajes), luego del ref
+    const previousPathFromSnapshot = snapshot?.lastVisitedPostId ? `/postDetail?postId=${snapshot.lastVisitedPostId}` : null
+    const previousPathFromRef = previousPathRef.current?.split('?')[0] || null
+    const previousPath = previousPathFromRef || previousPathFromSnapshot?.split('?')[0] || null
     const isFirstLoad = getFirstLoadFlag(identifier)
+    
+    // Detectar si venimos del detalle del post usando lastVisitedPostId del snapshot
+    const cameFromPostDetail = snapshot?.lastVisitedPostId !== undefined && snapshot.lastVisitedPostId !== null
 
     // Marcar que ya no es primera carga si posts cargan
     if (isFirstLoad && posts.length > 0) {
@@ -178,20 +196,28 @@ export function useScrollRestoration({
       isInitialMountRef.current = false
     }
 
+    // CRÍTICO: Solo intentar restaurar si los posts están realmente cargados
+    // Si posts.length === 0, esperar a que se carguen desde el caché
+    if (posts.length === 0) {
+      logger.debug(`[useScrollRestoration] Esperando posts para restaurar scroll (routePath: ${routePath}, posts.length: 0)`)
+      return
+    }
+
     // Considerar restaurar si:
     // - existe snapshot
     // - no se ha restaurado aún
-    // - posts ya cargados (pero esperamos al DOM ready)
+    // - posts ya cargados (verificado arriba)
     // - no es primera carga OR venimos desde postDetail
     const hasValidPreviousPath = previousPath !== null && previousPath !== routePath
-    const isNotFirstLoad = !isFirstLoad || hasValidPreviousPath
+    // Si venimos del detalle del post, siempre restaurar (incluso si es primera carga)
+    const isNotFirstLoad = !isFirstLoad || hasValidPreviousPath || cameFromPostDetail
     const shouldRestore = snapshot && 
                           !scrollRestoredRef.current && 
                           posts.length > 0 && 
                           isNotFirstLoad &&
                           snapshot.scrollY > 0
 
-    logger.debug(`[useScrollRestoration] shouldRestore: ${shouldRestore} (routePath: ${routePath}, snapshot: ${snapshot ? `${snapshot.scrollY}px` : 'null'}, hasValidPreviousPath: ${hasValidPreviousPath}, isNotFirstLoad: ${isNotFirstLoad}, posts.length: ${posts.length}, previousPath: ${previousPath})`)
+    logger.debug(`[useScrollRestoration] shouldRestore: ${shouldRestore} (routePath: ${routePath}, snapshot: ${snapshot ? `${snapshot.scrollY}px` : 'null'}, hasValidPreviousPath: ${hasValidPreviousPath}, cameFromPostDetail: ${cameFromPostDetail}, isNotFirstLoad: ${isNotFirstLoad}, posts.length: ${posts.length}, previousPath: ${previousPath})`)
 
     if (!shouldRestore) return
 
@@ -224,6 +250,7 @@ export function useScrollRestoration({
         attemptRestore(targetScrollRef.current!)
         restored = true
         scrollRestoredRef.current = true
+        lastRestoreTimeRef.current = Date.now() // Marcar tiempo de restauración
         if (mutationObserverRef.current) {
           mutationObserverRef.current.disconnect()
           mutationObserverRef.current = null
@@ -262,6 +289,12 @@ export function useScrollRestoration({
     // Throttle para no guardar en cada pixel de scroll
     let scrollTimeout: NodeJS.Timeout | null = null
     const throttledScroll = () => {
+      // No guardar scroll si acabamos de restaurar (evitar sobrescribir inmediatamente)
+      const timeSinceRestore = Date.now() - lastRestoreTimeRef.current
+      if (timeSinceRestore < 1000) { // 1 segundo de protección después de restaurar
+        return
+      }
+      
       if (scrollTimeout) return
       scrollTimeout = setTimeout(() => {
         if (typeof window !== 'undefined') {

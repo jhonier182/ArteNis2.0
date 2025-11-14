@@ -6,7 +6,7 @@ import Head from 'next/head'
 import { useAuth } from '@/context/AuthContext'
 import { postService, Post } from '@/features/posts/services/postService'
 import { LikeButton, SaveButton, ShareButton } from '@/components/ui/buttons'
-import { ChevronLeft, MessageCircle } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useToastContext } from '@/context/ToastContext'
 import { cachePost, getCachedPost } from '@/utils/cache'
@@ -33,8 +33,6 @@ export default function PostDetailPage() {
   const [comments, setComments] = useState<Array<{ id: string; author: string; text: string }>>([])
   const [newComment, setNewComment] = useState('')
   const [isCommenting, setIsCommenting] = useState(false)
-  const [isExiting, setIsExiting] = useState(false)
-  const isNavigatingRef = useRef(false)
 
 
   // Handler para "Cotizar"
@@ -43,39 +41,6 @@ export default function PostDetailPage() {
     toast.info('¡Gracias por tu interés! Te contactaremos para cotizar.')
   }
 
-  // Handler para navegación suave de vuelta
-  const handleBack = () => {
-    if (isNavigatingRef.current) return // Evitar múltiples navegaciones
-    isNavigatingRef.current = true
-    setIsExiting(true)
-    // Esperar a que termine la animación antes de navegar
-    setTimeout(() => {
-      router.back()
-    }, 250) // Duración de la animación de salida
-  }
-
-  // Manejar el botón atrás del navegador con animación suave
-  useEffect(() => {
-    const handleBeforePopState = (_state: { url: string; as: string; options: { shallow?: boolean } }) => {
-      if (!isExiting && !isNavigatingRef.current) {
-        isNavigatingRef.current = true
-        setIsExiting(true)
-        // Permitir la navegación después de la animación
-        setTimeout(() => {
-          router.back()
-        }, 250)
-        return false // Bloquear la navegación inmediata
-      }
-      return true
-    }
-
-    router.beforePopState(handleBeforePopState)
-
-    return () => {
-      // Restaurar comportamiento por defecto
-      router.beforePopState(() => true)
-    }
-  }, [router, isExiting])
 
   useEffect(() => {
     if (postId && typeof postId === 'string') {
@@ -198,12 +163,6 @@ export default function PostDetailPage() {
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">Post no encontrado</h2>
-          <button
-            onClick={handleBack}
-            className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 mt-4"
-          >
-            Volver
-          </button>
         </div>
       </div>
     )
@@ -219,12 +178,6 @@ export default function PostDetailPage() {
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">Error al cargar el post</h2>
           <p className="text-gray-400 mb-4">{error || 'No se pudo cargar el post'}</p>
-          <button
-            onClick={handleBack}
-            className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700"
-          >
-            Volver
-          </button>
         </div>
       </div>
     )
@@ -235,7 +188,7 @@ export default function PostDetailPage() {
       <motion.div
         key="post-detail"
         initial="initial"
-        animate={isExiting ? "exit" : "animate"}
+        animate="animate"
         exit="exit"
         variants={pageVariants}
         className="min-h-screen bg-black text-white pb-32"
@@ -244,29 +197,14 @@ export default function PostDetailPage() {
         <title>{post.title || 'Post'} - InkEndin</title>
       </Head>
 
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-[100] bg-transparent pointer-events-none">
-        <div className="container-mobile px-4 pt-4 max-w-md mx-auto">
-          <motion.button
-            onClick={handleBack}
-            whileTap={{ scale: 0.9 }}
-            className="w-10 h-10 flex items-center justify-center bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors pointer-events-auto shadow-lg"
-            aria-label="Volver"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </motion.button>
-        </div>
-      </header>
-
-      {/* Media */}
+      {/* Media - Vertical 4:5 (1080x1350) */}
       {imageUrl && (
         <div
-          className="mb-4 relative overflow-hidden bg-black rounded-xl"
+          className="mb-4 relative overflow-hidden bg-black rounded-xl mx-auto"
           style={{
             width: 'calc(100vw - 32px)', // 16px margin each side para espacio
-            maxWidth: 'calc(100vw - 32px)',
-            aspectRatio: '9/16',
-            maxHeight: '70vh',
+            maxWidth: '1080px',
+            aspectRatio: '4/5',
             left: '50%',
             transform: 'translateX(-50%)'
           }}
@@ -280,11 +218,10 @@ export default function PostDetailPage() {
                 loop
                 playsInline
                 poster={post.thumbnailUrl}
-                className="w-full h-full object-cover rounded-xl"
+                className="w-full h-full object-contain rounded-xl"
                 style={{
                   outline: 'none',
-                  aspectRatio: '9/16',
-                  maxHeight: '70vh',
+                  aspectRatio: '4/5',
                   backgroundColor: '#0f1419'
                 }}
               />
@@ -318,9 +255,8 @@ export default function PostDetailPage() {
                 backgroundColor: '#000', // Fondo negro para imágenes
                 width: '100%',
                 height: '100%',
-                maxWidth: '100vw',
-                maxHeight: '70vh',
-                position: 'relative'
+                position: 'relative',
+                aspectRatio: '4/5'
               }}
             >
               <Image
@@ -328,14 +264,13 @@ export default function PostDetailPage() {
                 src={imageUrl}
                 alt={post.title || 'Post'}
                 fill
+                sizes="(max-width: 1080px) calc(100vw - 32px), 1080px"
                 className="object-contain rounded-xl"
                 priority
                 unoptimized={true} // Cloudinary ya optimiza las imágenes, evitar doble optimización
                 style={{
                   width: '100%',
                   height: '100%',
-                  maxWidth: '100vw',
-                  maxHeight: '70vh',
                   backgroundColor: 'transparent' // la imagen tiene fondo transparente sobre #000
                 }}
               />

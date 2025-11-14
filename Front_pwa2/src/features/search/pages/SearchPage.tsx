@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { ChevronLeft } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useSearch } from '../hooks/useSearch'
 import { useSearchPosts } from '../hooks/useSearchPosts'
@@ -103,14 +102,7 @@ export default function SearchPage() {
   const searchHeader = useMemo(() => (
     <header className="fixed top-0 left-0 right-0 z-[100] bg-transparent pointer-events-none">
       <div className="container-mobile px-4 pt-4 max-w-md mx-auto">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="w-10 h-10 flex items-center justify-center bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors pointer-events-auto shadow-lg flex-shrink-0"
-            aria-label="Volver"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <div className="flex items-center">
           <div className="flex-1 min-w-0 pointer-events-auto">
             <SearchBar
               onChange={handleSearchChange}
@@ -123,7 +115,7 @@ export default function SearchPage() {
         </div>
       </div>
     </header>
-  ), [router, handleSearchChange, handleClearSearch]) // NO incluir isSearching
+  ), [handleSearchChange, handleClearSearch]) // NO incluir isSearching
 
   // Memoizar el contenido principal - solo se re-renderiza cuando cambian resultados
   const mainContent = useMemo(() => {

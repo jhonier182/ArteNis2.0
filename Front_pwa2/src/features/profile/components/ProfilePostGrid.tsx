@@ -18,7 +18,7 @@ interface CellRendererParams {
 interface ProfilePostGridProps {
   posts: UserPost[]
   onPostClick: (postId: string) => void
-  aspectRatio?: '3/4' | 'auto'
+  aspectRatio?: '4/5' | 'auto'
   className?: string
 }
 
@@ -36,7 +36,7 @@ const createCache = () => new CellMeasurerCache({
 export default function ProfilePostGrid({ 
   posts, 
   onPostClick, 
-  aspectRatio = '3/4',
+  aspectRatio = '4/5',
   className = ''
 }: ProfilePostGridProps) {
   const cacheRef = useRef<CellMeasurerCache | null>(null)
@@ -173,8 +173,8 @@ export default function ProfilePostGrid({
               
               // Calcular altura de fila basada en aspect ratio
               const padding = 12 // p-1.5 = 6px por lado = 12px total vertical
-              const rowHeight = aspectRatio === '3/4' 
-                ? columnWidth * 1.33 + padding // width * aspect ratio + padding
+              const rowHeight = aspectRatio === '4/5' 
+                ? columnWidth * 1.25 + padding // width * aspect ratio (5/4 = 1.25) + padding
                 : 200 + padding // altura mínima para auto
 
               return (

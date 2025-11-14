@@ -171,5 +171,24 @@
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  /* Snap scrolling para feed vertical */
+  .snap-y {
+    scroll-snap-type: y mandatory;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  .snap-mandatory {
+    scroll-snap-type: y mandatory;
+  }
+
+  /* Smooth scrolling mejorado */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 

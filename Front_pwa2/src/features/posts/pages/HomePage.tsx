@@ -1,21 +1,51 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { Bell } from 'lucide-react'
+import { Bell, Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { useFollowingContext } from '@/context/FollowingContext'
 import { BottomNavigation } from '@/components/ui/buttons'
+import { FeedVertical } from '../components/FeedVertical'
+import { useFeed } from '../hooks/useFeed'
 
 export default function HomePage() {
   const router = useRouter()
-  const { isAuthenticated, isLoading, user } = useAuth()
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const { followingUsers } = useFollowingContext()
+  const { posts, loading, error, hasMore, loadMore, isLoadingMore, refresh } = useFeed({ 
+    limit: 20,
+    autoLoad: false // Controlaremos manualmente la carga
+  })
+
+  // Cargar feed cuando la autenticación esté lista
+  const hasLoadedRef = useRef(false)
+  
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && !hasLoadedRef.current) {
+      hasLoadedRef.current = true
+      console.log('[HomePage] Usuario autenticado, cargando feed...')
+      const timer = setTimeout(() => {
+        refresh().catch(err => {
+          console.error('[HomePage] Error al cargar feed:', err)
+          hasLoadedRef.current = false // Permitir reintentar
+        })
+      }, 200) // Pequeño delay para asegurar que todo está listo
+      
+      return () => clearTimeout(timer)
+    }
+    
+    // Resetear si el usuario se desautentica
+    if (!isAuthenticated) {
+      hasLoadedRef.current = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authLoading]) // Solo dependencias críticas
 
   useEffect(() => {
     // Si terminó de cargar y no está autenticado, redirigir al login
-    // Usar replace para evitar historial innecesario y prevenir condiciones de carrera
-    if (!isLoading && !isAuthenticated) {
-      // Usar setTimeout para evitar navegaciones durante el render
+    if (!authLoading && !isAuthenticated) {
       const timeoutId = setTimeout(() => {
         if (router.pathname !== '/login') {
           router.replace('/login')
@@ -23,10 +53,14 @@ export default function HomePage() {
       }, 0)
       return () => clearTimeout(timeoutId)
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [isAuthenticated, authLoading, router])
+
+  const handlePostClick = useCallback((postId: string) => {
+    router.push(`/postDetail?postId=${postId}`)
+  }, [router])
 
   // Mostrar loader mientras verifica autenticación
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="text-center">
@@ -42,44 +76,87 @@ export default function HomePage() {
     return null
   }
 
-  // Si está autenticado, mostrar la página de inicio con navegación
   return (
-    <div className="min-h-screen bg-black text-white pb-20">
+    <div className="min-h-screen bg-black text-white">
       <Head>
         <title>Inkedin - Inicio</title>
       </Head>
       
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-black">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+      {/* Feed Vertical estilo TikTok/Instagram Reels */}
+      <div className="h-screen flex flex-col">
+        {/* Header minimalista */}
+        <header className="sticky top-0 z-50 bg-gradient-to-b from-black/80 to-transparent px-4 py-3 pointer-events-none">
+          <div className="flex items-center justify-between pointer-events-auto">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
               Inkedin
             </h1>
-            <button className="p-2 hover:bg-gray-800 rounded-full transition-colors relative">
-              <Bell className="w-6 h-6" />
+            <button 
+              onClick={() => router.push('/notifications')}
+              className="p-2 hover:bg-white/10 rounded-full transition-colors relative"
+              title="Notificaciones"
+            >
+              <Bell className="w-5 h-5 text-white" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="px-4 py-4">
-        <div className="text-center py-20">
-          <h2 className="text-2xl font-bold mb-2 text-white">
-            ¡Bienvenido{user ? `, ${user.username}` : ''}!
-          </h2>
-          <p className="text-gray-400 mb-6">
-            Plataforma moderna para compartir y descubrir arte de tatuajes
-          </p>
-          
-          {/* Placeholder para el contenido de posts */}
-          <div className="mt-8 text-gray-500">
-            <p className="text-sm">El contenido aparecerá aquí</p>
-          </div>
+        {/* Feed Vertical */}
+        <div className="flex-1 overflow-hidden">
+          {loading && posts.length === 0 ? (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
+                <p className="text-gray-400">Cargando publicaciones...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="h-full flex items-center justify-center px-4">
+              <div className="text-center">
+                <p className="text-red-400 mb-4">Error al cargar el feed</p>
+                <p className="text-gray-400 text-sm mb-4">{error.message}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Reintentar
+                </button>
+              </div>
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="h-full flex items-center justify-center px-4">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-white mb-2">No hay publicaciones</h2>
+                <p className="text-gray-400 text-sm mb-6">
+                  {followingUsers.length === 0 
+                    ? 'Sigue a otros usuarios para ver sus publicaciones aquí'
+                    : 'Aún no hay publicaciones en tu feed'}
+                </p>
+                <button
+                  onClick={() => router.push('/search')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Explorar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <FeedVertical
+              posts={posts}
+              loading={loading}
+              hasMore={hasMore}
+              loadMore={loadMore}
+              isLoadingMore={isLoadingMore}
+              onPostClick={handlePostClick}
+            />
+          )}
         </div>
-      </main>
+      </div>
 
       {/* Bottom Navigation */}
       <BottomNavigation currentPath="/" />

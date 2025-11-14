@@ -10,7 +10,6 @@ import {
   Star,
   Grid,
   Bookmark,
-  ChevronLeft,
   MoreVertical,
   Camera,
   Share2,
@@ -28,9 +27,9 @@ import { logger } from '@/utils/logger'
 import { CHECK_NEW_POST_DELAY_MS } from '@/utils/constants'
 import { validateImageFile } from '@/utils/fileValidators'
 import { useToastContext } from '@/context/ToastContext'
-import { useScrollRestoration } from '../hooks/useScrollRestoration'
 import ProfileSavedPostItem from '../components/ProfileSavedPostItem'
 import ProfilePostGrid from '../components/ProfilePostGrid'
+import { usePersistentScroll } from '@/hooks/usePersistentScroll'
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, logout, updateUser } = useAuth()
@@ -171,13 +170,16 @@ export default function ProfilePage() {
   // Esto causaba re-renders innecesarios al volver del detalle de post
   // El caché ahora maneja la persistencia de posts entre navegaciones
 
-  // Hook reutilizable para guardar y restaurar scroll
-  const { handlePostClick } = useScrollRestoration({
-    routePath: '/profile',
-    identifier: user?.id || null,
-    posts: userPosts,
-    itemSelector: 'data-post-item'
+  // Mantener scroll persistente usando el hook reutilizable
+  usePersistentScroll({
+    pageId: `profile-${user?.id || 'default'}`,
+    enabled: !!user?.id
   })
+
+  // Handler para click en post - navegar al detalle
+  const handlePostClick = (postId: string) => {
+    router.push(`/postDetail?postId=${postId}`)
+  }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -272,15 +274,8 @@ export default function ProfilePage() {
 
       <header className="sticky top-0 z-50 bg-transparent pointer-events-none">
         <div className="px-4 pt-4 max-w-md mx-auto">
-          <div className="flex items-center justify-between">
-            <button 
-              onClick={() => router.back()}
-              className="w-10 h-10 flex items-center justify-center bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors pointer-events-auto shadow-lg"
-              aria-label="Volver"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-lg font-bold pointer-events-none opacity-0">Perfil</h1>
+          <div className="flex items-center justify-end">
+            <h1 className="text-lg font-bold pointer-events-none opacity-0 flex-1">Perfil</h1>
             <button 
               onClick={() => setIsSettingsModalOpen(true)}
               className="w-10 h-10 flex items-center justify-center bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors pointer-events-auto shadow-lg"
@@ -545,7 +540,7 @@ export default function ProfilePage() {
                 <ProfilePostGrid
                   posts={userPosts}
                   onPostClick={handlePostClick}
-                  aspectRatio="3/4"
+                  aspectRatio="4/5"
                 />
                 
                 <InfiniteScrollTrigger
