@@ -92,7 +92,7 @@ export function PostCard({ post, onPostClick }: PostCardProps) {
         </button>
       </div>
 
-      {/* Imagen/Video del post */}
+      {/* Imagen/Video del post - Vertical 4:5 (1080x1350) */}
       <div 
         className="relative w-full bg-black cursor-pointer"
         onClick={handlePostClick}
@@ -100,11 +100,12 @@ export function PostCard({ post, onPostClick }: PostCardProps) {
         {imageUrl ? (
           <>
             {isVideo ? (
-              <div className="relative aspect-[9/16] max-h-[600px] mx-auto">
+              <div className="relative w-full max-w-[1080px] aspect-[4/5] mx-auto">
                 <Image
                   src={post.thumbnailUrl || imageUrl}
                   alt={post.description || post.title || 'Post'}
                   fill
+                  sizes="(max-width: 1080px) 100vw, 1080px"
                   className="object-contain"
                   unoptimized
                 />
@@ -117,11 +118,12 @@ export function PostCard({ post, onPostClick }: PostCardProps) {
                 </div>
               </div>
             ) : (
-              <div className="relative w-full aspect-square max-h-[600px] mx-auto">
+              <div className="relative w-full max-w-[1080px] aspect-[4/5] mx-auto">
                 <Image
                   src={imageUrl}
                   alt={post.description || post.title || 'Post'}
                   fill
+                  sizes="(max-width: 1080px) 100vw, 1080px"
                   className="object-contain"
                   unoptimized
                 />
@@ -129,7 +131,7 @@ export function PostCard({ post, onPostClick }: PostCardProps) {
             )}
           </>
         ) : (
-          <div className="w-full aspect-square bg-gray-900 flex items-center justify-center">
+          <div className="w-full aspect-[4/5] bg-gray-900 flex items-center justify-center">
             <p className="text-gray-500 text-sm">Sin imagen</p>
           </div>
         )}

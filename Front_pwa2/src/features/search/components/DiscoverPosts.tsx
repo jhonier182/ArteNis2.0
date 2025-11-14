@@ -62,7 +62,7 @@ export function DiscoverPosts({
   return (
     <div>
       <h2 className="text-base font-semibold text-gray-300 mb-3">Descubre Arte</h2>
-      <div className="grid grid-cols-2 gap-2 auto-rows-[200px]">
+      <div className="grid grid-cols-2 gap-2">
         {posts
           .filter((post) => post && post.id)
           .map((post, index) => (
@@ -71,7 +71,7 @@ export function DiscoverPosts({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.05 }}
-              className="relative overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
+              className="relative aspect-[4/5] overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
             >
               <button
                 onClick={() => handlePostClick(post.id)}

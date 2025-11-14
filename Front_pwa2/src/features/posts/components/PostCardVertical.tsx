@@ -89,7 +89,7 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
         className="w-full h-[calc(100vh-32px)] relative"
         style={{ transform: 'translateY(-90px)' }} // sube la card 90px
       >
-        {/* Media Container - Fullscreen ocupando toda la pantalla */}
+        {/* Media Container - Vertical 4:5 (1080x1350) centrado */}
         <div
           className="absolute inset-0 w-full h-full flex items-center justify-center bg-black padding-bottom-10"
           onClick={handlePostClick}
@@ -97,8 +97,8 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
           {imageUrl ? (
             <>
               {isVideo ? (
-                // Cambiar la posición de los controles flotantes un poco más arriba
-                <div className="relative w-full h-full flex items-center justify-center">
+                // Contenedor vertical 4:5 para videos
+                <div className="relative w-full max-w-[1080px] aspect-[4/5] flex items-center justify-center">
                   <video
                     ref={videoRef}
                     src={imageUrl}
@@ -144,12 +144,13 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
                   )}
                 </div>
               ) : (
-                <div className="relative w-full h-full flex items-center justify-center">
+                // Contenedor vertical 4:5 para imágenes
+                <div className="relative w-full max-w-[1080px] aspect-[4/5] flex items-center justify-center">
                   <Image
                     src={imageUrl}
                     alt={post.description || post.title || 'Post'}
                     fill
-                    sizes="100vw"
+                    sizes="(max-width: 1080px) 100vw, 1080px"
                     className="object-contain"
                     style={{
                       objectFit: 'contain',
