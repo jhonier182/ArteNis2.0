@@ -90,7 +90,13 @@ const uploadPostImage = async (imageBuffer, userId, postId) => {
         folder: 'posts',
         public_id: `post_${userId}_${postId}_${Date.now()}`,
         transformation: [
-          { width: 1080, height: 1080, crop: 'limit' },
+          { 
+            width: 1080, 
+            height: 1920, 
+            crop: 'fill',
+            gravity: 'center',
+            aspect_ratio: '9:16'
+          },
           { quality: 'auto', fetch_format: 'auto' }
         ]
       }
@@ -122,11 +128,24 @@ const uploadPostVideo = async (videoBuffer, userId, postId, mimeType) => {
         public_id: `video_${userId}_${postId}_${Date.now()}`,
         resource_type: 'video',
         transformation: [
-          { width: 1080, height: 1080, crop: 'limit' },
+          { 
+            width: 1080, 
+            height: 1920, 
+            crop: 'fill',
+            gravity: 'center',
+            aspect_ratio: '9:16'
+          },
           { quality: 'auto', fetch_format: 'auto' }
         ],
         eager: [
-          { width: 300, height: 300, crop: 'fill', format: 'jpg' } // Generar thumbnail
+          { 
+            width: 540, 
+            height: 960, 
+            crop: 'fill', 
+            gravity: 'center',
+            aspect_ratio: '9:16',
+            format: 'jpg' 
+          } // Generar thumbnail en formato 9:16
         ]
       }
     );

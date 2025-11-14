@@ -134,24 +134,14 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 // Rate limiting inteligente basado en el entorno
-if (process.env.NODE_ENV === 'production') {
-  // En producción: rate limiting estricto para todas las rutas
-  const prodLimiter = require('express-rate-limit')({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: {
-      success: false,
-      message: 'Demasiadas solicitudes, intenta de nuevo en 15 minutos'
-    }
-  });
-  app.use(prodLimiter);
-} else {
-  // Rate limiting estricto solo para autenticación
-  app.use('/api/auth/login', strictRateLimit);
-  app.use('/api/auth/register', strictRateLimit);
-  app.use('/api/auth/refresh', strictRateLimit);
-  
-  // Rate limiting permisivo para el resto de rutas
+// Rate limiting estricto solo para autenticación
+app.use('/api/auth/login', strictRateLimit);
+app.use('/api/auth/register', strictRateLimit);
+app.use('/api/auth/refresh', strictRateLimit);
+
+// Rate limiting permisivo para el resto de rutas (solo en desarrollo)
+// En producción, el rate limiting se maneja por ruta específica
+if (process.env.NODE_ENV !== 'production') {
   app.use('/api', devRateLimit);
 }
 

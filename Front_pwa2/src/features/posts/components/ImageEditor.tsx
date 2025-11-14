@@ -30,6 +30,8 @@ export interface ImageEditorProps {
   onSelectFile?: () => void  // Nueva prop para abrir galería
   isPublishing?: boolean
   initialDescription?: string  // Descripción inicial
+  initialHashtags?: string[]  // Hashtags iniciales
+  isEditMode?: boolean  // Si está en modo edición (no permite cambiar imagen)
 }
 
 export function ImageEditor({ 
@@ -38,10 +40,12 @@ export function ImageEditor({
   onClose, 
   onSelectFile,
   isPublishing = false,
-  initialDescription = ''
+  initialDescription = '',
+  initialHashtags = [],
+  isEditMode = false
 }: ImageEditorProps) {
   const [description, setDescription] = useState(initialDescription)
-  const [hashtags, setHashtags] = useState<string[]>([])
+  const [hashtags, setHashtags] = useState<string[]>(initialHashtags)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   
   const [brightness, setBrightness] = useState(50)
@@ -404,7 +408,7 @@ export function ImageEditor({
             <h1 className="text-lg font-bold">
               {imageUrl ? '✨ Crear Publicación' : '📸 Nueva Publicación'}
             </h1>
-            {imageUrl && (
+            {imageUrl ? (
               <button
                 onClick={handleSave}
                 disabled={isPublishing}
@@ -422,6 +426,17 @@ export function ImageEditor({
                   </>
                 )}
               </button>
+            ) : (
+              // Botón "Siguiente" estilo Instagram cuando no hay imagen seleccionada
+              onSelectFile && (
+                <button
+                  onClick={onSelectFile}
+                  className="px-5 py-2 text-blue-500 font-semibold text-sm hover:text-blue-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isPublishing}
+                >
+                  Siguiente
+                </button>
+              )
             )}
           </div>
         </div>
@@ -430,32 +445,25 @@ export function ImageEditor({
       {/* Preview Area */}
       <div className="flex-1 flex items-center justify-center p-4 bg-gradient-to-b from-[#0f1419] to-black/50 min-h-[50vh]">
         {!imageUrl ? (
-          // Si no hay imagen, mostrar botón para seleccionar con diseño mejorado
-          <div className="flex flex-col items-center justify-center space-y-6 w-full max-w-sm mx-auto px-4">
+          // Si no hay imagen, mostrar mensaje simple y elegante (la galería se abre automáticamente)
+          <div className="flex flex-col items-center justify-center space-y-4 w-full max-w-sm mx-auto px-4">
             <div className="relative">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 flex items-center justify-center border-2 border-dashed border-blue-500/50 animate-pulse">
-                <Upload className="w-16 h-16 text-blue-400" />
-              </div>
-              <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-white text-sm font-bold">+</span>
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 flex items-center justify-center border-2 border-dashed border-blue-500/30">
+                <Upload className="w-12 h-12 text-blue-400" />
               </div>
             </div>
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold text-white">¡Crea tu publicación!</h2>
-              <p className="text-gray-400 text-sm">Comienza seleccionando una imagen de tu galería</p>
+            <div className="text-center space-y-1">
+              <h2 className="text-xl font-bold text-white">Selecciona una imagen</h2>
+              <p className="text-gray-400 text-sm">Elige una foto o video de tu galería</p>
             </div>
             {onSelectFile && (
               <button
                 onClick={onSelectFile}
-                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-2xl font-bold text-white transition-all transform hover:scale-105 shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2"
+                className="mt-2 px-6 py-2.5 text-blue-500 font-semibold text-sm hover:text-blue-400 transition-colors"
               >
-                <Upload className="w-5 h-5" />
-                <span>Seleccionar de Galería</span>
+                Abrir galería
               </button>
             )}
-            <p className="text-xs text-gray-500 text-center">
-              Formatos soportados: JPG, PNG, GIF • Máx. 10MB
-            </p>
           </div>
         ) : (
           <div 
@@ -497,7 +505,7 @@ export function ImageEditor({
               <label className="block text-sm font-bold text-gray-200">
                 📝 Descripción
               </label>
-              {onSelectFile && (
+              {onSelectFile && !isEditMode && (
                 <button
                   onClick={onSelectFile}
                   className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
@@ -547,8 +555,8 @@ export function ImageEditor({
         </div>
       )}
 
-      {/* Tabs - Solo mostrar si hay imagen */}
-      {imageUrl && (
+      {/* Tabs - Solo mostrar si hay imagen y NO está en modo edición */}
+      {imageUrl && !isEditMode && (
         <div className="bg-black border-t border-neutral-800">
           <div className="container-mobile flex max-w-md mx-auto">
             <button
@@ -585,8 +593,8 @@ export function ImageEditor({
         </div>
       )}
 
-      {/* Controls Area - Solo mostrar si hay imagen */}
-      {imageUrl && (
+      {/* Controls Area - Solo mostrar si hay imagen y NO está en modo edición */}
+      {imageUrl && !isEditMode && (
         <div className="bg-black border-t border-neutral-800 pb-safe max-h-[40vh] overflow-y-auto">
           <div className="container-mobile p-4 max-w-md mx-auto">
             {activeTab === 'adjust' ? (

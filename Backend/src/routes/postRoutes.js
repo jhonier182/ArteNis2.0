@@ -8,12 +8,42 @@ const {
   validateComment, 
   handleValidationErrors 
 } = require('../middlewares/validation');
+const { 
+  validateFeed, 
+  validatePublicPosts 
+} = require('../middlewares/feedValidation');
+const { 
+  feedRateLimiter, 
+  publicFeedRateLimiter 
+} = require('../middlewares/rateLimiter');
+const { 
+  checkCursorFeedEnabled 
+} = require('../middlewares/featureFlag');
 
 const router = express.Router();
 
 // Rutas públicas o con autenticación opcional
 
-// GET /api/posts - Obtener feed de publicaciones
+// GET /api/posts/feed - Obtener feed de publicaciones (posts de usuarios seguidos)
+router.get('/feed',
+  verifyToken,
+  checkCursorFeedEnabled,
+  feedRateLimiter,
+  validateFeed,
+  handleValidationErrors,
+  PostController.getFeed
+);
+
+// GET /api/posts/public - Obtener posts públicos para Explorar
+router.get('/public',
+  optionalAuth,
+  publicFeedRateLimiter,
+  validatePublicPosts,
+  handleValidationErrors,
+  PostController.getPublicPosts
+);
+
+// GET /api/posts - Obtener feed de publicaciones (mantener para compatibilidad)
 router.get('/',
   verifyToken,
   PostController.getFeed

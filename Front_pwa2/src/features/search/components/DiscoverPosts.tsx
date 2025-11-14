@@ -11,6 +11,10 @@ interface DiscoverPostsProps {
   isLoading: boolean
   /** Callback cuando se hace click en un post */
   onPostClick?: (postId: string) => void
+  /** Mostrar título (por defecto true) */
+  showTitle?: boolean
+  /** Título personalizado */
+  title?: string
 }
 
 /**
@@ -28,7 +32,9 @@ interface DiscoverPostsProps {
 export function DiscoverPosts({
   posts,
   isLoading,
-  onPostClick
+  onPostClick,
+  showTitle = true,
+  title = 'Descubre Arte'
 }: DiscoverPostsProps) {
   const router = useRouter()
 
@@ -61,8 +67,10 @@ export function DiscoverPosts({
 
   return (
     <div>
-      <h2 className="text-base font-semibold text-gray-300 mb-3">Descubre Arte</h2>
-      <div className="grid grid-cols-2 gap-2 auto-rows-[200px]">
+      {showTitle && (
+        <h2 className="text-base font-semibold text-gray-300 mb-3">{title}</h2>
+      )}
+      <div className="grid grid-cols-2 gap-2">
         {posts
           .filter((post) => post && post.id)
           .map((post, index) => (
@@ -71,7 +79,7 @@ export function DiscoverPosts({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.05 }}
-              className="relative overflow-hidden rounded-lg hover:scale-105 transition-transform duration-300 cursor-pointer"
+              className="relative aspect-[4/5] overflow-hidden hover:scale-105 transition-transform duration-300 cursor-pointer"
             >
               <button
                 onClick={() => handlePostClick(post.id)}
@@ -94,7 +102,7 @@ export function DiscoverPosts({
                         src={post.mediaUrl}
                         alt={post.title || 'Post'}
                         width={400}
-                        height={300}
+                        height={500}
                         className="w-full h-full object-cover"
                         priority={index < 4}
                         loading={index < 4 ? 'eager' : 'lazy'}

@@ -1,8 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { ChevronLeft } from 'lucide-react'
 
 /**
  * Página de Términos y Condiciones
@@ -10,7 +8,6 @@ import { ChevronLeft } from 'lucide-react'
  * Esta página muestra los términos y condiciones de uso de la plataforma
  */
 export default function TermsPage() {
-  const router = useRouter()
 
   return (
     <div className="min-h-screen bg-black text-white pb-32">
@@ -22,16 +19,7 @@ export default function TermsPage() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-[100] bg-black/95 backdrop-blur-sm border-b border-neutral-800">
         <div className="container-mobile px-4 py-4 max-w-4xl mx-auto">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="w-10 h-10 flex items-center justify-center bg-gray-900 hover:bg-gray-800 rounded-full transition-colors"
-              aria-label="Volver"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-bold">Términos y Condiciones</h1>
-          </div>
+          <h1 className="text-xl font-bold">Términos y Condiciones</h1>
         </div>
       </header>
 
