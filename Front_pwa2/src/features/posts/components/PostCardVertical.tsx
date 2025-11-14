@@ -76,7 +76,7 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
     }
   }
 
-  // Ajuste: desplazamos la card hacia arriba usando translate-y-[-40px] (o 10 a 12)
+  // Ajuste: desplazamos la card hacia arriba usando translate-y-[-90px] (o 10 a 12)
   // y agregamos paddingTop para evitar que suba demasiado y no se corte el contenido
   return (
     <article
@@ -169,7 +169,7 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
         </div>
 
         {/* Controles laterales (estilo TikTok) - Posicionados en la parte inferior derecha */}
-        <div className="absolute right-3 bottom-32 flex flex-col items-center gap-4 z-30">
+        <div className="absolute right-3 bottom-[38%] translate-y-1/2 flex flex-col items-center gap-4 z-10">
           {/* Avatar del autor */}
           <button
             onClick={handleAuthorClick}
@@ -243,7 +243,7 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
             <div className="flex items-center gap-2 mb-2">
               <button
                 onClick={handleAuthorClick}
-                className="flex items-center gap-2 flex-1 min-w-0"
+                className="flex items-center gap-2 min-w-0"
               >
                 <span className="text-white font-semibold text-sm truncate">
                   @{post.author?.username || post.author?.fullName || 'Usuario'}
@@ -253,15 +253,16 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
                     <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 )}
+                {post.author?.id && (
+                  <FollowButton
+                    targetUserId={post.author.id}
+                    initialFollowState={false}
+                    size="sm"
+                    showText={false}
+                  />
+                )}
               </button>
-              {post.author?.id && (
-                <FollowButton
-                  targetUserId={post.author.id}
-                  initialFollowState={false}
-                  size="sm"
-                  showText={false}
-                />
-              )}
+              <div className="flex-1" />
             </div>
 
             {/* Descripción */}
