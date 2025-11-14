@@ -162,13 +162,31 @@ export const postService = {
       params.cursor = cursor
     }
     
-    const response = await apiClient.getClient().get<{
-      success: boolean
-      message: string
-      data: FeedResponse
-    }>('/posts/feed', { params })
-    
-    return response.data.data
+    try {
+      const response = await apiClient.getClient().get<{
+        success: boolean
+        message: string
+        data: FeedResponse
+      }>('/posts/feed', { params })
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Error al cargar el feed')
+      }
+      
+      return response.data.data || { posts: [], nextCursor: null }
+    } catch (error: any) {
+      // Mejorar mensajes de error
+      if (error.response?.status === 503) {
+        throw new Error(error.response?.data?.message || 'El feed está temporalmente deshabilitado')
+      }
+      if (error.response?.status === 429) {
+        throw new Error('Demasiadas solicitudes. Por favor, espera un momento.')
+      }
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message)
+      }
+      throw error
+    }
   },
 
   /**

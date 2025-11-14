@@ -75,17 +75,17 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
   return (
     <article
       ref={ref}
-      className="relative w-full h-screen snap-start snap-always bg-black flex flex-col"
+      className="relative w-full h-screen snap-start snap-always bg-black flex flex-col overflow-hidden"
     >
-      {/* Media Container - Fullscreen */}
+      {/* Media Container - Fullscreen con aspect ratio vertical 9:16 */}
       <div
-        className="relative flex-1 w-full overflow-hidden"
+        className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black"
         onClick={handlePostClick}
       >
         {imageUrl ? (
           <>
             {isVideo ? (
-              <div className="relative w-full h-full">
+              <div className="relative w-full h-full flex items-center justify-center">
                 <video
                   ref={videoRef}
                   src={imageUrl}
@@ -93,7 +93,12 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
                   loop
                   playsInline
                   muted={isMuted}
-                  className="w-full h-full object-contain"
+                  className="max-w-full max-h-full w-auto h-full"
+                  style={{
+                    objectFit: 'contain',
+                    objectPosition: 'center',
+                    aspectRatio: '9/16'
+                  }}
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
                 />
@@ -123,20 +128,36 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
                 )}
               </div>
             ) : (
-              <div className="relative w-full h-full">
-                <Image
-                  src={imageUrl}
-                  alt={post.description || post.title || 'Post'}
-                  fill
-                  className="object-contain"
-                  unoptimized
-                  priority={isActive}
-                />
+              <div className="relative w-full h-full flex items-center justify-center">
+                <div 
+                  className="relative flex items-center justify-center"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    maxWidth: '100vw',
+                    maxHeight: '100vh',
+                    aspectRatio: '9/16'
+                  }}
+                >
+                  <Image
+                    src={imageUrl}
+                    alt={post.description || post.title || 'Post'}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 100vw"
+                    className="object-contain"
+                    style={{
+                      objectFit: 'contain',
+                      objectPosition: 'center'
+                    }}
+                    unoptimized
+                    priority={isActive}
+                  />
+                </div>
               </div>
             )}
           </>
         ) : (
-          <div className="w-full h-full bg-gray-900 flex items-center justify-center">
+          <div className="absolute inset-0 w-full h-full bg-gray-900 flex items-center justify-center">
             <p className="text-gray-500 text-sm">Sin contenido</p>
           </div>
         )}
@@ -254,6 +275,7 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
             ))}
           </div>
         )}
+        
 
         {/* Fecha */}
         <p className="text-gray-400 text-xs">

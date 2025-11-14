@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { Bell, Loader2 } from 'lucide-react'
@@ -12,10 +12,34 @@ import { useFeed } from '../hooks/useFeed'
 export default function HomePage() {
   const router = useRouter()
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
-  const { posts, loading, error, hasMore, loadMore, isLoadingMore } = useFeed({ 
+  const { posts, loading, error, hasMore, loadMore, isLoadingMore, refresh } = useFeed({ 
     limit: 20,
-    autoLoad: isAuthenticated
+    autoLoad: false // Controlaremos manualmente la carga
   })
+
+  // Cargar feed cuando la autenticación esté lista
+  const hasLoadedRef = useRef(false)
+  
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && !hasLoadedRef.current) {
+      hasLoadedRef.current = true
+      console.log('[HomePage] Usuario autenticado, cargando feed...')
+      const timer = setTimeout(() => {
+        refresh().catch(err => {
+          console.error('[HomePage] Error al cargar feed:', err)
+          hasLoadedRef.current = false // Permitir reintentar
+        })
+      }, 200) // Pequeño delay para asegurar que todo está listo
+      
+      return () => clearTimeout(timer)
+    }
+    
+    // Resetear si el usuario se desautentica
+    if (!isAuthenticated) {
+      hasLoadedRef.current = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authLoading]) // Solo dependencias críticas
 
   useEffect(() => {
     // Si terminó de cargar y no está autenticado, redirigir al login
