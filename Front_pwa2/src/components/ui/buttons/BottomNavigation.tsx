@@ -33,9 +33,9 @@ export function BottomNavigation({ currentPath }: BottomNavigationProps) {
         </button>
         
         <button
-          onClick={() => router.push('/search')}
+          onClick={() => router.push('/explore')}
           className={`nav-button flex flex-col items-center justify-center py-2 px-3 min-w-0 flex-1 transition-colors ${
-            isActive('/search') ? 'text-blue-500' : 'text-gray-400 hover:text-white'
+            isActive('/explore') ? 'text-blue-500' : 'text-gray-400 hover:text-white'
           }`}
         >
           <Search className="w-6 h-6 mb-1" />
