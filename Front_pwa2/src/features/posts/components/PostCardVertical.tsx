@@ -24,10 +24,10 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isMuted, setIsMuted] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
-  
+
   const imageUrl = post.mediaUrl || post.imageUrl || ''
   const isVideo = post.type === 'video' || post.type === 'reel'
-  
+
   // Intersection Observer para autoplay
   const { ref, inView } = useInView({
     threshold: 0.5,
@@ -73,12 +73,12 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
   }
 
   return (
-    <article 
+    <article
       ref={ref}
       className="relative w-full h-screen snap-start snap-always bg-black flex flex-col"
     >
       {/* Media Container - Fullscreen */}
-      <div 
+      <div
         className="relative flex-1 w-full overflow-hidden"
         onClick={handlePostClick}
       >
@@ -97,7 +97,7 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
                 />
-                
+
                 {/* Botón de mute/unmute para videos */}
                 <button
                   onClick={toggleMute}
@@ -116,7 +116,7 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                     <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                       <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
+                        <path d="M8 5v14l11-7z" />
                       </svg>
                     </div>
                   </div>
@@ -143,7 +143,7 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
       </div>
 
       {/* Controles laterales (estilo TikTok) */}
-      <div className="absolute right-4 bottom-32 flex flex-col items-center gap-4 z-10">
+      <div className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-5 z-10">
         {/* Avatar del autor */}
         <button
           onClick={handleAuthorClick}
@@ -211,7 +211,7 @@ export function PostCardVertical({ post, onPostClick, isActive = false }: PostCa
       </div>
 
       {/* Información inferior */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 bg-gradient-to-t from-black/80 to-transparent z-10">
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-20 md:pb-24 bg-gradient-to-t from-black/80 to-transparent z-10">
         {/* Autor y botón seguir */}
         <div className="flex items-center gap-2 mb-2">
           <button
