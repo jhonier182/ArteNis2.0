@@ -23,7 +23,7 @@ const ProfileSavedPostItem = React.memo<ProfileSavedPostItemProps>(({ post, onCl
       data-post-item
       data-post-id={post.id}
       onClick={handleClick}
-      className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
+      className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
     >
       {post.mediaUrl && (
         <>
@@ -32,8 +32,8 @@ const ProfileSavedPostItem = React.memo<ProfileSavedPostItemProps>(({ post, onCl
               <Image
                 src={post.thumbnailUrl || post.mediaUrl}
                 alt={post.description || 'Post'}
-                width={300}
-                height={300}
+                width={400}
+                height={500}
                 className="w-full h-full object-cover"
                 unoptimized={true}
               />
@@ -50,8 +50,8 @@ const ProfileSavedPostItem = React.memo<ProfileSavedPostItemProps>(({ post, onCl
             <Image
               src={post.mediaUrl}
               alt={post.description || 'Post'}
-              width={300}
-              height={300}
+              width={400}
+              height={500}
               className="w-full h-full object-cover"
               unoptimized={true}
             />

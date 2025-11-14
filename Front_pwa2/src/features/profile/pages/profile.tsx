@@ -540,7 +540,7 @@ export default function ProfilePage() {
                 <ProfilePostGrid
                   posts={userPosts}
                   onPostClick={handlePostClick}
-                  aspectRatio="3/4"
+                  aspectRatio="4/5"
                 />
                 
                 <InfiniteScrollTrigger

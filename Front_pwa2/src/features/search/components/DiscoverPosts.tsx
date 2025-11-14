@@ -94,7 +94,7 @@ export function DiscoverPosts({
                         src={post.mediaUrl}
                         alt={post.title || 'Post'}
                         width={400}
-                        height={300}
+                        height={500}
                         className="w-full h-full object-cover"
                         priority={index < 4}
                         loading={index < 4 ? 'eager' : 'lazy'}

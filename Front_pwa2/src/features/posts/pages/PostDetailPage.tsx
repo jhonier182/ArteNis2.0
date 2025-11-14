@@ -197,15 +197,14 @@ export default function PostDetailPage() {
         <title>{post.title || 'Post'} - InkEndin</title>
       </Head>
 
-      {/* Media */}
+      {/* Media - Vertical 4:5 (1080x1350) */}
       {imageUrl && (
         <div
-          className="mb-4 relative overflow-hidden bg-black rounded-xl"
+          className="mb-4 relative overflow-hidden bg-black rounded-xl mx-auto"
           style={{
             width: 'calc(100vw - 32px)', // 16px margin each side para espacio
-            maxWidth: 'calc(100vw - 32px)',
-            aspectRatio: '9/16',
-            maxHeight: '70vh',
+            maxWidth: '1080px',
+            aspectRatio: '4/5',
             left: '50%',
             transform: 'translateX(-50%)'
           }}
@@ -219,11 +218,10 @@ export default function PostDetailPage() {
                 loop
                 playsInline
                 poster={post.thumbnailUrl}
-                className="w-full h-full object-cover rounded-xl"
+                className="w-full h-full object-contain rounded-xl"
                 style={{
                   outline: 'none',
-                  aspectRatio: '9/16',
-                  maxHeight: '70vh',
+                  aspectRatio: '4/5',
                   backgroundColor: '#0f1419'
                 }}
               />
@@ -257,9 +255,8 @@ export default function PostDetailPage() {
                 backgroundColor: '#000', // Fondo negro para imágenes
                 width: '100%',
                 height: '100%',
-                maxWidth: '100vw',
-                maxHeight: '70vh',
-                position: 'relative'
+                position: 'relative',
+                aspectRatio: '4/5'
               }}
             >
               <Image
@@ -267,14 +264,13 @@ export default function PostDetailPage() {
                 src={imageUrl}
                 alt={post.title || 'Post'}
                 fill
+                sizes="(max-width: 1080px) calc(100vw - 32px), 1080px"
                 className="object-contain rounded-xl"
                 priority
                 unoptimized={true} // Cloudinary ya optimiza las imágenes, evitar doble optimización
                 style={{
                   width: '100%',
                   height: '100%',
-                  maxWidth: '100vw',
-                  maxHeight: '70vh',
                   backgroundColor: 'transparent' // la imagen tiene fondo transparente sobre #000
                 }}
               />

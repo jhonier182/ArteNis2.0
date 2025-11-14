@@ -6,7 +6,7 @@ interface ProfilePostItemProps {
   post: UserPost
   index: number
   onClick: (postId: string) => void
-  aspectRatio?: '3/4' | 'auto' // Para permitir diferentes aspect ratios según el contexto
+  aspectRatio?: '4/5' | 'auto' // Para permitir diferentes aspect ratios según el contexto
 }
 
 /**
@@ -18,8 +18,8 @@ const ProfilePostItem = React.memo<ProfilePostItemProps>(({ post, index, onClick
     onClick(post.id)
   }, [post.id, onClick])
 
-  const containerClassName = aspectRatio === '3/4' 
-    ? "relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
+  const containerClassName = aspectRatio === '4/5' 
+    ? "relative aspect-[4/5] rounded-2xl overflow-hidden bg-gray-800 cursor-pointer"
     : "relative overflow-hidden rounded-lg cursor-pointer"
 
   return (
@@ -36,8 +36,8 @@ const ProfilePostItem = React.memo<ProfilePostItemProps>(({ post, index, onClick
               <Image
                 src={post.thumbnailUrl || post.mediaUrl}
                 alt={post.title || post.description || 'Post'}
-                width={aspectRatio === '3/4' ? 300 : 400}
-                height={aspectRatio === '3/4' ? 300 : 300}
+                width={aspectRatio === '4/5' ? 400 : 400}
+                height={aspectRatio === '4/5' ? 500 : 400}
                 className="w-full h-full object-cover"
                 unoptimized={true}
                 priority={index < 4}
@@ -45,8 +45,8 @@ const ProfilePostItem = React.memo<ProfilePostItemProps>(({ post, index, onClick
               />
               {/* Overlay con icono de play para videos */}
               <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                <div className={`${aspectRatio === '3/4' ? 'w-12 h-12' : 'w-10 h-10'} bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm`}>
-                  <svg className={`${aspectRatio === '3/4' ? 'w-6 h-6' : 'w-5 h-5'} text-white ml-1`} fill="currentColor" viewBox="0 0 24 24">
+                <div className={`${aspectRatio === '4/5' ? 'w-12 h-12' : 'w-10 h-10'} bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm`}>
+                  <svg className={`${aspectRatio === '4/5' ? 'w-6 h-6' : 'w-5 h-5'} text-white ml-1`} fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z"/>
                   </svg>
                 </div>
@@ -56,8 +56,8 @@ const ProfilePostItem = React.memo<ProfilePostItemProps>(({ post, index, onClick
             <Image
               src={post.mediaUrl}
               alt={post.title || post.description || 'Post'}
-              width={aspectRatio === '3/4' ? 300 : 400}
-              height={aspectRatio === '3/4' ? 300 : 300}
+              width={aspectRatio === '4/5' ? 400 : 400}
+              height={aspectRatio === '4/5' ? 500 : 400}
               className="w-full h-full object-cover"
               priority={index < 4}
               loading={index < 4 ? 'eager' : 'lazy'}
