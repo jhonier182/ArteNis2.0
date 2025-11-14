@@ -166,9 +166,15 @@ export function useExplorePosts(
     await loadPosts(null, false)
   }, [loadPosts])
 
-  // Auto-load si está habilitado
+  // Ref para evitar múltiples cargas iniciales
+  const hasLoadedRef = useRef(false)
+  const lastFollowingIdsRef = useRef<string>('')
+  const lastUserIdRef = useRef<string | undefined>(undefined)
+
+  // Auto-load si está habilitado (solo una vez al montar o cuando cambia autoLoad)
   useEffect(() => {
-    if (autoLoad) {
+    if (autoLoad && !hasLoadedRef.current) {
+      hasLoadedRef.current = true
       loadPosts(null, false)
     }
 
@@ -178,13 +184,23 @@ export function useExplorePosts(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoLoad])
 
-  // Recargar cuando cambian los usuarios seguidos
+  // Recargar cuando cambian los usuarios seguidos o el userId (solo si ya se cargó inicialmente)
   useEffect(() => {
-    if (autoLoad && (followingIds.length > 0 || userId)) {
+    const followingIdsStr = followingIds.join(',')
+    const hasFollowingChanged = lastFollowingIdsRef.current !== followingIdsStr
+    const hasUserIdChanged = lastUserIdRef.current !== userId
+
+    if (autoLoad && hasLoadedRef.current && (hasFollowingChanged || hasUserIdChanged)) {
+      lastFollowingIdsRef.current = followingIdsStr
+      lastUserIdRef.current = userId
       refresh()
+    } else if (!hasLoadedRef.current) {
+      // Si aún no se ha cargado, guardar los valores para la primera carga
+      lastFollowingIdsRef.current = followingIdsStr
+      lastUserIdRef.current = userId
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [followingIds.join(','), userId])
+  }, [followingIds, userId, autoLoad])
 
   return {
     posts,
